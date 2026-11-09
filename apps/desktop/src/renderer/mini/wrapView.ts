@@ -74,7 +74,7 @@ export function previewView(p: PreviewView, local: WrapLocal): SafeHtml {
 }
 
 export function loadingView(): SafeHtml {
-  return panel([head(OK_CHIP), html`<div class="pb"><div class="busy" role="status"><span class="spin"></span>Reading your tabs in Chrome…</div></div>`]);
+  return panel([head(OK_CHIP), html`<div class="pb"><div class="busy" role="status"><span class="spin"></span>Reading your open tabs and sorting them into groups…</div></div>`]);
 }
 
 export function checkingView(p: PreviewView, local: WrapLocal): SafeHtml {

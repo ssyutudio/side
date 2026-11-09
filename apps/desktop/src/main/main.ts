@@ -1,5 +1,5 @@
 // Electron main process: owns the data file, the bridge to the extension and the sidy window.
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor, shell } from 'electron';
 import { join } from 'node:path';
 import { BRIDGE_HOST, BRIDGE_PORT, COMMAND_TIMEOUT_MS, type TabsReport } from '@side/shared';
 import { loadConfig } from './config';
@@ -13,9 +13,15 @@ import { IPC_CHANNELS, routeIpc } from './ipcRoutes';
 import { watchReturns } from './returnWatcher';
 import { parseDemoCommand } from './demoClock';
 import { DemoClock } from '../core/clock';
+import { Windows } from './windows';
+import { routeWindow, WINDOW_CHANNELS } from './windowRoutes';
 
+// Native controls and menus stay in English whatever the system language is.
+app.commandLine.appendSwitch('lang', 'en-US');
 app.setName('Side');
-app.setPath('userData', join(app.getPath('appData'), 'Side'));
+// SIDE_USER_DATA points checks and rehearsals at a throwaway folder, so a test never pairs or
+// writes into the real data file.
+app.setPath('userData', process.env.SIDE_USER_DATA || join(app.getPath('appData'), 'Side'));
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -28,6 +34,23 @@ const clock = new DemoClock();
 let edge: EdgeWindow | null = null;
 let bridge: Bridge | null = null;
 let ctl: SideController | null = null;
+let windows: Windows | null = null;
+let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Hide: a toast where sidy was, then nothing on screen. Show: sidy is back at once. */
+const edgePort = {
+  resize: (size: Parameters<EdgeWindow['resize']>[0]) => edge?.resize(size),
+  show: () => {
+    clearTimeout(hideTimer);
+    edge?.show();
+  },
+  hide: () => {
+    windows?.closeMini();
+    edge?.win.webContents.send('side:toast', { text: '', ms: 6000, kind: 'hidden' });
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => edge?.hide(), 6000);
+  },
+};
 
 function installMenu() {
   // Without an Edit menu, Cmd+C / Cmd+V do not work in text fields on macOS.
@@ -95,8 +118,13 @@ async function start() {
 
   edge = createEdgeWindow({
     preload: join(__dirname, 'preload.js'),
-    page: join(__dirname, 'static', 'edge-placeholder.html'),
+    page: join(__dirname, 'renderer', 'edge.html'),
     size: store.get().settings.sidySize,
+  });
+  windows = new Windows({
+    preload: join(__dirname, 'preload.js'),
+    rendererDir: join(__dirname, 'renderer'),
+    edgeLayout: () => edge!.layout,
   });
 
   ctl = new SideController({
@@ -104,15 +132,42 @@ async function start() {
     bridge,
     clock,
     llm: transport ? (req) => transport.complete({ system: req.system, prompt: req.user }) : null,
-    edge,
+    edge: edgePort,
     registerShortcut,
     push: (state) => pushToWindows('side:state', state),
-    renderBubble: (bubble) => edge?.win.webContents.send('side:bubble', bubble),
-    openMain: () => console.log('[side] Main opens here once its screen is approved.'),
+    renderBubble: (bubble) => {
+      // While Mini is open the user is already talking to Side: no bubble on top of it.
+      if (bubble && windows?.miniOpen()) return void setTimeout(() => ctl?.speak.clear(), 0);
+      edge?.win.webContents.send('side:bubble', bubble);
+    },
+    openMain: () => windows?.openMain(),
   });
 
   for (const channel of IPC_CHANNELS) {
     ipcMain.handle(channel, (_e, payload) => routeIpc(ctl!, channel, payload));
+  }
+  const windowPort = {
+    // One thing at a time beside sidy: opening Mini puts the bubble away.
+    openMini: (v: 'home' | 'wrap' | 'onemore') => {
+      ctl?.speak.clear();
+      windows?.openMini(v);
+    },
+    toggleMini: () => {
+      ctl?.speak.clear();
+      windows?.toggleMini();
+    },
+    closeMini: () => windows?.closeMini(),
+    resizeMini: (h: number) => windows?.resizeMini(h),
+    toast: (text: string, ms: number) => edge?.win.webContents.send('side:toast', { text, ms }),
+    checkConnection: async () => {
+      for (let i = 0; i < 15 && bridge?.status !== 'connected'; i++) await new Promise((r) => setTimeout(r, 200));
+      ctl?.publish();
+      return bridge?.status ?? 'waiting';
+    },
+    revealData: () => shell.showItemInFolder(store.path),
+  };
+  for (const channel of WINDOW_CHANNELS) {
+    ipcMain.handle(channel, (_e, payload) => routeWindow(windowPort, channel, payload));
   }
 
   try {
@@ -140,6 +195,11 @@ async function start() {
   setInterval(() => void ctl?.speak.tick(), 30_000);
   void ctl.speak.trigger('app_start');
 
+  // SIDE_OPEN=mini|wrap|onemore|main opens that window at launch (checks and recording).
+  const open = process.env.SIDE_OPEN;
+  if (open === 'main') setTimeout(() => windows?.openMain(), 800);
+  else if (open === 'mini' || open === 'wrap' || open === 'onemore') setTimeout(() => windows?.openMini(open === 'mini' ? 'home' : open), 1500);
+
   if (process.env.SIDE_SMOKE === '1') {
     setTimeout(() => {
       const w = edge!.win;
@@ -163,8 +223,11 @@ async function start() {
 
 app.whenReady().then(start);
 
-// Dock click brings sidy back after Hide.
-app.on('activate', () => void ctl?.setHidden(false));
+// Dock click brings sidy back after Hide; otherwise it opens Main.
+app.on('activate', () => {
+  if (store.get().hidden) void ctl?.setHidden(false);
+  else windows?.openMain();
+});
 app.on('second-instance', () => void ctl?.setHidden(false));
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();

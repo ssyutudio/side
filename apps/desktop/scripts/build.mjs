@@ -41,5 +41,4 @@ if (pages.length) {
   for (const p of pages) cpSync(join(rsrc, p, 'index.html'), join(rout, `${p}.html`));
 }
 cpSync(join(rsrc, 'shared', 'side.css'), join(rout, 'side.css'));
-cpSync(join(root, 'static'), join(out, 'static'), { recursive: true });
 console.log('desktop built ->', out, 'pages:', pages.join(', ') || 'none');
