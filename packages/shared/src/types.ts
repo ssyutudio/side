@@ -203,6 +203,8 @@ export interface Settings {
   reactions?: boolean;
   /** Desktop apps turned on in Connections (adapter ids such as "excel"). Empty or missing: none, so nothing is looked at. */
   apps?: string[];
+  /** Calendar (Connections): off unless turned on. Reads only tomorrow's first event time and today's count. */
+  calendar?: boolean;
 }
 
 /** Why sidy stayed quiet at a moment it could have spoken. Shown in Main. */

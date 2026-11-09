@@ -19,6 +19,7 @@ const settingsPatch = z
     excludedDomains: z.array(z.string().max(253)).max(500),
     reactions: z.boolean(),
     apps: z.array(z.string().regex(/^[a-z_]{1,40}$/)).max(40),
+    calendar: z.boolean(),
   })
   .partial()
   .strict();
