@@ -159,3 +159,26 @@ describe('SideController privacy defaults', () => {
     expect(llmCalls).toBe(0);
   });
 });
+
+describe('SideController step inside right after a relaunch', () => {
+  it('waits for Chrome to reconnect before opening, instead of failing at once', async () => {
+    const { ctl, bridge } = await setup();
+    await ctl.previewWrapup();
+    await ctl.confirmWrapup([]);
+    const step = ctl.step.current()!;
+    bridge.status = 'disconnected';
+    setTimeout(() => (bridge.status = 'connected'), 300);
+    const out = await ctl.openStep(step.id, 3000);
+    expect(out.kind).toBe('opened');
+  });
+
+  it('says not connected when Chrome does not come back in time', async () => {
+    const { ctl, bridge } = await setup();
+    await ctl.previewWrapup();
+    await ctl.confirmWrapup([]);
+    const step = ctl.step.current()!;
+    bridge.status = 'disconnected';
+    const out = await ctl.openStep(step.id, 300);
+    expect(out).toEqual({ kind: 'unconfirmed', reason: 'not_connected' });
+  });
+});

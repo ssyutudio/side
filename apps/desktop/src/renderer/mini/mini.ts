@@ -128,9 +128,11 @@ async function act(el: HTMLElement) {
       await api.invoke('side:wrapup.tomorrow', { id: el.dataset.id, line: null });
       return toastAndClose('Set aside. See you tomorrow.');
     case 'step-open': {
-      const r = await api.invoke<{ kind: string; restored?: string }>('side:step.open', { stepId: el.dataset.step });
+      const r = await api.invoke<{ kind: string; restored?: string; reason?: string }>('side:step.open', { stepId: el.dataset.step });
       const text = r.kind === 'opened' ? (r.restored === 'top' ? "Opened the page. sidy couldn't find the exact spot." : 'Opened where you stopped.')
-        : r.kind === 'failed' ? "Chrome couldn't open it." : "Chrome didn't answer, so sidy can't say the page opened.";
+        : r.kind === 'failed' ? "Chrome couldn't open it."
+        : r.reason === 'not_connected' ? "Chrome isn't connected. Open Chrome, then press Step inside again."
+        : "Chrome didn't answer, so sidy can't say the page opened.";
       return toastAndClose(text);
     }
     case 'hide': return void api.invoke('side:hide', { hidden: true });

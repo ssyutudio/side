@@ -53,9 +53,10 @@ function showToast(t: Toast) {
   render();
 }
 
-function openedText(r: { kind: string; restored?: string; message?: string }): string {
+function openedText(r: { kind: string; restored?: string; message?: string; reason?: string }): string {
   if (r.kind === 'opened') return r.restored === 'top' ? "Opened the page. sidy couldn't find the exact spot." : 'Opened where you stopped.';
   if (r.kind === 'failed') return `Chrome couldn't open it. ${r.message ?? ''}`.trim();
+  if (r.kind === 'unconfirmed' && r.reason === 'not_connected') return "Chrome isn't connected. Open Chrome, then press Step inside again.";
   if (r.kind === 'unconfirmed') return "Chrome didn't answer, so sidy can't say the page opened. Look at Chrome, or try again from Mini.";
   return 'That step is no longer there.';
 }
@@ -78,7 +79,7 @@ async function act(el: HTMLElement) {
     bubble = null;
     showToast({ text: 'Opening it in Chrome…', ms: 15000 });
     void api.invoke('side:bubble.close');
-    const r = await api.invoke<{ kind: string; restored?: string; message?: string }>('side:step.open', { stepId: el.dataset.step });
+    const r = await api.invoke<{ kind: string; restored?: string; message?: string; reason?: string }>('side:step.open', { stepId: el.dataset.step });
     return showToast({ text: openedText(r), ms: 4000 });
   }
   if (a === 'rest-today' && el.dataset.step) {
@@ -145,9 +146,11 @@ api.onBubble((b) => {
   render();
 });
 api.onToast((t) => showToast(t));
+// A bubble decided before this page finished loading (e.g. at app start) arrives with the state.
 void api.invoke<ViewState>('side:state').then((s) => {
   if (s && 'connection' in s) {
     state = s;
+    if (s.bubble && !bubble) bubble = s.bubble;
     render();
   }
 });

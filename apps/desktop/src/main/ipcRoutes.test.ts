@@ -10,6 +10,7 @@ function fakeController() {
     state: () => ({ connection: 'connected' }),
     previewWrapup: rec('previewWrapup'),
     confirmWrapup: rec('confirmWrapup'),
+    openStep: rec('openStep'),
     oneMoreHour: rec('oneMoreHour'),
     bubbleDrawn: rec('bubbleDrawn'),
     updateSettings: rec('updateSettings'),

@@ -173,6 +173,16 @@ export class SideController {
     return out;
   }
 
+  // ---- Step inside ----
+
+  /** Right after a relaunch or wake the extension may still be reconnecting: wait a little first. */
+  async openStep(stepId: string, waitMs = 10_000) {
+    const end = Date.now() + waitMs;
+    while (this.deps.bridge.status !== 'connected' && Date.now() < end) await new Promise((r) => setTimeout(r, 200));
+    if (this.deps.bridge.status !== 'connected') return { kind: 'unconfirmed' as const, reason: 'not_connected' };
+    return this.step.open(stepId);
+  }
+
   // ---- One more hour ----
 
   async oneMoreHour() {
