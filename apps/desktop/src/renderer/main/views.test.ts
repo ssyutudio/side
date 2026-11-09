@@ -149,7 +149,7 @@ describe('Settings', () => {
     const h = s(settingsView(FIXTURES.day));
     expect(h).toMatch(/aria-pressed="true"[^>]*data-size="small"|data-size="small"[^>]*aria-pressed="true"/);
     expect(h).toContain('⌃⌥S');
-    expect(h).toContain('On: sends tab titles, your one line for tomorrow and your step counts to Claude (Anthropic) to name groups, suggest a question and pick your next step. Never addresses, page text or excluded sites. Off: sidy uses simple rules.');
+    expect(h).toContain('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic) to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.');
     expect(h).toMatch(/data-key="llmEnabled"[^>]*aria-checked="true"|aria-checked="true"[^>]*data-key="llmEnabled"/);
     expect(h).toMatch(/data-key="uploadEnabled"[^>]*aria-checked="false"|aria-checked="false"[^>]*data-key="uploadEnabled"/);
     expect(h).toContain('Connections');

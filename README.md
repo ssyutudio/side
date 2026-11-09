@@ -49,7 +49,8 @@ Keyboard: **Control+Option+S** hides sidy completely and brings it back. Clickin
 3. **One more hour.** Not stopping yet? Side won't stop you. It tells you how long you'd sleep if you stopped now, closes nothing, and checks in exactly once at the time you pick.
 4. **Be Beside.** sidy stays tucked in (eyes only) and quiet. It speaks first only when you come back (launching Side, waking or unlocking your computer, or touching the keyboard after 15 minutes away), at most once an hour, never in quiet hours or focus. It may stretch on unlock, whistle when a video starts, or nod to music: once, then still. Turn reactions off in Settings; Reduce Motion turns them off too.
 5. **Step Inside.** The next time, sidy offers one step with **Step inside** or **Rest today**. Step inside opens the page where you stopped and marks the spot with *You stopped here*. After three days away it is still one step, and it never counts what you "missed".
-6. **By your side.** **Open Side** (from Mini) shows Today, History, Excluded sites, What Side saw and Settings. Hide sidy with **Control+Option+S**; the same keys or the Dock bring it back.
+6. **Desktop apps and Ask sidy.** In **Settings → Connections**, turn on the apps sidy may open a file in (Word, Excel, PowerPoint, Photoshop and others found on this computer; all off by default). Wrap up then lists **Files saved today** apart from your tabs and closes none of them; the next day's step can open that file in its app, for example Excel at the last filled cell or PowerPoint on the last slide. sidy reads only file names and when you last used them. In Mini, **Ask sidy** takes one line (*I'm done for today*) and does at most one of seven fixed things, the same as its own buttons.
+7. **By your side.** **Open Side** (from Mini) shows Today, History, Excluded sites, What Side saw and Settings. Hide sidy with **Control+Option+S**; the same keys or the Dock bring it back.
 
 ## What Side reads, stores and sends
 
@@ -57,7 +58,7 @@ Keyboard: **Control+Option+S** hides sidy completely and brings it back. Clickin
 
 **Stores.** Everything stays in one file on this computer: `~/Library/Application Support/Side/side-data.json`.
 
-**Sends.** By default, Side sends to Anthropic's API (Claude): **tab titles** with temporary ids to group and name your work; your set-aside **group names** to suggest a question for tomorrow; **your one line** with those titles to pick the next morning's step; and, once you have three or more steps, **your step counts** (numbers only) for the By your side sentence. It never sends URLs, page text or excluded sites, and you can turn this off in Settings so everything is done locally with simple rules. Anonymous usage counts (numbers only, no text) are **off** unless you turn them on.
+**Sends.** By default, Side sends to Anthropic's API (Claude): **tab titles** with temporary ids to group and name your work; your set-aside **group names** to suggest a question for tomorrow; **your one line** with those titles to pick the next morning's step; once you have three or more steps, **your step counts** (numbers only) for the By your side sentence; with desktop apps turned on, **file names** (no folders) of files you saved today, to pick the next step; and **the line you type in Ask sidy**, to pick one action. It never sends URLs, folders, page text, file contents or excluded sites, and you can turn this off in Settings so everything is done locally with simple rules. Anonymous usage counts (numbers only, no text) are **off** unless you turn them on.
 
 Main → **What Side saw** lists what Side read, what it skipped and what it sent.
 
@@ -102,7 +103,7 @@ Manual checks that need a real screen are in `docs/manual-check.md`.
 - **Check-ins.** A check-in you set ("One more hour") cannot fire while the app is quit or the computer is asleep. It appears when you come back.
 - **Reading position.** It is captured on the built-in list of work sites. Google Docs and Notion are restored by the scroll offset of their inner reading area, not cursor position, and Google Docs draws text on a canvas, so the sentence fallback does not apply there. Inner-scrolling pages are covered by tests; the real-Chrome checks for this build used ordinary pages (Wikipedia), so check one of your own Docs.
 - **Pairing.** If you load the extension from a different folder, Chrome gives it a new id, so it pairs as a new extension.
-- **Desktop apps.** Side sees Chrome only. It does not read desktop apps such as Figma or VS Code, and its reactions hear sound from Chrome tabs only, not desktop music apps.
+- **Desktop apps.** Checked on this Mac with Excel, Word and PowerPoint (the last filled cell, the end, the last slide). Other apps only open the file, never a spot inside it, and sidy says so. The first time, macOS asks to let your terminal control the app; if you say no, the file still opens. Reactions hear sound from Chrome tabs only.
 - **"You stopped here".** The mark appears only on sites Side may read (the built-in list) and only when the spot was confirmed. Otherwise the page opens and sidy says it could not find the exact spot.
 - **Right after waking or relaunching.** The extension may need a few seconds to reconnect; Step inside waits up to ten seconds, then says Chrome is not connected.
 
