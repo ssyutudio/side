@@ -4,7 +4,7 @@ import { BrowserWindow, screen } from 'electron';
 import { join } from 'node:path';
 import type { EdgeLayout } from './edgeLayout';
 
-const MINI_WIDTH = 420; // panel 388 + room for its shadow
+const MINI_WIDTH = 444; // panel 388 + 28px room on each side for its shadow
 const MAIN_W = 1180;
 const MAIN_H = 780;
 /** Main leaves this much free on the right for sidy. */
@@ -58,7 +58,8 @@ export class Windows {
     const l = this.o.edgeLayout();
     const area = screen.getPrimaryDisplay().workArea;
     const sidyCenterY = l.window.y + l.hit.y + l.hit.height / 2;
-    const right = area.x + area.width - (l.sidyHeight + 22) + 20;
+    // The panel's right edge sits just left of sidy; the window adds 28px of shadow room.
+    const right = area.x + area.width - (l.sidyHeight + 22) + 28;
     const h = Math.min(this.miniHeight, area.height - 16);
     const y = Math.round(Math.min(Math.max(sidyCenterY - h / 2, area.y + 8), area.y + area.height - h - 8));
     this.mini.setBounds({ x: Math.round(right - MINI_WIDTH), y, width: MINI_WIDTH, height: Math.round(h) });

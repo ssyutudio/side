@@ -214,3 +214,5 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .copy code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 /* macOS Reduce Motion: nothing moves anywhere in Side (switches, chevrons, sidy, spinners). */
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+.mini-room{padding:28px}
+.mini-room .panel{position:relative;box-shadow:0 8px 22px rgba(20,24,40,.20),0 0 0 1px rgba(20,24,40,.08)}

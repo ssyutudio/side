@@ -22,6 +22,7 @@ type View =
 type WrapOut = { kind: string; setAside?: SetAside; message?: string; reason?: string };
 
 const api = getApi();
+const MINI_ROOM = 28;
 const app = document.getElementById('app')!;
 let state: ViewState | null = null;
 let view: View = { name: 'home' };
@@ -42,9 +43,11 @@ function render() {
     case 'failed': h = failedView(view.f); break;
     case 'onemore': h = oneMoreView(state.now, state.settings.wakeMinutes, view.minutes, state); break;
   }
-  app.innerHTML = `<div style="padding:12px 16px 20px 12px">${h}</div>`;
+  // Room on every side so the panel's shadow fades out inside the window instead of being cut
+  // into a visible box at the window edge.
+  app.innerHTML = `<div class="mini-room">${h}</div>`;
   const panel = app.querySelector<HTMLElement>('.panel');
-  if (panel) void api.invoke('side:mini.resize', { height: Math.ceil(panel.getBoundingClientRect().height) + 32 });
+  if (panel) void api.invoke('side:mini.resize', { height: Math.ceil(panel.getBoundingClientRect().height) + 2 * MINI_ROOM });
   app.querySelector<HTMLInputElement>('#tm')?.addEventListener('input', (e) => (line = (e.target as HTMLInputElement).value));
 }
 
