@@ -11,3 +11,11 @@ export const groupNames = {
   figma: 'Figma file',
   notion: 'Notion page',
 } as const;
+
+/** Lines for "what you did today". Only confirmed events, stated as facts. */
+export const done = {
+  setAside: (tabs: number, groups: number) =>
+    `Set aside ${tabs} ${tabs === 1 ? 'tab' : 'tabs'} in ${groups} ${groups === 1 ? 'group' : 'groups'}.`,
+  stepClicked: (work: string) => `Came back to ${work}.`,
+  keptGoing: (work: string) => `Kept going on ${work} for 10+ minutes.`,
+};
