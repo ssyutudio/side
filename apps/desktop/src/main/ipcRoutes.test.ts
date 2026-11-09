@@ -39,8 +39,9 @@ describe('routeIpc', () => {
     await routeIpc(ctl, 'side:wrapup.suggest', { id: 'sa1' });
     await routeIpc(ctl, 'side:onemore.choose', { minutes: 30 });
     await routeIpc(ctl, 'side:settings.set', { sidySize: 'large' });
+    await routeIpc(ctl, 'side:settings.set', { reactions: false });
     await routeIpc(ctl, 'side:demo', { cmd: 'next-day' });
-    expect(calls.map((c) => c[0])).toEqual(['confirmWrapup', 'saveTomorrowLine', 'suggestTomorrow', 'choose', 'updateSettings', 'demo']);
+    expect(calls.map((c) => c[0])).toEqual(['confirmWrapup', 'saveTomorrowLine', 'suggestTomorrow', 'choose', 'updateSettings', 'updateSettings', 'demo']);
   });
 
   it('rejects malformed or unknown requests without calling anything', async () => {

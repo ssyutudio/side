@@ -17,6 +17,7 @@ const settingsPatch = z
     llmEnabled: z.boolean(),
     uploadEnabled: z.boolean(),
     excludedDomains: z.array(z.string().max(253)).max(500),
+    reactions: z.boolean(),
   })
   .partial()
   .strict();
