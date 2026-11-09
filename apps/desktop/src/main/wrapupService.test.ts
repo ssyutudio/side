@@ -1,0 +1,173 @@
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import * as realFs from 'node:fs/promises';
+import type { TabSnapshot, TabsReport } from '@side/shared';
+import { JsonStore, type FsLike } from './store';
+import { defaultAppData, type AppData } from './appData';
+import { WrapupService, type CommandPort } from './wrapupService';
+import type { CommandOutcome } from './bridge';
+
+const NOW = new Date(2026, 10, 9, 23, 30).getTime();
+let tick = 0;
+// Each read moves time forward a second, like real consecutive Wrap ups.
+const clock = { now: () => NOW + 1000 * tick++ };
+
+function tab(id: number, url: string, title: string, extra: Partial<TabSnapshot> = {}): TabSnapshot {
+  return {
+    tabId: id, windowId: 1, index: id, url, title, lastAccessed: NOW - id * 1000,
+    active: false, pinned: false, audible: false, incognito: false, groupId: -1, groupTitle: null,
+    position: { scroller: 'window', selector: null, top: 900, ratio: 0.4, quote: null, capturedAt: NOW },
+    ...extra,
+  };
+}
+
+const report: TabsReport = {
+  tabs: [
+    tab(1, 'https://github.com/acme/retry-lib/issues/12', 'Retry jitter · Issue #12 · acme/retry-lib'),
+    tab(2, 'https://github.com/acme/retry-lib/pull/30', 'Add backoff · Pull Request #30 · acme/retry-lib'),
+    tab(3, 'https://en.wikipedia.org/wiki/Exponential_backoff', 'Exponential backoff - Wikipedia'),
+    tab(4, 'https://www.youtube.com/watch?v=abc', 'Lofi beats - YouTube'),
+    tab(5, 'https://client-bank.com/accounts', 'Client accounts'),
+    tab(6, 'https://docs.google.com/document/d/x/edit', 'Pitch notes - Google Docs', { active: true }),
+  ],
+  skipped: { excluded: 0, excludedByDomain: {}, incognito: 0, internal: 0 },
+  capturedAt: NOW,
+};
+
+class FakePort implements CommandPort {
+  sent: { type: string; payload: any }[] = [];
+  constructor(public answer: (type: string, payload: any) => CommandOutcome, private onSend?: () => void) {}
+  async command(type: any, payload: any): Promise<CommandOutcome> {
+    this.onSend?.();
+    this.sent.push({ type, payload });
+    return this.answer(type, payload);
+  }
+}
+
+const groupedAll = (_t: string, p: any): CommandOutcome => ({
+  status: 'ok',
+  result: { grouped: p.groups.map((g: any, i: number) => ({ key: g.key, chromeGroupId: 10 + i, tabIds: g.tabIds })), closed: p.closeTabIds, kept: [] },
+});
+
+async function setup(port: FakePort, fs?: FsLike, excluded: string[] = ['client-bank.com']) {
+  const path = join(mkdtempSync(join(tmpdir(), 'side-wrap-')), 'side-data.json');
+  const store = new JsonStore<AppData>(path, () => {
+    const d = defaultAppData();
+    return { ...d, settings: { ...d.settings, excludedDomains: excluded } };
+  }, fs);
+  await store.load();
+  const svc = new WrapupService({ store, port, clock });
+  return { store, svc, path };
+}
+
+describe('WrapupService', () => {
+  it('drops excluded-site tabs from the preview even if a report still carries them', async () => {
+    const { svc } = await setup(new FakePort(groupedAll));
+    const preview = await svc.preview(report);
+    const ids = preview.fold.flatMap((g) => g.tabIds);
+    expect(ids).not.toContain(5);
+    expect(preview.skipped.excluded).toBe(1);
+  });
+
+  it('saves the record before sending anything to Chrome', async () => {
+    let savedAtSend = false;
+    const port = new FakePort(groupedAll, () => {
+      savedAtSend = ctx.store.get().setAsides.length === 1;
+    });
+    const ctx = await setup(port);
+    const preview = await ctx.svc.preview(report);
+    await ctx.svc.confirm(preview, report, []);
+    expect(savedAtSend).toBe(true);
+  });
+
+  it('touches no tab when saving fails', async () => {
+    const port = new FakePort(groupedAll);
+    const failing: FsLike = { ...realFs, writeFile: async () => { throw new Error('disk full'); } };
+    const { svc } = await setup(port, failing);
+    const out = await svc.confirm(await svc.preview(report), report, []);
+    expect(out.kind).toBe('storage_failed');
+    expect(port.sent).toHaveLength(0);
+  });
+
+  it('records what the extension confirmed and prepares exactly one step', async () => {
+    const { svc, store, path } = await setup(new FakePort(groupedAll));
+    const out = await svc.confirm(await svc.preview(report), report, []);
+    expect(out.kind).toBe('applied');
+    const d = store.get();
+    expect(d.setAsides[0].status).toBe('applied');
+    expect(d.setAsides[0].todayDone[0]).toMatch(/^Set aside \d+ tabs in \d+ groups\.$/);
+    expect(d.steps).toHaveLength(1);
+    expect(d.steps[0].action.url).toMatch(/^https:\/\/github\.com\/acme\/retry-lib/);
+    const file = readFileSync(path, 'utf8');
+    expect(file).not.toContain('client-bank.com/accounts');
+    expect(file).not.toContain('Client accounts');
+  });
+
+  it('marks a run partial when Chrome kept a tab the preview meant to fold', async () => {
+    const port = new FakePort((_t, p) => ({
+      status: 'ok',
+      result: { grouped: [{ key: p.groups[0].key, chromeGroupId: 3, tabIds: p.groups[0].tabIds.slice(1) }], closed: [], kept: [{ tabId: p.groups[0].tabIds[0], reason: 'changed' }] },
+    }));
+    const { svc, store } = await setup(port);
+    const out = await svc.confirm(await svc.preview(report), report, []);
+    expect(out.kind).toBe('partial');
+    expect(store.get().setAsides[0].status).toBe('partial');
+  });
+
+  it('tells a Chrome failure from an extension storage failure', async () => {
+    const chrome = await setup(new FakePort(() => ({ status: 'failed', error: { kind: 'chrome', message: 'No tab with id 3' } })));
+    const a = await chrome.svc.confirm(await chrome.svc.preview(report), report, []);
+    expect(a).toMatchObject({ kind: 'chrome_failed', message: 'No tab with id 3' });
+    const storage = await setup(new FakePort(() => ({ status: 'failed', error: { kind: 'storage', message: 'quota' } })));
+    const b = await storage.svc.confirm(await storage.svc.preview(report), report, []);
+    expect(b.kind).toBe('extension_storage_failed');
+  });
+
+  it('says unconfirmed on timeout, and a retry resends the same command', async () => {
+    let answer: CommandOutcome = { status: 'unconfirmed', reason: 'timeout' };
+    const port = new FakePort((t, p) => (answer.status === 'ok' ? groupedAll(t, p) : answer));
+    const { svc, store } = await setup(port);
+    const first = await svc.confirm(await svc.preview(report), report, []);
+    expect(first.kind).toBe('unconfirmed');
+    expect(store.get().setAsides[0].status).toBe('unconfirmed');
+    answer = { status: 'ok', result: null };
+    const id = store.get().setAsides[0].id;
+    const again = await svc.retry(id);
+    expect(again.kind).toBe('applied');
+    expect(port.sent[1].payload).toEqual(port.sent[0].payload);
+  });
+
+  it('closes only the groups the user confirmed', async () => {
+    const port = new FakePort(groupedAll);
+    const { svc } = await setup(port);
+    const preview = await svc.preview(report);
+    const key = preview.fold[0].key;
+    await svc.confirm(preview, report, [key]);
+    expect(port.sent[0].payload.closeTabIds).toEqual(preview.fold[0].tabIds);
+  });
+
+  it('undoes only the last set-aside and then offers no step from it', async () => {
+    const port = new FakePort((t, p) => (t === 'cmd.wrapup.undo' ? { status: 'ok', result: { ungrouped: [1, 2], reopened: 0 } } : groupedAll(t, p)));
+    const { svc, store } = await setup(port);
+    await svc.confirm(await svc.preview(report), report, []);
+    const firstId = store.get().setAsides[0].id;
+    await svc.confirm(await svc.preview(report), report, []);
+    expect((await svc.undo(firstId)).kind).toBe('not_latest');
+    const lastId = store.get().setAsides[1].id;
+    expect((await svc.undo(lastId)).kind).toBe('undone');
+    expect(store.get().setAsides[1].status).toBe('undone');
+  });
+
+  it('stores the one line for tomorrow (or nothing when skipped) and uses it in the step', async () => {
+    const { svc, store } = await setup(new FakePort(groupedAll));
+    await svc.confirm(await svc.preview(report), report, []);
+    const id = store.get().setAsides[0].id;
+    await svc.setTomorrowLine(id, '  why does jitter need a cap?  ');
+    expect(store.get().setAsides[0].userLine).toBe('why does jitter need a cap?');
+    expect(store.get().steps).toHaveLength(1);
+    expect(store.get().steps[0].label).toContain('why does jitter need a cap?');
+    await svc.setTomorrowLine(id, null);
+    expect(store.get().setAsides[0].userLine).toBeNull();
+  });
+});

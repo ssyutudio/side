@@ -9,6 +9,7 @@ import {
   type Step,
   type StepEvent,
   type StopPromise,
+  type WrapupApplyPayload,
 } from '@side/shared';
 
 export interface AppData {
@@ -18,6 +19,8 @@ export interface AppData {
   /** chrome-extension://<id> pinned on first connection. */
   pairedOrigin: string | null;
   setAsides: SetAside[];
+  /** The exact command sent for each set-aside, so a retry resends the same thing. */
+  applyPayloads: Record<string, WrapupApplyPayload>;
   steps: Step[];
   stepEvents: StepEvent[];
   quietLog: QuietEntry[];
@@ -55,6 +58,7 @@ export function defaultAppData(): AppData {
     settings: defaultSettings(),
     pairedOrigin: null,
     setAsides: [],
+    applyPayloads: {},
     steps: [],
     stepEvents: [],
     quietLog: [],
