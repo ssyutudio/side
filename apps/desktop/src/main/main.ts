@@ -33,6 +33,15 @@ function installMenu() {
 function showTabCount(report: TabsReport) {
   // First card 2 check: the number of tabs the app received, on the Dock icon.
   app.dock?.setBadge(String(report.tabs.length));
+  // Terminal only (this Mac): which tabs came with a non-zero reading position.
+  const withPos = report.tabs.filter((t) => t.position && t.position.top > 0);
+  console.log(
+    `[side] report: ${report.tabs.length} tabs, ${withPos.length} with a position, skipped ${report.skipped.excluded} excluded / ${report.skipped.incognito} incognito / ${report.skipped.internal} internal`,
+  );
+  for (const t of withPos) {
+    const p = t.position!;
+    console.log(`[side]   ${new URL(t.url).host} ${p.scroller}${p.selector ? ` ${p.selector}` : ''} top=${Math.round(p.top)} ratio=${p.ratio.toFixed(2)}`);
+  }
 }
 
 async function setHidden(hidden: boolean) {
