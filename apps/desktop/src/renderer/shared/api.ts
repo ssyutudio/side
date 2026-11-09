@@ -30,6 +30,7 @@ export interface SideApi {
   onToast(cb: (t: Toast) => void): void;
   onLayout(cb: (l: EdgeLayoutMsg) => void): void;
   onMiniView(cb: (v: string) => void): void;
+  onReact(cb: (kind: 'stretch' | 'whistle' | 'nod') => void): void;
   setInteractive(v: boolean): void;
 }
 
@@ -46,6 +47,7 @@ export function getApi(): SideApi {
       onToast: (cb) => bridge.on('side:toast', (d) => cb(d as Toast)),
       onLayout: (cb) => bridge.on('edge:layout', (d) => cb(d as EdgeLayoutMsg)),
       onMiniView: (cb) => bridge.on('side:mini.view', (d) => cb(String(d))),
+      onReact: (cb) => bridge.on('side:react', (d) => cb((d as { kind: 'stretch' | 'whistle' | 'nod' }).kind)),
       setInteractive: (v) => bridge.setInteractive(v),
     };
   }
@@ -74,6 +76,10 @@ export function getApi(): SideApi {
       setTimeout(() => cb({ hit: { x: window.innerWidth - side, y, width: side, height: side }, sidyHeight: size }), 0);
     },
     onMiniView: () => undefined,
+    onReact: (cb) => {
+      const r = params.get('react');
+      if (r === 'stretch' || r === 'whistle' || r === 'nod') setTimeout(() => cb(r), 300);
+    },
     setInteractive: () => undefined,
   };
 }

@@ -2,7 +2,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 type Listener = (data: unknown) => void;
-const EVENTS = new Set(['side:state', 'side:bubble', 'side:toast', 'side:mini.view', 'edge:layout']);
+const EVENTS = new Set(['side:state', 'side:bubble', 'side:toast', 'side:mini.view', 'side:react', 'edge:layout']);
 
 contextBridge.exposeInMainWorld('side', {
   setInteractive(interactive: boolean) {

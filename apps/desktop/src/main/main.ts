@@ -1,5 +1,5 @@
 // Electron main process: owns the data file, the bridge to the extension and the sidy window.
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor, shell, systemPreferences } from 'electron';
 import { join } from 'node:path';
 import { BRIDGE_HOST, BRIDGE_PORT, COMMAND_TIMEOUT_MS, type TabsReport } from '@side/shared';
 import { loadConfig } from './config';
@@ -14,6 +14,7 @@ import { watchReturns } from './returnWatcher';
 import { parseDemoCommand } from './demoClock';
 import { DemoClock } from '../core/clock';
 import { buildUsagePayload, uploadUsage, USAGE_ENDPOINT } from './usageUpload';
+import { mayReact, newlyAudible, type ReactionKind } from '../core/reactions';
 import { Windows } from './windows';
 import { routeWindow, WINDOW_CHANNELS } from './windowRoutes';
 
@@ -82,6 +83,27 @@ function registerShortcut(accel: string): boolean {
   }
 }
 
+const reactLast: Partial<Record<ReactionKind, number>> = {};
+let prevReport: TabsReport | null = null;
+/** sidy's little reactions: decided here with the real state, played once by the edge page. */
+function react(kind: ReactionKind): boolean {
+  const d = store.get();
+  const ok = mayReact(kind, {
+    now: clock.now(),
+    enabled: d.settings.reactions !== false,
+    hidden: d.hidden,
+    focusUntil: d.focusUntil,
+    quietHours: d.settings.quietHours,
+    bubbleShowing: !!ctl?.speak.bubble,
+    reducedMotion: systemPreferences.getAnimationSettings().prefersReducedMotion,
+    last: reactLast,
+  });
+  if (!ok) return false;
+  reactLast[kind] = clock.now();
+  edge?.win.webContents.send('side:react', { kind });
+  return true;
+}
+
 let lastUpload = 0;
 /** Anonymous counts (numbers + install id), only when the user turned it on; at most every 10 minutes. */
 function maybeUpload(force = false) {
@@ -121,6 +143,9 @@ async function start() {
     getExclusions: () => store.get().settings.excludedDomains,
     onReport: (report) => {
       logReport(report);
+      const started = newlyAudible(prevReport, report);
+      prevReport = report;
+      if (started) react(started);
       void ctl?.onReport(report);
     },
     onStatus: (s) => {
@@ -211,7 +236,11 @@ async function start() {
 
   watchReturns({
     power: powerMonitor,
-    onTrigger: (t) => void ctl?.speak.trigger(t),
+    // Unlock: one stretch first; the return bubble, if any, follows it.
+    onTrigger: (t) => {
+      if (t === 'unlock' && react('stretch')) setTimeout(() => void ctl?.speak.trigger(t), 2300);
+      else void ctl?.speak.trigger(t);
+    },
     onAsleep: (asleep) => {
       if (ctl) ctl.speak.asleep = asleep;
     },

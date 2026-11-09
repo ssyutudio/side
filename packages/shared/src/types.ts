@@ -150,6 +150,8 @@ export interface Settings {
   /** Off by default (Director 4-B reading). When on, only anonymous counts and an install id are sent. */
   uploadEnabled: boolean;
   excludedDomains: string[];
+  /** sidy's little reactions (stretch, whistle, nod). Undefined means on (Director 2-A). */
+  reactions?: boolean;
 }
 
 /** Why sidy stayed quiet at a moment it could have spoken. Shown in Main. */

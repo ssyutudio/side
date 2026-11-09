@@ -146,6 +146,28 @@ api.onBubble((b) => {
   render();
 });
 api.onToast((t) => showToast(t));
+
+// Once, about two seconds, then still. Never with Reduce Motion, never over a bubble.
+let reactTimer: ReturnType<typeof setTimeout> | undefined;
+api.onReact((kind) => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || bubble || toast) return;
+  clearTimeout(reactTimer);
+  document.body.classList.remove('react-stretch', 'react-nod', 'react-whistle');
+  app.querySelector('.notes')?.remove();
+  document.body.classList.add(`react-${kind}`);
+  if (kind === 'whistle') {
+    const notes = document.createElement('div');
+    notes.className = 'notes';
+    notes.setAttribute('aria-hidden', 'true');
+    Object.assign(notes.style, { right: `${Math.round(size * 0.6) + 6}px`, top: `${hit.y + hit.h / 2 - size}px`, width: '40px', height: '40px' });
+    notes.innerHTML = '<span style="left:14px;top:18px">♪</span><span style="left:4px;top:24px">♫</span><span style="left:20px;top:28px">♪</span>';
+    app.appendChild(notes);
+  }
+  reactTimer = setTimeout(() => {
+    document.body.classList.remove(`react-${kind}`);
+    app.querySelector('.notes')?.remove();
+  }, 2400);
+});
 // A bubble decided before this page finished loading (e.g. at app start) arrives with the state.
 void api.invoke<ViewState>('side:state').then((s) => {
   if (s && 'connection' in s) {
