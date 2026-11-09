@@ -216,3 +216,8 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 .mini-room{padding:28px}
 .mini-room .panel{position:relative;box-shadow:0 8px 22px rgba(20,24,40,.20),0 0 0 1px rgba(20,24,40,.08)}
+/* Setup steps: the text column may shrink, and a long folder path wraps instead of pushing the
+   step text and the Copy buttons past the card. */
+.steps>li{grid-template-columns:30px minmax(0,1fr)}
+.steps>li>div{min-width:0}
+.copy code{height:auto;min-height:40px;padding:9px 12px;white-space:normal;word-break:break-all;overflow:visible;text-overflow:clip;line-height:1.45}

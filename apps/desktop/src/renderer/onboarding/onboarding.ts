@@ -54,7 +54,8 @@ app.addEventListener('click', async (e) => {
 
 if (api.fixture) {
   phase = (api.params.get('phase') as SetupPhase) ?? 'connecting';
-  extPath = '/Users/you/side/apps/extension/dist';
+  // A realistically long path: short fixture paths hid an overflow the Director caught.
+  extPath = '/Users/hosoo/project/ycseoul_hack26/side/apps/extension/dist';
   preview = phase === 'connected' ? FIXTURE_PREVIEW : null;
   render();
 } else {
