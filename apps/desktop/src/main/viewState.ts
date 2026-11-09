@@ -13,6 +13,8 @@ import { secondsToWork } from '../core/stepEvents';
 import { activePromise } from '../core/promise';
 
 export interface ViewState {
+  /** Side's clock (demo clock included), so screens can show times. */
+  now: number;
   connection: BridgeStatus;
   step: { id: string; label: string; when: string; host: string | null; hasPosition: boolean } | null;
   bubble: Bubble | null;
@@ -100,6 +102,7 @@ export function buildViewState({ data, report, bridge, bubble, now }: ViewInput)
   const promise = activePromise(data.promises);
 
   return {
+    now,
     connection: bridge,
     step: step
       ? {

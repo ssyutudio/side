@@ -2,16 +2,15 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 type Listener = (data: unknown) => void;
+const EVENTS = new Set(['side:state', 'side:bubble', 'side:toast', 'side:mini.view', 'edge:layout']);
 
 contextBridge.exposeInMainWorld('side', {
   setInteractive(interactive: boolean) {
     ipcRenderer.send('edge:interactive', interactive === true);
   },
-  onLayout(cb: Listener) {
-    ipcRenderer.on('edge:layout', (_e, data) => cb(data));
-  },
-  onState(cb: Listener) {
-    ipcRenderer.on('side:state', (_e, data) => cb(data));
+  on(channel: string, cb: Listener) {
+    if (!EVENTS.has(channel)) return;
+    ipcRenderer.on(channel, (_e, data) => cb(data));
   },
   invoke(channel: string, payload?: unknown) {
     if (!channel.startsWith('side:')) return Promise.reject(new Error('unknown channel'));

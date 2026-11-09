@@ -20,7 +20,7 @@ import {
 
 export type Bubble =
   | { kind: 'step'; stepId: string; trigger: SpeakTrigger }
-  | { kind: 'promise'; promiseId: string }
+  | { kind: 'promise'; promiseId: string; minutes: number }
   /** First run: a draft of how the real open tabs would fold. */
   | { kind: 'first_run'; tabs: number; groups: number };
 
@@ -184,7 +184,7 @@ export class SpeakService {
       ...d,
       promises: d.promises.map((x) => (x.id === p.id ? firePromise(x, now) : x)),
     }));
-    return this.show({ kind: 'promise', promiseId: p.id });
+    return this.show({ kind: 'promise', promiseId: p.id, minutes: p.minutes });
   }
 
   async answer(answer: PromiseAnswer): Promise<{ goToWrapup: boolean }> {

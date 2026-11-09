@@ -100,7 +100,7 @@ describe('SpeakService', () => {
     now += 2 * 60_000;
     await svc.tick();
     await svc.tick();
-    expect(shown.filter((b) => b?.kind === 'promise')).toHaveLength(1);
+    expect(shown.filter((b) => b?.kind === 'promise')).toEqual([{ kind: 'promise', promiseId: expect.any(String), minutes: 30 }]);
   });
 
   it('Not today keeps sidy quiet for the rest of the work day', async () => {
