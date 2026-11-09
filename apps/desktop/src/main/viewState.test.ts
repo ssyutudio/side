@@ -64,7 +64,7 @@ describe('buildViewState', () => {
     expect(v.saw.withPosition).toBe(1);
     expect(v.saw.skipped).toEqual({ excluded: 2, excludedByDomain: { 'client-bank.com': 2 }, incognito: 1, internal: 1 });
     expect(v.saw.hosts.map((h) => h.host)).toEqual(['github.com', 'en.wikipedia.org', 'youtube.com']);
-    expect(v.saw.llm).toEqual({ enabled: true, sends: 0, lastAt: null });
+    expect(v.saw.llm).toEqual({ enabled: true, sends: 0, lastAt: null, lastTitles: null, lastUserLine: false });
   });
 
   it('reports the connection truthfully when Chrome is not there', () => {
@@ -96,5 +96,45 @@ describe('buildViewState', () => {
     });
     expect(v.history[0]).toMatchObject({ id: 'sa1', when: 'yesterday', tabs: 1, userLine: 'why cap jitter?' });
     expect(v.history[0].step).toMatchObject({ shown: true, clicked: true, stillWorking: true, secondsToWork: 2 });
+  });
+});
+
+describe('buildViewState for Main', () => {
+  it('lists today\'s confirmed moments with their times, oldest first, and nothing from other days', () => {
+    const v = buildViewState({
+      data: data({
+        stepEvents: [{ stepId: 'st1', shownAt: NOW - 40 * 60_000, clickedAt: NOW - 30 * 60_000, openedAt: NOW - 30 * 60_000 + 1400, stillWorkingAt10m: true, dismissed: null }],
+      }),
+      report, bridge: 'connected', bubble: null, now: NOW,
+    });
+    expect(v.timeline.map((t) => t.text)).toEqual([
+      'sidy offered one step: Retry jitter',
+      'You stepped inside — page ready in 1.4 s',
+      'Still on Retry jitter 10 minutes later',
+    ]);
+    expect(v.timeline.map((t) => t.at)).toEqual([NOW - 40 * 60_000, NOW - 30 * 60_000, NOW - 20 * 60_000]);
+  });
+
+  it('says what Side read from each tab, and where the reading position is, without page text', () => {
+    const r: TabsReport = {
+      ...report,
+      tabs: [
+        ...report.tabs,
+        tab(4, 'https://docs.google.com/document/d/x', { title: 'Pricing page — draft', position: { scroller: 'element', selector: '.kix', top: 900, ratio: 0.4, quote: 'Annual plans save 20%, billed once a year', capturedAt: NOW } }),
+      ],
+    };
+    const v = buildViewState({ data: data(), report: r, bridge: 'connected', bubble: null, now: NOW });
+    const byTitle = Object.fromEntries(v.saw.tabs.map((t) => [t.title, t]));
+    expect(byTitle['T2']).toEqual({ title: 'T2', host: 'en.wikipedia.org', where: '30% down the page' });
+    expect(byTitle['T1'].where).toBe('Not captured');
+    expect(byTitle['Pricing page — draft'].where).toBe('“Annual plans save 20%, billed once a year”');
+  });
+
+  it('reports how many titles the last LLM request carried', () => {
+    const v = buildViewState({
+      data: data({ llmLog: [{ at: NOW - 5000, titles: 36, userLine: true }] }),
+      report, bridge: 'connected', bubble: null, now: NOW,
+    });
+    expect(v.saw.llm).toEqual({ enabled: true, sends: 1, lastAt: NOW - 5000, lastTitles: 36, lastUserLine: true });
   });
 });
