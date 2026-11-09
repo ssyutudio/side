@@ -1,0 +1,54 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Side — join the waitlist</title><link rel="stylesheet" href="side.css">
+<style>
+body{background:#fff}
+.wl{min-height:100vh;display:grid;grid-template-columns:1fr 420px;max-width:1160px;margin:0 auto;padding:56px 48px;gap:72px;align-items:center}
+.wl h1{font-size:44px;line-height:1.12;letter-spacing:-.02em;margin:22px 0 14px;max-width:560px}
+.wl .lead{font-size:18px;color:var(--ink2);max-width:520px;margin:0 0 30px}
+.four{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 30px;padding:0;list-style:none}
+.four li{font-size:14px;font-weight:600;border:1.5px solid var(--line);border-radius:999px;padding:6px 12px}
+form{max-width:440px;display:flex;flex-direction:column;gap:14px}
+.ck{display:flex;gap:10px;align-items:flex-start;font-size:15px}
+.ck input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--blue);flex:none}
+.err{color:var(--danger);font-size:14px;margin:6px 0 0}
+.qr{background:var(--canvas);border-radius:22px;padding:32px;text-align:center}
+.qr .code{background:#fff;border-radius:14px;padding:18px;display:inline-block}
+.qr p{margin:14px 0 0;font-size:15px;color:var(--ink2)}
+.foot{grid-column:1/3;font-size:14px;color:var(--ink2);border-top:1px solid var(--line);padding-top:18px}
+.edgepeek{position:fixed;right:0;top:46%}
+@media (max-width:700px){.wl{grid-template-columns:1fr;padding:28px 22px;gap:28px}.wl h1{font-size:32px}.qr,.edgepeek{display:none}.foot{grid-column:1}}
+</style></head><body>
+<div class="wl"><div>
+ <div id="logo"></div>
+ <h1>Stop for the night. Start again with one small step.</h1>
+ <p class="lead">Side is a desktop app with a Chrome extension. When you stop, it folds your tabs into named groups. When you come back, sidy hands you one step — the exact spot you left.</p>
+ <ul class="four"><li>Set aside</li><li>Be beside</li><li>Step inside</li><li>By your side</li></ul>
+ <div id="f"></div>
+</div>
+<div class="qr"><div class="code" id="qr" aria-label="QR code for this page (mockup pattern)"></div><p>Scan to join from your phone.<br>Same code on the deck, the video and the README.</p></div>
+<p class="foot">Tab titles go to Claude to name your groups. Addresses and page text stay on your computer. This page stores only your email, once.</p></div>
+<div class="edgepeek" id="ep"></div>
+<script src="side.js"></script>
+<script>
+const st = new URLSearchParams(location.search).get('s') || 'form';
+document.getElementById('logo').innerHTML = `<span style="display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:22px">${sidy(36)}Side</span>`;
+document.getElementById('ep').innerHTML = `<div style="transform:translateX(17px)">${sidy(40)}</div>`;
+const form = (val, extra, err) => `<form onsubmit="event.preventDefault();go('done')">
+ <div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="email" inputmode="email" value="${val}" ${err ? 'aria-invalid="true" aria-describedby="er"' : ''}>${err ? `<p class="err" id="er">${err}</p>` : ''}</div>
+ <label class="ck"><input type="checkbox" checked> Email me when Side is ready to download. Nothing else.</label>
+ <button class="btn fill" style="height:52px;font-size:17px">Join the waitlist</button>${extra}</form>`;
+const F = {
+ form: form('', ''),
+ invalid: form('maya@school', '', 'That email is missing a part after the dot, like maya@school.edu'),
+ loading: `<form><div class="field"><label>Email</label><input value="maya@school.edu" disabled></div><button class="btn fill" disabled style="height:52px;font-size:17px;opacity:.8"><span class="spin" style="border-color:rgba(255,255,255,.35);border-top-color:#fff"></span> Joining…</button></form>`,
+ done: `<div class="done-line" style="max-width:440px;font-size:17px"><b>You're on the list.</b><br>We'll write when Side is ready.</div>`,
+ dup: `<div class="done-line" style="max-width:440px;font-size:17px"><b>You're on the list.</b><br>We'll write when Side is ready.</div>`,
+ error: form('maya@school.edu', `<div class="alert"><b>Couldn't save that.</b>Check your connection and press Join the waitlist again. Your email is still here.</div>`),
+};
+document.getElementById('f').innerHTML = F[st] || F.form;
+// mockup QR-like pattern (the real one is generated locally from the deployed URL)
+(function(){const n=29,c=8;let r=7,h='';const rnd=()=>{r=(r*16807)%2147483647;return r%2};
+ const fin=(x,y)=>{for(const[a,b]of[[0,0],[n-7,0],[0,n-7]]){if(x>=a&&x<a+7&&y>=b&&y<b+7){const i=x-a,j=y-b;return i==0||j==0||i==6||j==6||(i>1&&i<5&&j>1&&j<5)}if(x>=a-1&&x<a+8&&y>=b-1&&y<b+8)return false}return null};
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){const f=fin(x,y);if(f===true||(f===null&&rnd()))h+=`<rect x="${x*c}" y="${y*c}" width="${c}" height="${c}"/>`}
+ document.getElementById('qr').innerHTML=`<svg width="${n*c}" height="${n*c}" fill="#1E2025">${h}</svg>`})();
+</script></body></html>

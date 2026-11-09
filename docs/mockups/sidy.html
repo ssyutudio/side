@@ -1,0 +1,43 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Side mockup — sidy</title><link rel="stylesheet" href="side.css">
+<style>
+.sb{display:grid;grid-template-columns:repeat(4,340px);gap:20px}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.card h3{margin:0 0 2px;font-size:16px}.card p{margin:0 0 14px;font-size:13px;color:#5B6168}
+.ed{position:relative;height:150px;background:#F2F3F5;border-radius:10px;overflow:hidden}
+.ed .scr{position:absolute;top:0;bottom:0;right:60px;width:2px;background:#1E2025}
+.ed .scr::after{content:"screen edge";position:absolute;top:6px;right:8px;font-size:13px;color:#5B6168;white-space:nowrap}
+.ed .clip{position:absolute;top:0;bottom:0;left:0;right:62px;overflow:hidden}
+.ed .s{position:absolute;right:0;top:50%;transform:translate(var(--t),-50%)}
+.ed .ghost{position:absolute;right:62px;top:50%;transform:translate(var(--t),-50%);opacity:.18}
+.sizes{display:flex;align-items:flex-end;gap:36px;margin-top:8px}
+.sizes div{text-align:center;font-size:13px;color:#5B6168}.sizes svg{margin:0 auto 8px}
+.hitbox{display:inline-grid;place-items:center;outline:1.5px dashed #3B54E7;margin-bottom:8px}
+.rules{font-size:14px;line-height:1.6;margin:0;padding-left:18px}
+.no{display:flex;gap:18px;flex-wrap:wrap}
+</style></head><body><div class="board" style="width:1500px">
+<h1>sidy — one character, four states, every size</h1>
+<p>A rounded square, one ink line, a blue side that leans on the screen edge, two pill eyes looking left at your work. No mouth, cheeks, sparkles, gradients or oversized eyes. Drawn in SVG; at the edge sidy is Small (40 px) by default.</p>
+<div class="sb" id="st"></div>
+<h2 style="font-size:18px;margin:28px 0 8px">Sizes — same drawing from Dock icon to Large</h2>
+<div class="card"><div class="sizes" id="sz"></div></div>
+<h2 style="font-size:18px;margin:28px 0 8px">Rules the build keeps</h2>
+<div class="card"><ol class="rules">
+<li>Body #F3F3EF, ink #1E2025 (line ≈ 5% of the side), blue side #3B54E7 ≈ 26% of the width. Corner radius ≈ 28%.</li>
+<li>Eyes: two vertical pills at 20% and 42% of the width, a little above centre. They always look left, toward the work.</li>
+<li>Quiet = tucked in: eyes only, the blue side fully behind the edge (≈ 48% visible). Talking or hovered = leans out until the blue side shows (≈ 92%). 320 ms ease-out; none with Reduce Motion. No idle movement.</li>
+<li>Hidden = 0 px. No handle, dot or sliver. ⌃⌥S or the Dock brings it back.</li>
+<li>Reactions (unlock, video, music) play once for about 2 s, then sidy is still again. See the reactions board.</li>
+<li>Click area is at least 48 × 48 px around the visible body (dashed box), even at Small.</li></ol></div>
+</div>
+<script src="side.js"></script>
+<script>
+const s = (n) => sidy(n);
+document.getElementById('st').innerHTML = [
+ ['Front','Dock icon, Main, waitlist.', `<div style="display:grid;place-items:center;height:150px;background:#F2F3F5;border-radius:10px">${s(96)}</div>`],
+ ['Quiet at the edge','Eyes only. The blue side is behind the edge.', `<div class="ed" style="--t:50px"><div class="clip"><div class="s">${s(96)}</div></div><div class="scr"></div></div>`],
+ ['Talking / hovered','Leans out until the blue side shows.', `<div class="ed" style="--t:8px"><div class="clip"><div class="s">${s(96)}</div></div><div class="scr"></div></div>`],
+ ['Hidden','Nothing on screen.', `<div class="ed"><div class="scr"></div></div>`]
+].map(([t,d,h])=>`<div class="card"><h3>${t}</h3><p>${d}</p>${h}</div>`).join('');
+document.getElementById('sz').innerHTML = [[16,'Menu / 16'],[32,'Dock small / 32'],[40,'Small · 40 (default)',1],[52,'Medium · 52',1],[64,'Large · 64',1],[128,'App icon / 128']]
+ .map(([n,l,h])=>`<div>${h?`<span class="hitbox" style="width:${Math.max(n+16,48)}px;height:${Math.max(n+16,48)}px">${s(n)}</span>`:s(n)}<br>${l}</div>`).join('');
+</script></body></html>

@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Side mockup — waitlist</title><link rel="stylesheet" href="side.css">
+<style>.wg{display:grid;grid-template-columns:720px repeat(3,236px);gap:20px;align-items:start}
+.d{width:720px;height:450px;overflow:hidden;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.2);background:#fff}.d iframe{width:1440px;height:900px;border:0;transform:scale(.5);transform-origin:0 0}
+.m{width:236px;height:511px;overflow:hidden;border-radius:22px;box-shadow:0 0 0 6px #1E2025;background:#fff;margin:6px}.m iframe{width:390px;height:844px;border:0;transform:scale(.605);transform-origin:0 0}
+.c{font-size:14px;margin-top:10px}.c b{display:block;font-size:15px}</style></head>
+<body><div class="board"><h1>Waitlist — one page on Vercel</h1><p>Email, one consent line, the QR. No price button. Same email twice = one row. Desktop 1440 at 50%; phones 390 wide (what the QR opens).</p>
+<div class="wg">
+<div><div class="d"><iframe src="waitlist-page.html?s=form"></iframe></div><div class="c"><b>Desktop · form + QR</b><a href="waitlist-page.html">open, clickable</a></div></div>
+<div><div class="m"><iframe src="waitlist-page.html?s=form"></iframe></div><div class="c"><b>Phone · form</b>Opened from the QR.</div></div>
+<div><div class="m"><iframe src="waitlist-page.html?s=done"></iframe></div><div class="c"><b>Joined</b>Says what happens next, once.</div></div>
+<div><div class="m"><iframe src="waitlist-page.html?s=dup"></iframe></div><div class="c"><b>Same email again</b>Same words as a new signup; still one row.</div></div>
+<div><div class="d"><iframe src="waitlist-page.html?s=error"></iframe></div><div class="c"><b>Couldn't save</b>Email kept, try again.</div></div>
+<div><div class="m"><iframe src="waitlist-page.html?s=invalid"></iframe></div><div class="c"><b>Invalid email</b>Checked after typing, message under the field.</div></div>
+<div><div class="m"><iframe src="waitlist-page.html?s=loading"></iframe></div><div class="c"><b>Joining…</b>Button locks against double submit.</div></div>
+</div></div></body></html>
