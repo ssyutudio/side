@@ -32,7 +32,8 @@ describe('homeView', () => {
     expect(h).toMatch(/btn fill[^>]*data-act="step-open"/);
     expect(h).toContain('<span>Tabs in Chrome</span><b>38</b>');
     expect(h).toContain('<span>Set aside</span><b>31 in 3 groups</b>');
-    expect(h).toContain('You asked: Will annual pricing beat monthly?');
+    // The step label already carries the user's line, so it is not repeated.
+    expect(h.match(/Will annual pricing beat monthly\?/g)).toHaveLength(1);
   });
 
   it('offline: says what is true, what to do, and greys out the two actions that need Chrome', () => {
@@ -166,6 +167,11 @@ describe('One more hour', () => {
     expect(h).toContain('<span>Stop now and you get</span><b>7 h 50 min</b>');
     expect(h).toMatch(/btn fill[^>]*>Check in at 12:40 AM</);
     expect(s(oneMoreView(now, 7 * 60 + 30, 30))).toContain('Check in at 12:10 AM');
+  });
+
+  it('leaves out the sleep fact when the wake-up time is more than 12 hours away (daytime)', () => {
+    const evening = new Date(2026, 10, 9, 19, 5).getTime();
+    expect(s(oneMoreView(evening, 450, 60))).not.toContain('Stop now and you get');
   });
 
   it('never claims what sleep does', () => {

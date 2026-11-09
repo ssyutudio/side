@@ -67,7 +67,8 @@ ${quick([
 
   if (s.step && s.numbers.stepReady) {
     const when = s.step.when;
-    const asked = w?.userLine ? html`<div class="w">You asked: ${w.userLine}</div>` : html`<div class="w">${s.step.host ?? ''}</div>`;
+    const repeat = !!w?.userLine && !s.step.label.includes(w.userLine);
+    const asked = repeat ? html`<div class="w">You asked: ${w!.userLine}</div>` : html`<div class="w">${s.step.host ?? ''}</div>`;
     return panel([
       head(chip(s)),
       html`<div class="pb">${notice}

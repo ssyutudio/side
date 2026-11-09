@@ -9,8 +9,12 @@ function minutesOfDay(ms: number) {
   return d.getHours() * 60 + d.getMinutes();
 }
 
+function minutesLeft(now: number, wakeMinutes: number): number {
+  return (wakeMinutes - minutesOfDay(now) + 1440) % 1440;
+}
+
 export function untilWake(now: number, wakeMinutes: number): string {
-  const left = (wakeMinutes - minutesOfDay(now) + 1440) % 1440;
+  const left = minutesLeft(now, wakeMinutes);
   const h = Math.floor(left / 60);
   const m = left % 60;
   return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`;
@@ -31,7 +35,8 @@ export function oneMoreView(now: number, wakeMinutes: number, minutes: 30 | 60, 
 ${facts([
   ['Now', clock(now)],
   ['Your wake-up', wakeText(wakeMinutes)],
-  ['Stop now and you get', untilWake(now, wakeMinutes)],
+  // The one fact is about the coming night; in the daytime it is left out.
+  ...(minutesLeft(now, wakeMinutes) <= 12 * 60 ? ([['Stop now and you get', untilWake(now, wakeMinutes)]] as [string, string][]) : []),
 ])}
 <div><div style="font-weight:600;font-size:15px;margin-bottom:8px">Check in with me in</div>
 <span class="seg" role="group" aria-label="Check in">${seg(30, '30 min')}${seg(60, '1 hour')}</span></div></div>
