@@ -1,0 +1,9 @@
+.env.local
+node_modules/
+dist/
+out/
+.DS_Store
+.war-room-state/
+.claude/
+.vercel/
+*.log
