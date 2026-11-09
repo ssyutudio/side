@@ -135,6 +135,43 @@ export interface StepEvent {
   dismissed: DismissKind | null;
 }
 
+// ---- Settings and small records kept by the desktop app ----
+
+export interface Settings {
+  sidySize: 'small' | 'medium' | 'large';
+  /** Electron accelerator that shows or hides sidy. */
+  shortcut: string;
+  /** Minutes from local midnight; sidy does not speak first inside this window. Null = off. */
+  quietHours: { start: number; end: number } | null;
+  /** Wake-up time in minutes from midnight, used only for the "if you sleep now" fact line. */
+  wakeMinutes: number;
+  /** Off by default (Director 1-B). When on, only tab titles, temporary ids and the user's line are sent. */
+  llmEnabled: boolean;
+  /** Off by default (Director 4-B reading). When on, only anonymous counts and an install id are sent. */
+  uploadEnabled: boolean;
+  excludedDomains: string[];
+}
+
+/** Why sidy stayed quiet at a moment it could have spoken. Shown in Main. */
+export type QuietReason = 'quiet_hours' | 'focus' | 'spoke_recently' | 'hidden' | 'rested_today' | 'nothing_to_say';
+
+export interface QuietEntry {
+  at: number;
+  reason: QuietReason;
+}
+
+/** "One more hour": the user picked when to stop; sidy asks exactly once at that time. */
+export interface StopPromise {
+  id: string;
+  madeAt: number;
+  dueAt: number;
+  minutes: number;
+  firedAt: number | null;
+  answer: 'set_aside' | 'keep_going' | 'not_today' | null;
+  /** Summary of what was done so far, saved before anything else. */
+  summary: string[];
+}
+
 // ---- Commands between app and extension ----
 
 export interface WrapupGroupCmd {
