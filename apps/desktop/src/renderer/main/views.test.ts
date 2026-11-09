@@ -126,7 +126,7 @@ describe('What Side saw', () => {
     expect(h).toContain('<b>37</b>tabs read');
     expect(h).toContain('<b>36</b>titles sent to Claude');
     expect(h).toContain('1 tab from client-portal.acme.com — excluded site, not read.');
-    expect(h).toContain('36 tab titles and your one line, to Claude (Anthropic), to name groups. No addresses, no page text, nothing from excluded sites.');
+    expect(h).toContain('36 tab titles and your one line, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.');
     expect(h).toContain('Anonymous counts: off.');
     expect(h).toContain('Show all 37');
     expect((h.match(/<tr>/g) ?? []).length).toBe(11);
@@ -149,7 +149,7 @@ describe('Settings', () => {
     const h = s(settingsView(FIXTURES.day));
     expect(h).toMatch(/aria-pressed="true"[^>]*data-size="small"|data-size="small"[^>]*aria-pressed="true"/);
     expect(h).toContain('⌃⌥S');
-    expect(h).toContain('On: sends tab titles and your one line to Claude (Anthropic) to name groups. Never addresses, page text or excluded sites. Off: sidy uses simple rules.');
+    expect(h).toContain('On: sends tab titles, your one line for tomorrow and your step counts to Claude (Anthropic) to name groups, suggest a question and pick your next step. Never addresses, page text or excluded sites. Off: sidy uses simple rules.');
     expect(h).toMatch(/data-key="llmEnabled"[^>]*aria-checked="true"|aria-checked="true"[^>]*data-key="llmEnabled"/);
     expect(h).toMatch(/data-key="uploadEnabled"[^>]*aria-checked="false"|aria-checked="false"[^>]*data-key="uploadEnabled"/);
     expect(h).toContain('Connections');

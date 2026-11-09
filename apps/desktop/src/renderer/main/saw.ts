@@ -25,9 +25,9 @@ function sentSentence(s: ViewState): string {
   const counts = ` Anonymous counts: ${uploadEnabled ? 'on (numbers only)' : 'off'}.`;
   if (!llm.enabled) return `Nothing to Claude. AI drafting is off, so sidy names groups with simple rules on this computer.${counts}`;
   if (!llm.lastTitles) {
-    return `Nothing yet. When you set today aside, tab titles go to Claude (Anthropic) to name groups — no addresses, no page text, nothing from excluded sites.${counts}`;
+    return `Nothing yet. When you set today aside, tab titles go to Claude (Anthropic) to name groups; your one line and your step counts (numbers only) help pick the next step — no addresses, no page text, nothing from excluded sites.${counts}`;
   }
-  return `${plural(llm.lastTitles, 'tab title')}${llm.lastUserLine ? ' and your one line' : ''}, to Claude (Anthropic), to name groups. No addresses, no page text, nothing from excluded sites.${counts}`;
+  return `${plural(llm.lastTitles, 'tab title')}${llm.lastUserLine ? ' and your one line' : ''}, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.${counts}`;
 }
 
 export function sawView(s: ViewState, local: SawLocal): SafeHtml {
@@ -35,7 +35,7 @@ export function sawView(s: ViewState, local: SawLocal): SafeHtml {
   if (saw.readTabs === 0) {
     const lead = s.connection === 'connected' ? 'Nothing read yet.' : "Chrome isn't connected, so Side isn't reading anything right now.";
     return html`<h1>What Side saw</h1><p class="lead">${lead}</p>
-<div class="hero"><div><div class="t" style="font-size:20px">After your first wrap-up you'll see every tab Side read and skipped.</div><div class="w">And exactly what was sent to Claude — titles only.</div></div>
+<div class="hero"><div><div class="t" style="font-size:20px">After your first wrap-up you'll see every tab Side read and skipped.</div><div class="w">And exactly what was sent to Claude — titles, your one line and step counts, never addresses or page text.</div></div>
 <button type="button" class="btn fill" data-act="wrap">Set aside today</button></div>`;
   }
   const skipped = saw.skipped.excluded + saw.skipped.incognito + saw.skipped.internal;

@@ -57,7 +57,7 @@ Keyboard: **Control+Option+S** hides sidy completely and brings it back. Clickin
 
 **Stores.** Everything stays in one file on this computer: `~/Library/Application Support/Side/side-data.json`.
 
-**Sends.** By default, Side sends **tab titles** with temporary ids, plus your one line for tomorrow if you wrote one, to Anthropic's API to group and name your work. It never sends URLs, page text or excluded sites, and you can turn this off in Settings so everything is grouped locally. Anonymous usage counts (numbers only, no text) are **off** unless you turn them on.
+**Sends.** By default, Side sends to Anthropic's API (Claude): **tab titles** with temporary ids to group and name your work; your set-aside **group names** to suggest a question for tomorrow; **your one line** with those titles to pick the next morning's step; and, once you have three or more steps, **your step counts** (numbers only) for the By your side sentence. It never sends URLs, page text or excluded sites, and you can turn this off in Settings so everything is done locally with simple rules. Anonymous usage counts (numbers only, no text) are **off** unless you turn them on.
 
 Main → **What Side saw** lists what Side read, what it skipped and what it sent.
 

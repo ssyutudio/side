@@ -46,7 +46,7 @@ export function settingsView(s: ViewState): SafeHtml {
 <div class="r"><b>Quiet hours</b><p>sidy won't start talking in this window. A check-in you asked for still comes, once.</p>${quiet}</div>
 <div class="r"><b>Wake-up time</b><p>Used for one fact when you choose One more hour.</p><span class="ctl">${timeSelect('wake', 'Wake-up time', st.wakeMinutes)}</span></div>
 <div class="r"><b>Little reactions</b><p>sidy stretches when you unlock, whistles when a video starts, nods to music — once, then still. Off with Reduce Motion too.</p><span class="ctl">${sw('reactions', st.reactions !== false, 'Little reactions')}</span></div>
-<div class="r"><b>AI drafting</b><p>On: sends tab titles and your one line to Claude (Anthropic) to name groups. Never addresses, page text or excluded sites. Off: sidy uses simple rules.</p><span class="ctl">${sw('llmEnabled', st.llmEnabled, 'AI drafting')}</span></div>
+<div class="r"><b>AI drafting</b><p>On: sends tab titles, your one line for tomorrow and your step counts to Claude (Anthropic) to name groups, suggest a question and pick your next step. Never addresses, page text or excluded sites. Off: sidy uses simple rules.</p><span class="ctl">${sw('llmEnabled', st.llmEnabled, 'AI drafting')}</span></div>
 <div class="r"><b>Share anonymous counts</b><p>Numbers only — tabs set aside, steps shown and opened. No titles, sites or words.</p><span class="ctl">${sw('uploadEnabled', st.uploadEnabled, 'Share anonymous counts')}</span></div>
 </div>
 <h2 class="set-h">Connections</h2><p class="note" style="margin:2px 0 0">Where sidy can open your next step. Chrome is the first.</p>

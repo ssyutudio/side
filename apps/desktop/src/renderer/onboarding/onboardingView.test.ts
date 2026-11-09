@@ -11,7 +11,7 @@ describe('onboardingView', () => {
     expect(h).toContain('<code>chrome://extensions</code>');
     expect(h).toContain(`<code>${path}</code>`);
     expect(h).toContain('Looking for the extension…');
-    expect(h).toContain('Tab titles go to Claude to name your groups. Addresses and page text stay on this computer.');
+    expect(h).toContain('Tab titles, your one line and your step counts go to Claude to name groups and pick your next step. Addresses and page text stay on this computer.');
   });
 
   it('failed: one thing to do and Check again as the only filled button', () => {
