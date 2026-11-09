@@ -22,6 +22,11 @@ export function edgeView(o: { mode: EdgeMode; size: number; hitY: number; hitSiz
 
 const close = (label: string) => html`<button class="x" data-act="bubble-x" aria-label="${label}">×</button>`;
 
+/** The check-in bubble carries three buttons, so it is drawn at the approved wider size (392). */
+export function bubbleClass(b: Bubble): string {
+  return b.kind === 'promise' ? 'bubble wide' : 'bubble';
+}
+
 export function bubbleView(b: Bubble, s: ViewState): SafeHtml | null {
   if (b.kind === 'step') {
     const step = s.step;
@@ -42,7 +47,7 @@ export function bubbleView(b: Bubble, s: ViewState): SafeHtml | null {
   const time = b.minutes === 60 ? 'The hour you asked for is up.' : `The ${b.minutes} minutes you asked for are up.`;
   return html`${close('Close')}
 <p>${time} Set today aside?</p>
-<div class="row"><button class="btn fill" data-act="answer" data-answer="set_aside">Set aside</button><button class="btn" data-act="answer" data-answer="keep_going">Keep going</button><button class="btn" data-act="answer" data-answer="not_today">Not today</button></div>`;
+<div class="row"><button class="btn fill grow" data-act="answer" data-answer="set_aside">Set aside</button><button class="btn grow" data-act="answer" data-answer="keep_going">Keep going</button><button class="btn grow" data-act="answer" data-answer="not_today">Not today</button></div>`;
 }
 
 export function toastView(t: Toast): SafeHtml {

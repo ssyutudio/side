@@ -1,5 +1,5 @@
 import { FIXTURES } from '../shared/fixtures';
-import { bubbleView, edgeView, toastView } from './edgeView';
+import { bubbleClass, bubbleView, edgeView, toastView } from './edgeView';
 
 const day = FIXTURES.day;
 const s = (x: unknown) => String(x);
@@ -39,6 +39,12 @@ describe('bubbleView', () => {
     expect(h).toContain('The 30 minutes you asked for are up. Set today aside?');
     for (const a of ['set_aside', 'keep_going', 'not_today']) expect(h).toContain(`data-answer="${a}"`);
     expect(s(bubbleView({ kind: 'promise', promiseId: 'p1', minutes: 60 }, day))).toContain('The hour you asked for is up.');
+  });
+
+  it('draws the three-button check-in wider so Not today stays inside the bubble (approved size)', () => {
+    expect(bubbleClass({ kind: 'promise', promiseId: 'p1', minutes: 30 })).toBe('bubble wide');
+    expect(bubbleClass({ kind: 'step', stepId: 'st1', trigger: 'app_start' })).toBe('bubble');
+    expect(bubbleClass({ kind: 'first_run', tabs: 38, groups: 3 })).toBe('bubble');
   });
 
   it('escapes text that comes from tab titles or the user', () => {

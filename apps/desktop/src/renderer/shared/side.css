@@ -28,6 +28,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* ---------- bubble ---------- */
 .bubble{position:absolute;z-index:21;width:340px;background:#fff;border-radius:16px;padding:16px 16px 14px 18px;box-shadow:0 10px 30px rgba(20,24,40,.22),0 0 0 1px rgba(20,24,40,.06)}
+.bubble.wide{width:392px}
 .bubble::after{content:"";position:absolute;right:-9px;top:var(--tail,50%);margin-top:-9px;border:9px solid transparent;border-left-color:#fff;border-right:0}
 .bubble p{margin:0 28px 12px 0;font-size:17px;line-height:1.4}
 .bubble .meta{display:block;font-size:13px;color:var(--ink2);margin:-6px 0 12px}

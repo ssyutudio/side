@@ -3,7 +3,7 @@
 import type { ViewState } from '../../main/viewState';
 import type { Bubble } from '../../main/speakService';
 import { getApi, type Toast } from '../shared/api';
-import { bubbleView, edgeView, toastView } from './edgeView';
+import { bubbleClass, bubbleView, edgeView, toastView } from './edgeView';
 
 const api = getApi();
 const app = document.getElementById('app')!;
@@ -34,7 +34,7 @@ function render() {
   const mode = state?.hidden || hiddenToast ? 'hidden' : bubble || toast ? 'out' : 'quiet';
   let overlay = '';
   const inner = bubble && state ? bubbleView(bubble, state) : null;
-  if (inner) overlay = `<div class="bubble" role="status">${inner}</div>`;
+  if (inner && bubble) overlay = `<div class="${bubbleClass(bubble)}" role="status">${inner}</div>`;
   else if (toast) overlay = String(toastView(toast));
   app.innerHTML = String(edgeView({ mode, size, hitY: hit.y, hitSize: hit.h })) + overlay;
   const box = app.querySelector<HTMLElement>('.bubble, .toast');
