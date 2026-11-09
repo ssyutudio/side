@@ -31,6 +31,7 @@ if (pages.length) {
   await build({
     entryPoints: pages.map((p) => join(rsrc, p, `${p}.ts`)),
     outdir: rout,
+    entryNames: '[name]',
     bundle: true,
     platform: 'browser',
     format: 'iife',
