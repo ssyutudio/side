@@ -10,6 +10,7 @@ import { createEdgeWindow, type EdgeWindow } from './edgeWindow';
 import { llmFromKey } from './llmTransport';
 import { SideController } from './controller';
 import { desktopApps } from './connectors/desktopApps';
+import { installedApps } from './connectors/apps/index.mjs';
 import { watchInbox } from './connectors/claudeCode';
 import { IPC_CHANNELS, routeIpc } from './ipcRoutes';
 import { watchReturns } from './returnWatcher';
@@ -174,6 +175,7 @@ async function start() {
     clock,
     llm: transport ? (req) => transport.complete({ system: req.system, prompt: req.user }) : null,
     apps: desktopApps,
+    installedApps: () => installedApps(),
     edge: edgePort,
     registerShortcut,
     push: (state) => {
@@ -263,6 +265,8 @@ async function start() {
   const open = process.env.SIDE_OPEN;
   if (open === 'main') setTimeout(() => windows?.openMain(), 800);
   else if (open === 'mini' || open === 'wrap' || open === 'onemore') setTimeout(() => windows?.openMini(open === 'mini' ? 'home' : open), 1500);
+
+  void ctl.conn.refresh();
 
   // Claude Code hook notes (scripts/claude-code-hook.mjs): recorded only, nothing is run.
   watchInbox(join(app.getPath('userData'), 'inbox'), { now: () => clock.now() }, (runs) => {

@@ -16,6 +16,8 @@ import { activePromise } from '../core/promise';
 import { ruleBySide } from '../core/llmHelpBySide';
 
 export interface ViewState {
+  /** Settings → Connections: desktop apps found on this computer and which are on. */
+  connections?: { apps: { id: string; tool: string; on: boolean }[] };
   /** Side's clock (demo clock included), so screens can show times. */
   now: number;
   connection: BridgeStatus;

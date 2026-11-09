@@ -19,7 +19,7 @@ let section: Section = startSection && SECTIONS.includes(startSection) ? startSe
 let state: ViewState | null = null;
 let failed = api.params.get('mode') === 'error';
 const forceLoading = api.params.get('mode') === 'loading';
-const local = { showAll: false, exInput: '', exError: null as string | null };
+const local = { showAll: false, exInput: '', exError: null as string | null, appsOpen: api.params.get('apps') === 'open' };
 
 function body(s: ViewState): SafeHtml {
   switch (section) {
@@ -30,7 +30,7 @@ function body(s: ViewState): SafeHtml {
     case 'saw':
       return sawView(s, { showAll: local.showAll });
     case 'settings':
-      return settingsView(s);
+      return settingsView(s, { appsOpen: local.appsOpen });
     default:
       return todayView(s);
   }
@@ -111,6 +111,14 @@ root.addEventListener('click', (e) => {
       break;
     case 'check':
       void api.invoke('side:check.connection').finally(load);
+      void api.invoke('side:connections.refresh');
+      break;
+    case 'apps-show':
+      local.appsOpen = !local.appsOpen;
+      render();
+      break;
+    case 'app-toggle':
+      if (el.dataset.app) void api.invoke('side:apps.set', { id: el.dataset.app, on: el.dataset.on !== '1' });
       break;
     case 'retry':
       failed = false;

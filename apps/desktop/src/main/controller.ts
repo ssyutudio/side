@@ -11,6 +11,7 @@ import { StepService } from './stepService';
 import { SpeakService, type Bubble } from './speakService';
 import { HelpService } from './helpService';
 import { AskService } from './askService';
+import { ConnectionsService } from './connectionsService';
 import { buildViewState, type ViewState } from './viewState';
 import { demoOffset, type DemoCommand } from './demoClock';
 import { todayDone } from '../core/todayDone';
@@ -38,6 +39,8 @@ export interface ControllerDeps {
   llm: LlmTransport | null;
   /** Desktop apps (Connections). Absent in tests that don't need it. */
   apps?: AppsPort | null;
+  /** Desktop apps found on this computer, for Settings → Connections. */
+  installedApps?: () => Promise<{ id: string; tool: string }[]>;
   edge: EdgePort | null;
   registerShortcut: (accelerator: string) => boolean;
   push: (state: ViewState) => void;
@@ -63,6 +66,7 @@ export class SideController {
   readonly speak: SpeakService;
   readonly help: HelpService;
   readonly ask: AskService;
+  readonly conn: ConnectionsService;
   lastReport: TabsReport | null = null;
   private waiters: ((r: TabsReport | null) => void)[] = [];
   private draft: { preview: WrapupPreview; report: TabsReport } | null = null;
@@ -73,6 +77,7 @@ export class SideController {
     this.step = new StepService({ store, port: bridge, clock, apps: deps.apps ?? null });
     this.help = new HelpService({ store, clock, llm, apps: deps.apps ?? null });
     this.ask = new AskService({ store, clock, llm });
+    this.conn = new ConnectionsService({ store, installedApps: deps.installedApps ?? (async () => []), onChange: () => this.publish() });
     this.speak = new SpeakService({
       store,
       clock,
@@ -96,7 +101,7 @@ export class SideController {
       now: this.deps.clock.now(),
     });
     // Claude's By your side sentence is cached per set of counts; a new one republishes once.
-    return { ...view, bySide: this.help.bySideFor(view.numbers, () => this.publish()) };
+    return { ...view, bySide: this.help.bySideFor(view.numbers, () => this.publish()), connections: this.conn.view() };
   }
 
   publish() {

@@ -237,3 +237,20 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .g.dragging,.g .tl2 li.dragging{opacity:.5}
 /* The stretch leans sidy out until the blue side shows (approved board), then it tucks back. */
 .react-stretch .edge .body{transform:translateX(var(--o))!important}
+/* M1 (11/9): connections, files, editor spots, Ask sidy */
+.set .r.cn .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.set .r.cn .hd b{font-size:16px}
+.set .r.cn .state{font-weight:500;color:var(--ink2)}
+.set .r.cn .ctl{align-items:center;gap:12px}
+.tg{display:inline-flex;align-items:center;justify-content:flex-end;gap:12px;min-height:44px;min-width:60px;border:0;background:none;padding:0}
+.tg .sw{display:inline-block;flex:none}
+.tg[aria-checked=true] .sw{background:var(--blue)}.tg[aria-checked=true] .sw::after{left:25px}
+.apps{grid-column:1/3;margin-top:12px;border:1.5px solid var(--line);border-radius:14px;padding:8px 16px 6px}
+.apps .al{font-size:13px;font-weight:600;color:var(--ink2);padding:4px 0 2px}
+.apps .row-tg{width:100%;justify-content:space-between;min-height:52px;border-bottom:1px solid var(--line);font-size:15px;font-weight:600;text-align:left}
+.apps .row-tg .st{font-weight:500;color:var(--ink2)}
+.apps .fr{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
+.apps .fr b{font-size:15px}.apps .fr p{margin:2px 0 0;font-size:14px;color:var(--ink2)}
+.files{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px}
+.files h4{margin:0 0 6px;font-size:14px}
+.files ul{margin:0;padding:0;list-style:none}.files li{font-size:14px;padding:2px 0}

@@ -31,6 +31,7 @@ type Ctl = Pick<
   wrapup: Pick<SideController['wrapup'], 'retry' | 'undo' | 'setTomorrowLine'>;
   step: Pick<SideController['step'], 'open' | 'dismiss'>;
   ask: Pick<SideController['ask'], 'ask'>;
+  conn: Pick<SideController['conn'], 'setApp' | 'refresh'>;
   speak: Pick<SideController['speak'], 'choose' | 'answer' | 'setFocus' | 'clear'>;
 };
 
@@ -70,6 +71,8 @@ const ROUTES = {
   'side:focus': route(z.object({ minutes: z.number().int().min(1).max(600).nullable() }), (c, i) => c.speak.setFocus(i.minutes)),
   'side:demo': route(z.object({ cmd: z.enum(DEMO_COMMANDS) }), (c, i) => c.demo(i.cmd)),
   'side:open.main': route(empty, (c) => c.openMain()),
+  'side:apps.set': route(z.object({ id: z.string().regex(/^[a-z_]{1,40}$/), on: z.boolean() }), (c, i) => c.conn.setApp(i.id, i.on)),
+  'side:connections.refresh': route(empty, (c) => c.conn.refresh()),
   // Ask sidy: one line in, one decision out. The screen runs the action with the same route its
   // button uses, so Ask sidy can do nothing a button can't.
   'side:ask': route(z.object({ line: z.string().max(2000) }), (c, i) => c.ask.ask(i.line)),

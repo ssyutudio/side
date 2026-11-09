@@ -37,7 +37,7 @@ export interface AppActionResult {
   message?: string;
 }
 
-export function installedApps(): Promise<{ id: string; name: string }[]>;
+export function installedApps(): Promise<{ id: string; name: string; tool: string }[]>;
 /** `only`: adapter ids the person turned on; any other app is treated as not installed. */
 export function recentWork(opts?: { limit?: number; only?: readonly string[] | null }): Promise<AppWork[]>;
 export function appCandidates(work: AppWork | { id: string } | null, opts?: { locale?: string }): AppCandidate[];

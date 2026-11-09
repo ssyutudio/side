@@ -121,6 +121,12 @@ const base = (o: Partial<ViewState> = {}): ViewState => withBySide(o, {
   hidden: false,
   focusUntil: null,
   demoOffsetMs: 0,
+  connections: { apps: [
+    { id: 'word', tool: 'Word', on: false },
+    { id: 'excel', tool: 'Excel', on: false },
+    { id: 'powerpoint', tool: 'PowerPoint', on: false },
+    { id: 'photoshop', tool: 'Photoshop', on: false },
+  ] },
   ...o,
 });
 
@@ -230,3 +236,6 @@ export const FIXTURE_PREVIEW_LONG: PreviewView = withIds({
   kept: [{ title: 'Pricing page draft for the Northwind store — annual plans section with the twenty percent discount', reason: 'active' }],
   foldCount: 23,
 });
+
+// Desktop apps turned on (Settings → Connections), Excel only.
+FIXTURES['apps-on'] = base({ connections: { apps: base().connections!.apps.map((a) => ({ ...a, on: a.id === 'excel' })) } });

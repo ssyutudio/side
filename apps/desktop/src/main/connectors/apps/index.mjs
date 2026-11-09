@@ -35,7 +35,7 @@ export async function installedApps() {
   const installed = await installedMap();
   return adaptersForPlatform()
     .filter((adapter) => installed.has(adapter.id))
-    .map((adapter) => ({ id: adapter.id, name: adapter.app }));
+    .map((adapter) => ({ id: adapter.id, name: adapter.app, tool: adapter.tool }));
 }
 
 /**
