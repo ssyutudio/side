@@ -62,8 +62,7 @@ function installMenu() {
 }
 
 function logReport(report: TabsReport) {
-  // First card 2 check: the number of tabs the app received, on the Dock icon and in this terminal.
-  app.dock?.setBadge(String(report.tabs.length));
+  // Terminal only: how many tabs arrived (Mini shows the count; no Dock badge, it reads like a backlog).
   const withPos = report.tabs.filter((t) => t.position && t.position.top > 0);
   console.log(
     `[side] report: ${report.tabs.length} tabs, ${withPos.length} with a position, skipped ${report.skipped.excluded} excluded / ${report.skipped.incognito} incognito / ${report.skipped.internal} internal`,
@@ -124,6 +123,8 @@ function pushToWindows(channel: string, data: unknown) {
 
 async function start() {
   installMenu();
+  // sidy is the app icon too: the same drawing from the Dock to the edge.
+  app.dock?.setIcon(join(app.getAppPath(), 'apps', 'desktop', 'assets', 'icon.png'));
   await store.load();
   if (store.loadState === 'recovered') console.warn('[side] data file was unreadable JSON and was moved aside:', store.movedAside);
   if (store.loadState === 'unreadable') console.warn('[side] data file could not be read; Side will not overwrite it this session.');
