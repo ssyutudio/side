@@ -88,6 +88,8 @@ const base = (o: Partial<ViewState> = {}): ViewState => withBySide(o, {
     },
   ],
   saw: {
+    source: 'last_wrapup',
+    when: 'Mon, Nov 9',
     readTabs: 37,
     withPosition: 9,
     hosts: [
@@ -145,7 +147,7 @@ export const FIXTURES: Record<string, ViewState> = {
     history: [],
     todayLines: [],
     timeline: [],
-    saw: { ...base().saw, readTabs: 0, withPosition: 0, hosts: [], tabs: [], skipped: { excluded: 0, excludedByDomain: {}, incognito: 0, internal: 0 }, llm: { enabled: true, sends: 0, lastAt: null, lastTitles: null, lastUserLine: false } },
+    saw: { ...base().saw, source: 'live', when: null, readTabs: 0, withPosition: 0, hosts: [], tabs: [], skipped: { excluded: 0, excludedByDomain: {}, incognito: 0, internal: 0 }, llm: { enabled: true, sends: 0, lastAt: null, lastTitles: null, lastUserLine: false } },
     numbers: numbers({ tabsSetAside: 0, tabsOpen: 38, stepReady: false, spokeToday: 0, spokeTotal: 0, shown: 0, clicked: 0, clickRate: { value: null, n: 0 }, stillWorkingRate: { value: null, n: 0 }, lastSecondsToWork: null, setAsideTotals: { tabs: 0, lines: 0 } }),
     quiet: { last: null, today: {} },
     settings: { ...base().settings, excludedDomains: [] },

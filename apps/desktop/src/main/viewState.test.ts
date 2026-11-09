@@ -58,8 +58,9 @@ describe('buildViewState', () => {
     expect(v.numbers.tabsOpen).toBe(6);
   });
 
-  it('shows what Side read and what it skipped, without the skipped tabs themselves', () => {
-    const v = buildViewState({ data: data(), report, bridge: 'connected', bubble: null, now: NOW });
+  it('before any Wrap up, shows what Side reads from Chrome now and what it skips', () => {
+    const v = buildViewState({ data: data({ setAsides: [], steps: [] }), report, bridge: 'connected', bubble: null, now: NOW });
+    expect(v.saw.source).toBe('live');
     expect(v.saw.readTabs).toBe(3);
     expect(v.saw.withPosition).toBe(1);
     expect(v.saw.skipped).toEqual({ excluded: 2, excludedByDomain: { 'client-bank.com': 2 }, incognito: 1, internal: 1 });
@@ -123,7 +124,7 @@ describe('buildViewState for Main', () => {
         tab(4, 'https://docs.google.com/document/d/x', { title: 'Pricing page — draft', position: { scroller: 'element', selector: '.kix', top: 900, ratio: 0.4, quote: 'Annual plans save 20%, billed once a year', capturedAt: NOW } }),
       ],
     };
-    const v = buildViewState({ data: data(), report: r, bridge: 'connected', bubble: null, now: NOW });
+    const v = buildViewState({ data: data({ setAsides: [], steps: [] }), report: r, bridge: 'connected', bubble: null, now: NOW });
     const byTitle = Object.fromEntries(v.saw.tabs.map((t) => [t.title, t]));
     expect(byTitle['T2']).toEqual({ title: 'T2', host: 'en.wikipedia.org', where: '30% down the page' });
     expect(byTitle['T1'].where).toBe('Not captured');
@@ -145,5 +146,25 @@ describe('buildViewState By your side', () => {
     expect(v.bySide).toEqual({ text: expect.stringContaining('still learning'), byClaude: false });
     const given = buildViewState({ data: data(), report, bridge: 'connected', bubble: null, now: NOW, bySide: { text: 'Given.', byClaude: true } });
     expect(given.bySide).toEqual({ text: 'Given.', byClaude: true });
+  });
+});
+
+describe('What Side saw after Chrome disconnects', () => {
+  it('shows the last wrap-up (read tabs, skipped counts) instead of saying nothing was read', () => {
+    const withSkipped = { ...sa, skipped: { excluded: 2, excludedByDomain: { 'client-bank.com': 2 }, incognito: 0, internal: 1 } };
+    const v = buildViewState({ data: data({ setAsides: [withSkipped] }), report: null, bridge: 'disconnected', bubble: null, now: NOW });
+    expect(v.saw.source).toBe('last_wrapup');
+    expect(v.saw.when).toBe('yesterday');
+    expect(v.saw.readTabs).toBe(2);
+    expect(v.saw.tabs.map((t) => t.title)).toContain('Retry jitter');
+    expect(v.saw.skipped.excludedByDomain).toEqual({ 'client-bank.com': 2 });
+  });
+
+  it('counts titles sent from the last grouping request, not from a later titles-free request', () => {
+    const v = buildViewState({
+      data: data({ llmLog: [{ at: NOW - 2000, titles: 25, userLine: false }, { at: NOW - 1000, titles: 0, userLine: false }] }),
+      report, bridge: 'connected', bubble: null, now: NOW,
+    });
+    expect(v.saw.llm.lastTitles).toBe(25);
   });
 });

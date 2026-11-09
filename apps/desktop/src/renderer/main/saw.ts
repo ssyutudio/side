@@ -42,7 +42,8 @@ export function sawView(s: ViewState, local: SawLocal): SafeHtml {
   const sent = saw.llm.enabled ? saw.llm.lastTitles ?? 0 : 0;
   const rows = local.showAll ? saw.tabs : saw.tabs.slice(0, FIRST);
   const skippedText = skippedLines(s);
-  return html`<h1>What Side saw</h1><p class="lead">What Side read from Chrome just now.</p>
+  const lead = saw.source === 'last_wrapup' ? `From your last wrap-up, ${saw.when}.` : 'What Side read from Chrome just now.';
+  return html`<h1>What Side saw</h1><p class="lead">${lead}</p>
 <div class="counts" style="margin-top:0"><span><b>${saw.readTabs}</b>tabs read</span><span><b>${skipped}</b>skipped</span><span><b>${sent}</b>titles sent to Claude</span></div>
 <section class="sec"><h2>Read</h2><p class="note" style="margin:-4px 0 10px">Title, site and where you stopped on the page. Page text is never sent.</p>
 <table class="tbl"><thead><tr><th>Tab</th><th>Site</th><th>Where you stopped</th></tr></thead><tbody>${rows.map(

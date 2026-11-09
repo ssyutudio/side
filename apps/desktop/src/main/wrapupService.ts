@@ -105,7 +105,7 @@ export class WrapupService {
     payload.groups = payload.groups
       .map((g) => ({ ...g, tabIds: g.tabIds.filter((t) => !isExcluded(payload.expectUrls[String(t)] ?? '', excluded)) }))
       .filter((g) => g.tabIds.length > 0);
-    const record = toSetAside(id, preview, report, this.deps.clock.now(), null, [], closeGroupKeys.length > 0);
+    const record = { ...toSetAside(id, preview, report, this.deps.clock.now(), null, [], closeGroupKeys.length > 0), skipped: report.skipped };
     try {
       await this.deps.store.update((d) => ({
         ...d,

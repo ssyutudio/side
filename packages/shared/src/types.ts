@@ -94,6 +94,8 @@ export interface SetAside {
   userLine: string | null;
   todayDone: string[];
   closeRequested: boolean;
+  /** Tabs Side did not read at this Wrap up, by count only (for What Side saw). */
+  skipped?: SkippedSummary;
   status: SetAsideStatus;
   result: WrapupResult | null;
 }

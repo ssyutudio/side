@@ -1,7 +1,7 @@
 // Everything the screens show, built in one place from the data file and the latest tab report.
 // Mini and Main read the same object, so their numbers cannot disagree. The top item is the one
 // next step; numbers are supporting detail. No backlog counts exist anywhere in here.
-import { hostOf, type KeepReason, type QuietReason, type SetAsideStatus, type Settings, type SkippedSummary, type TabsReport } from '@side/shared';
+import { hostOf, type KeepReason, type QuietReason, type SetAside, type SetAsideStatus, type Settings, type SkippedSummary, type TabsReport } from '@side/shared';
 import type { AppData } from './appData';
 import type { BridgeStatus } from './bridge';
 import type { Bubble } from './speakService';
@@ -45,6 +45,9 @@ export interface ViewState {
     step: { label: string; shown: boolean; clicked: boolean; stillWorking: boolean | null; secondsToWork: number | null } | null;
   }[];
   saw: {
+    /** Read from the last confirmed Wrap up, or from Chrome right now before any Wrap up. */
+    source: 'last_wrapup' | 'live';
+    when: string | null;
     readTabs: number;
     withPosition: number;
     hosts: { host: string; count: number }[];
@@ -132,12 +135,10 @@ export function buildViewState(input: ViewInput): ViewState {
 
   const stepSa = step ? data.setAsides.find((s) => s.id === step.fromSetAside) : undefined;
   const latest = latestSetAside(data.setAsides);
+  // What Side saw: the last confirmed Wrap up when there is one, so it survives Chrome being closed.
+  const liveSa = latest && (latest.status === 'applied' || latest.status === 'partial') ? latest : null;
 
-  const hostCounts = new Map<string, number>();
-  for (const t of report?.tabs ?? []) {
-    const h = hostOf(t.url);
-    if (h) hostCounts.set(h, (hostCounts.get(h) ?? 0) + 1);
-  }
+
 
   const today = workDayOf(now);
   const quietToday: Partial<Record<QuietReason, number>> = {};
@@ -199,21 +200,7 @@ export function buildViewState(input: ViewInput): ViewState {
             : null,
         };
       }),
-    saw: {
-      readTabs: report?.tabs.length ?? 0,
-      withPosition: (report?.tabs ?? []).filter((t) => t.position && t.position.top > 0).length,
-      hosts: [...hostCounts.entries()].map(([host, count]) => ({ host, count })),
-      tabs: (report?.tabs ?? []).map((t) => ({ title: t.title, host: hostOf(t.url), where: whereOf(t.position) })),
-      skipped: report?.skipped ?? EMPTY_SKIPPED,
-      llm: {
-        enabled: data.settings.llmEnabled,
-        sends: data.llmLog.length,
-        lastAt: data.llmLog.length ? data.llmLog[data.llmLog.length - 1].at : null,
-        lastTitles: data.llmLog.length ? data.llmLog[data.llmLog.length - 1].titles : null,
-        lastUserLine: data.llmLog.length ? data.llmLog[data.llmLog.length - 1].userLine : false,
-      },
-      uploadEnabled: data.settings.uploadEnabled,
-    },
+    saw: { ...sawFrom(liveSa, report, now), llm: llmSeen(data), uploadEnabled: data.settings.uploadEnabled },
     quiet: {
       last: data.quietLog.length ? data.quietLog.reduce((a, b) => (b.at >= a.at ? b : a)) : null,
       today: quietToday,
@@ -224,5 +211,53 @@ export function buildViewState(input: ViewInput): ViewState {
     focusUntil: data.focusUntil,
     demoOffsetMs: data.demoOffsetMs,
     bySide: input.bySide ?? { text: ruleBySide(numbers), byClaude: false },
+  };
+}
+
+function sawFrom(sa: SetAside | null, report: TabsReport | null, now: number) {
+  if (sa) {
+    const hosts = new Map<string, number>();
+    for (const t of sa.tabs) {
+      const h = hostOf(t.url);
+      if (h) hosts.set(h, (hosts.get(h) ?? 0) + 1);
+    }
+    return {
+      source: 'last_wrapup' as const,
+      when: dayLabel(sa.endedAt, now),
+      readTabs: sa.tabs.length + sa.kept.length,
+      withPosition: sa.tabs.filter((t) => t.position && t.position.top > 0).length,
+      hosts: [...hosts.entries()].map(([host, count]) => ({ host, count })),
+      tabs: [
+        ...sa.tabs.map((t) => ({ title: t.title, host: hostOf(t.url), where: whereOf(t.position) })),
+        ...sa.kept.map((k) => ({ title: k.title, host: null, where: 'Left open' })),
+      ],
+      skipped: sa.skipped ?? EMPTY_SKIPPED,
+    };
+  }
+  const counts = new Map<string, number>();
+  for (const t of report?.tabs ?? []) {
+    const h = hostOf(t.url);
+    if (h) counts.set(h, (counts.get(h) ?? 0) + 1);
+  }
+  return {
+    source: 'live' as const,
+    when: null,
+    readTabs: report?.tabs.length ?? 0,
+    withPosition: (report?.tabs ?? []).filter((t) => t.position && t.position.top > 0).length,
+    hosts: [...counts.entries()].map(([host, count]) => ({ host, count })),
+    tabs: (report?.tabs ?? []).map((t) => ({ title: t.title, host: hostOf(t.url), where: whereOf(t.position) })),
+    skipped: report?.skipped ?? EMPTY_SKIPPED,
+  };
+}
+
+/** What went to Claude: the last request that carried tab titles (grouping), not a titles-free one. */
+function llmSeen(data: AppData) {
+  const titled = [...data.llmLog].reverse().find((e) => e.titles > 0) ?? null;
+  return {
+    enabled: data.settings.llmEnabled,
+    sends: data.llmLog.length,
+    lastAt: data.llmLog.length ? data.llmLog[data.llmLog.length - 1].at : null,
+    lastTitles: titled ? titled.titles : null,
+    lastUserLine: titled ? titled.userLine : false,
   };
 }

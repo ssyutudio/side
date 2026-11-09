@@ -220,3 +220,11 @@ describe('WrapupService when the LLM cannot help', () => {
     expect(preview.fold.every((g) => g.source === 'rule')).toBe(true);
   });
 });
+
+describe('WrapupService keeps what was skipped', () => {
+  it('stores the skipped counts on the set-aside record, by excluded domain', async () => {
+    const { svc, store } = await setup(new FakePort(groupedAll));
+    await svc.confirm(await svc.preview(report), report, []);
+    expect(store.get().setAsides[0].skipped).toEqual({ excluded: 1, excludedByDomain: { 'client-bank.com': 1 }, incognito: 0, internal: 0 });
+  });
+});
