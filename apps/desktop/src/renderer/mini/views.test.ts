@@ -1,4 +1,4 @@
-import { FIXTURES, FIXTURE_PREVIEW } from '../shared/fixtures';
+import { FIXTURES, FIXTURE_PREVIEW, FIXTURE_PREVIEW_FILES } from '../shared/fixtures';
 import { homeView } from './homeView';
 import { previewView, checkingView, doneView, failedView, primaryLabel } from './wrapView';
 import { oneMoreView, untilWake } from './oneMoreView';
@@ -195,5 +195,21 @@ describe('Wrap up preview: drag to regroup', () => {
     // Native HTML5 dragging never delivers drops in a macOS panel window (Mini is one), so the
     // screen drags with pointer events and must not mark anything draggable.
     expect(h).not.toContain('draggable=');
+  });
+});
+
+describe('Wrap up preview: files saved today (desktop apps)', () => {
+  it('lists the files apart from the tab groups, says they are left alone, and keeps one filled button', () => {
+    const h = s(previewView(FIXTURE_PREVIEW_FILES, { close: [], open: [] }));
+    expect(h).toContain('<h4>Files saved today</h4>');
+    expect(h).toContain('<li>november-orders.xlsx — Excel</li>');
+    expect(h).toContain('Left as they are. sidy only remembers them for tomorrow.');
+    expect(fills(h)).toBe(1);
+    // Files never change the tab count on the button.
+    expect(h).toMatch(/btn fill[^>]*>Set aside 31 tabs</);
+  });
+
+  it('shows no files block when no app is turned on', () => {
+    expect(s(previewView(FIXTURE_PREVIEW, { close: [], open: [] }))).not.toContain('Files saved today');
   });
 });

@@ -39,6 +39,11 @@ export function primaryLabel(p: PreviewView, close: readonly string[]): string {
   return `Set aside ${plural(fold, 'tab')}`;
 }
 
+/** Files saved today in the turned-on desktop apps (approved mockup m1-wrap-files). Never closed or touched. */
+function filesBlock(files: NonNullable<PreviewView['files']>): SafeHtml {
+  return html`<div class="files"><h4>Files saved today</h4><ul>${files.map((f) => html`<li>${f.name} — ${f.tool}</li>`)}</ul><p class="note" style="margin:6px 0 0">Left as they are. sidy only remembers them for tomorrow.</p></div>`;
+}
+
 function body(p: PreviewView, local: WrapLocal, dim: boolean): SafeHtml {
   const stay: [string, string][] = p.kept.map((k) => [k.title, REASON[k.reason]]);
   if (p.skipped.excluded) stay.push([`${plural(p.skipped.excluded, 'tab')} from an excluded site`, 'Not read']);
@@ -60,7 +65,8 @@ ${open
 <div class="gl">${groups}</div>`
     : html`<div><h2 class="wh">Nothing to fold right now.</h2><p class="sub">Every open tab is one sidy leaves alone. Here is why.</p></div>`;
   return html`<div class="pb"${dim ? ' style="opacity:.45;pointer-events:none"' : ''}>${content}
-${stay.length ? html`<div class="stay"><h4>${stayCount ? `${stayCount} stay open` : 'Left as they are'}</h4><ul>${stay.map(([t, r]) => html`<li>${t}<span>${r}</span></li>`)}</ul></div>` : ''}</div>`;
+${stay.length ? html`<div class="stay"><h4>${stayCount ? `${stayCount} stay open` : 'Left as they are'}</h4><ul>${stay.map(([t, r]) => html`<li>${t}<span>${r}</span></li>`)}</ul></div>` : ''}
+${p.files?.length ? filesBlock(p.files) : ''}</div>`;
 }
 
 export function previewView(p: PreviewView, local: WrapLocal): SafeHtml {

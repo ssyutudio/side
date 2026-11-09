@@ -1,5 +1,5 @@
 // Glue between the extension bridge, the services and the screens. Electron-free so it can be tested.
-import { hostOf, type MessageType, type PayloadOf, type Settings, type TabsReport } from '@side/shared';
+import { hostOf, type MessageType, type PayloadOf, type SetAside, type Settings, type TabsReport } from '@side/shared';
 import type { JsonStore } from './store';
 import { sanitizeSettings, type AppData } from './appData';
 import type { BridgeStatus, CommandOutcome } from './bridge';
@@ -58,6 +58,8 @@ export interface PreviewView {
   alreadySetAside: number;
   skipped: WrapupPreview['skipped'];
   foldCount: number;
+  /** Files saved today in the desktop apps turned on: name and app only. Never closed or touched. */
+  files?: { name: string; tool: string }[];
 }
 
 export class SideController {
@@ -69,7 +71,7 @@ export class SideController {
   readonly conn: ConnectionsService;
   lastReport: TabsReport | null = null;
   private waiters: ((r: TabsReport | null) => void)[] = [];
-  private draft: { preview: WrapupPreview; report: TabsReport } | null = null;
+  private draft: { preview: WrapupPreview; report: TabsReport; files?: NonNullable<SetAside['files']> } | null = null;
 
   constructor(private readonly deps: ControllerDeps) {
     const { store, bridge, clock, llm } = deps;
@@ -165,14 +167,15 @@ export class SideController {
   async previewWrapup(): Promise<PreviewView | { error: 'not_connected' }> {
     const report = await this.freshReport();
     if (!report || this.deps.bridge.status !== 'connected') return { error: 'not_connected' };
-    const preview = await this.wrapup.preview(report);
-    this.draft = { preview, report };
-    return this.viewOf(preview, report);
+    const [preview, files] = await Promise.all([this.wrapup.preview(report), this.wrapup.filesToday()]);
+    this.draft = { preview, report, files };
+    return this.viewOf(preview, report, files);
   }
 
-  private viewOf(preview: WrapupPreview, report: TabsReport): PreviewView {
+  private viewOf(preview: WrapupPreview, report: TabsReport, files: NonNullable<SetAside['files']> = []): PreviewView {
     const byId = new Map(report.tabs.map((t) => [t.tabId, t]));
     return {
+      ...(files.length ? { files: files.map((f) => ({ name: f.name, tool: f.tool })) } : {}),
       groups: preview.fold.map((g) => ({
         key: g.key,
         name: g.name,
@@ -188,17 +191,18 @@ export class SideController {
   /** The user dragged a tab to another group, or a group onto another, before confirming. */
   async editWrapup(op: { op: 'move'; tabId: number; to: string } | { op: 'merge'; from: string; into: string }): Promise<PreviewView | { error: 'no_preview' }> {
     if (!this.draft) return { error: 'no_preview' };
-    const { preview, report } = this.draft;
+    const { preview, report, files } = this.draft;
     const next = op.op === 'move' ? moveTab(preview, op.tabId, op.to) : mergeGroups(preview, op.from, op.into);
-    this.draft = { preview: next, report };
-    return this.viewOf(next, report);
+    this.draft = { preview: next, report, files };
+    return this.viewOf(next, report, files);
   }
 
   async confirmWrapup(closeGroupKeys: string[]): Promise<WrapupOutcome | { kind: 'no_preview' }> {
     if (!this.draft) return { kind: 'no_preview' };
-    const { preview, report } = this.draft;
+    const { preview, report, files } = this.draft;
     const keys = closeGroupKeys.filter((k) => preview.fold.some((g) => g.key === k));
-    const out = await this.wrapup.confirm(preview, report, keys);
+    // The files the person saw in the preview are the ones remembered.
+    const out = await this.wrapup.confirm(preview, report, keys, files);
     if (out.kind !== 'storage_failed') this.draft = null;
     this.publish();
     return out;

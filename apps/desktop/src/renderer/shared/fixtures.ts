@@ -239,3 +239,6 @@ export const FIXTURE_PREVIEW_LONG: PreviewView = withIds({
 
 // Desktop apps turned on (Settings → Connections), Excel only.
 FIXTURES['apps-on'] = base({ connections: { apps: base().connections!.apps.map((a) => ({ ...a, on: a.id === 'excel' })) } });
+
+// Wrap up with files saved today in desktop apps that are turned on.
+export const FIXTURE_PREVIEW_FILES: PreviewView = { ...FIXTURE_PREVIEW, files: [{ name: 'november-orders.xlsx', tool: 'Excel' }, { name: 'q4-plan.docx', tool: 'Word' }] };

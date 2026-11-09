@@ -107,7 +107,7 @@ export class WrapupService {
   }
 
   /** Saves the record, then asks Chrome. `closeGroupKeys` are groups whose list the user confirmed closing. */
-  async confirm(preview: WrapupPreview, rawReport: TabsReport, closeGroupKeys: readonly string[]): Promise<WrapupOutcome> {
+  async confirm(preview: WrapupPreview, rawReport: TabsReport, closeGroupKeys: readonly string[], shownFiles?: SetAside['files']): Promise<WrapupOutcome> {
     const report = this.clean(rawReport);
     const id = newId();
     const payload = toApplyPayload(preview, id, closeGroupKeys);
@@ -116,7 +116,7 @@ export class WrapupService {
     payload.groups = payload.groups
       .map((g) => ({ ...g, tabIds: g.tabIds.filter((t) => !isExcluded(payload.expectUrls[String(t)] ?? '', excluded)) }))
       .filter((g) => g.tabIds.length > 0);
-    const files = await this.filesToday();
+    const files = shownFiles ?? (await this.filesToday());
     const record: SetAside = {
       ...toSetAside(id, preview, report, this.deps.clock.now(), null, [], closeGroupKeys.length > 0),
       skipped: report.skipped,
