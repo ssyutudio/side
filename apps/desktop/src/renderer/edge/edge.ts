@@ -20,7 +20,16 @@ function rightOffset() {
   return Math.round(size * 0.92) + 18;
 }
 
+// While sidy reacts (about 2 s), a state-only update must not redraw it: a redraw would wipe
+// the notes and restart the motion. Bubbles and toasts still draw at once.
+let reacting = false;
+let deferred = false;
+
 function render() {
+  if (reacting && !bubble && !toast) {
+    deferred = true;
+    return;
+  }
   const hiddenToast = toast?.kind === 'hidden';
   const mode = state?.hidden || hiddenToast ? 'hidden' : bubble || toast ? 'out' : 'quiet';
   let overlay = '';
@@ -153,7 +162,8 @@ api.onReact((kind) => {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches || bubble || toast) return;
   clearTimeout(reactTimer);
   document.body.classList.remove('react-stretch', 'react-nod', 'react-whistle');
-  app.querySelector('.notes')?.remove();
+  document.querySelector('.notes')?.remove();
+  reacting = true;
   document.body.classList.add(`react-${kind}`);
   if (kind === 'whistle') {
     const notes = document.createElement('div');
@@ -161,11 +171,17 @@ api.onReact((kind) => {
     notes.setAttribute('aria-hidden', 'true');
     Object.assign(notes.style, { right: `${Math.round(size * 0.6) + 6}px`, top: `${hit.y + hit.h / 2 - size}px`, width: '40px', height: '40px' });
     notes.innerHTML = '<span style="left:14px;top:18px">♪</span><span style="left:4px;top:24px">♫</span><span style="left:20px;top:28px">♪</span>';
-    app.appendChild(notes);
+    // Outside #app, so a redraw of sidy never removes them.
+    document.body.appendChild(notes);
   }
   reactTimer = setTimeout(() => {
     document.body.classList.remove(`react-${kind}`);
-    app.querySelector('.notes')?.remove();
+    document.querySelector('.notes')?.remove();
+    reacting = false;
+    if (deferred) {
+      deferred = false;
+      render();
+    }
   }, 2400);
 });
 // A bubble decided before this page finished loading (e.g. at app start) arrives with the state.
