@@ -110,11 +110,13 @@ export function doneView(s: ViewState, sa: SetAside, local: { line: string }): S
     ? html` Chrome kept ${plural(r.kept.length, 'tab')} as ${r.kept.length === 1 ? 'it was' : 'they were'} (${[...new Set(r.kept.map((k) => REASON[k.reason].toLowerCase()))].join(', ')}).`
     : '';
   const today = todayText(s, sa);
+  // Tabs Side left as they were (from the preview) plus any Chrome kept: from the confirmed record.
+  const stillOpen = sa.kept.length + r.kept.length;
   return panel([
     head(OK_CHIP),
     html`<div class="pb">
 <div class="today">${today.line}<small>${today.note}</small></div>
-<div class="done-line"><b>${result}</b> ${s.numbers.tabsOpen ?? 0} still open. Chrome confirmed.${kept}</div>
+<div class="done-line"><b>${result}</b> ${stillOpen} still open. Chrome confirmed.${kept}</div>
 <button class="btn" data-act="undo" data-id="${sa.id}">Undo · bring back ${plural(folded + closed, 'tab')}</button>
 <div class="field" style="margin-top:4px"><label for="tm">What are you most curious about tomorrow?</label>
 <input id="tm" maxlength="200" placeholder="One line, if you like" autocomplete="off" value="${local.line}">

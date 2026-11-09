@@ -104,6 +104,12 @@ describe('Wrap up done', () => {
     expect(fills(h)).toBe(1);
   });
 
+  it('counts what is still open from the confirmed record, not from an older tab count', () => {
+    const sa = { ...confirmed(), kept: [{ tabId: 9, title: 'Draft', reason: 'active' as const }] };
+    sa.result = { ...sa.result!, kept: [{ tabId: 10, reason: 'changed' as const }] };
+    expect(s(doneView(FIXTURES.wrapped, sa, { line: '' }))).toContain('2 still open.');
+  });
+
   it('counts closed tabs separately', () => {
     expect(s(doneView(FIXTURES.wrapped, confirmed([7, 8]), { line: '' }))).toContain('5 tabs folded in 2 groups, 2 closed.');
   });
