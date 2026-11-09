@@ -5,6 +5,7 @@ import { isWebUrl, urlOf } from './api';
 import type { ChromeApi, TabLike } from './api';
 import { RejectedError, chromeCall } from './journal';
 import { restorePositionInPage, withTimeout } from './position';
+import { COPY } from './copy';
 
 export interface OpenOptions {
   loadTimeoutMs: number;
@@ -45,12 +46,12 @@ async function canInject(api: ChromeApi, url: string): Promise<boolean> {
 }
 
 export async function openStep(api: ChromeApi, p: StepOpenPayload, opts: OpenOptions): Promise<StepOpenResult> {
-  if (!isWebUrl(p.url)) throw new RejectedError('Side only opens web pages.');
+  if (!isWebUrl(p.url)) throw new RejectedError(COPY.onlyWebPages);
   let parsed: URL;
   try {
     parsed = new URL(p.url);
   } catch {
-    throw new RejectedError('That address is not valid.');
+    throw new RejectedError(COPY.badAddress);
   }
 
   const all = await chromeCall(() => api.tabs.query({}));

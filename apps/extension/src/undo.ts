@@ -5,6 +5,7 @@ import { urlOf } from './api';
 import type { ChromeApi, TabLike } from './api';
 import { RejectedError, chromeCall, loadJournal, saveJournal } from './journal';
 import type { Journal } from './journal';
+import { COPY } from './copy';
 
 function undoResult(j: Journal): UndoResult {
   const entries = Object.entries(j.tabs);
@@ -16,7 +17,7 @@ function undoResult(j: Journal): UndoResult {
 
 export async function undoWrapup(api: ChromeApi, setAsideId: string): Promise<UndoResult> {
   const j = await loadJournal(api, setAsideId);
-  if (!j) throw new RejectedError('There is nothing to undo for this set-aside.');
+  if (!j) throw new RejectedError(COPY.nothingToUndo);
   if (j.undone) return undoResult(j);
 
   const sideGroups = new Set(Object.values(j.groupIds));

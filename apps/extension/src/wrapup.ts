@@ -14,6 +14,7 @@ import {
   saveJournalAndRegistry,
 } from './journal';
 import type { Journal, SideGroupRecord } from './journal';
+import { COPY } from './copy';
 
 export function keepReason(
   tab: TabLike,
@@ -40,11 +41,11 @@ async function getTab(api: ChromeApi, id: number): Promise<TabLike | null> {
 }
 
 function validate(p: WrapupApplyPayload): void {
-  if (p.groups.length === 0) throw new RejectedError('Nothing to set aside.');
+  if (p.groups.length === 0) throw new RejectedError(COPY.nothingToSetAside);
   const seen = new Set<number>();
   for (const g of p.groups) {
     for (const id of g.tabIds) {
-      if (seen.has(id)) throw new RejectedError(`Tab ${id} is in two works.`);
+      if (seen.has(id)) throw new RejectedError(COPY.tabInTwoWorks(id));
       seen.add(id);
     }
   }
@@ -69,7 +70,7 @@ export async function applyWrapup(
 ): Promise<WrapupResult> {
   validate(p);
   const existing = await loadJournal(api, p.setAsideId);
-  if (existing?.undone) throw new RejectedError('This set-aside was already undone.');
+  if (existing?.undone) throw new RejectedError(COPY.alreadyUndone);
   const j = existing ?? newJournal(p, now);
   // Save first: nothing in Chrome changes unless this write succeeded.
   await saveJournal(api, j);
