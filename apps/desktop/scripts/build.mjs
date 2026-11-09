@@ -1,6 +1,6 @@
 // Bundles the Electron main and preload processes into apps/desktop/dist.
 import { build } from 'esbuild';
-import { mkdirSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync, cpSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,4 +23,5 @@ if (nodeEntries.length > 0) {
     logLevel: 'warning',
   });
 }
+cpSync(join(root, 'static'), join(out, 'static'), { recursive: true });
 console.log('desktop built ->', out);
