@@ -1,4 +1,5 @@
-// Tiny HTML builder for the screens. Every interpolated value is escaped unless it is itself built
+// Tiny HTML builder for the screens. Attributes are always double-quoted, so " is escaped and ' need not be.
+// Every interpolated value is escaped unless it is itself built
 // with html`` or wrapped in raw(), so tab titles and user text can never become markup.
 export class SafeHtml {
   constructor(readonly value: string) {}
@@ -12,7 +13,7 @@ export function raw(value: string): SafeHtml {
 }
 
 export function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 export type Value = string | number | boolean | null | undefined | SafeHtml | Value[];
