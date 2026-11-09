@@ -254,3 +254,17 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .files{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px}
 .files h4{margin:0 0 6px;font-size:14px}
 .files ul{margin:0;padding:0;list-style:none}.files li{font-size:14px;padding:2px 0}
+.ask input::placeholder{color:var(--ink2)}
+.ask .row input{flex:1;min-width:0}
+.ask input[readonly]{background:var(--canvas);color:var(--ink2)}
+.ask .btn[aria-disabled=true]{color:var(--ink2);cursor:not-allowed}
+.asking{align-items:center;gap:10px;min-height:44px;font-size:15px;font-weight:600;margin-top:6px}
+.reply{background:var(--canvas);border-radius:12px;padding:12px 14px;margin-top:10px}
+.reply>p{margin:0 0 10px;font-size:15px;line-height:1.4}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.acts button{min-height:44px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:0 12px;font-size:14px;font-weight:600}
+.acts button:hover{border-color:#C7CAD1}
+.reply .copy code{background:#fff;border:1.5px solid var(--line);height:44px}
+.ask .row input{height:44px}
+.reply>p.note{font-size:13px}
+.reply .copy code{font-family:var(--font);font-size:15px}

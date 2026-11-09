@@ -1,5 +1,6 @@
 import { FIXTURES, FIXTURE_PREVIEW, FIXTURE_PREVIEW_FILES } from '../shared/fixtures';
 import { homeView } from './homeView';
+import { askBlock, actFor } from './askView';
 import { previewView, checkingView, doneView, failedView, primaryLabel } from './wrapView';
 import { oneMoreView, untilWake } from './oneMoreView';
 import type { SetAside } from '@side/shared';
@@ -211,5 +212,45 @@ describe('Wrap up preview: files saved today (desktop apps)', () => {
 
   it('shows no files block when no app is turned on', () => {
     expect(s(previewView(FIXTURE_PREVIEW, { close: [], open: [] }))).not.toContain('Files saved today');
+  });
+});
+
+describe('Ask sidy in Mini', () => {
+  it('idle: one line box with Ask, what goes to Claude, and still one filled button on the screen', () => {
+    const h = s(homeView(FIXTURES.night, {}));
+    expect(h).toContain('<label for="ask">Ask sidy</label>');
+    expect(h).toContain('placeholder="e.g. I\'m done for today"');
+    expect(h).toContain('Only this line goes to Claude, to pick one action.');
+    expect(fills(h)).toBe(1);
+  });
+
+  it('asking: says so and locks the box', () => {
+    const h = s(askBlock({ line: "I'm done for today", state: 'asking' }));
+    expect(h).toContain('Asking sidy…');
+    expect(h).toContain('readonly');
+  });
+
+  it('nothing fits, or a "do it for me": fixed sentence and the seven actions as buttons', () => {
+    const h = s(askBlock({ line: 'order the groceries', state: 'reply', reply: { kind: 'declined', reason: 'outside_action', by: 'claude' } }));
+    expect(h).toContain("I can't do that for you. I can open your work so you can do it yourself. I can do these:");
+    expect((h.match(/data-act="ask-do"/g) ?? []).length).toBe(7);
+    expect(h).toContain('Set aside today opens the preview first. Nothing closes.');
+    expect(s(askBlock({ line: 'x', state: 'reply', reply: { kind: 'menu', by: 'words' } }))).toContain('I can do these:');
+  });
+
+  it('how-to: only a search phrase with Copy; a crisis line: the crisis sentence and no actions', () => {
+    const how = s(askBlock({ line: 'vlookup?', state: 'reply', reply: { kind: 'how_to', search: 'Excel VLOOKUP tutorial', by: 'claude' } }));
+    expect(how).toContain('<code>Excel VLOOKUP tutorial</code>');
+    expect(how).toContain('data-act="ask-copy"');
+    const crisis = s(askBlock({ line: 'x', state: 'reply', reply: { kind: 'crisis', by: 'words' } }));
+    expect(crisis).toContain('988');
+    expect(crisis).not.toContain('ask-do');
+  });
+
+  it('escapes the typed line, and each action maps to one of Mini\'s own buttons', () => {
+    expect(s(askBlock({ line: '"><script>x</script>', state: 'idle' }))).not.toContain('<script>');
+    expect(actFor('set_aside')).toBe('wrap');
+    expect(actFor('set_session_check')).toBe('one-more');
+    expect(actFor('quiet_hour')).toBe('focus');
   });
 });

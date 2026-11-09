@@ -10,6 +10,8 @@ import { checkingView, doneView, failedView, loadingView, previewView, type Fail
 import { oneMoreView } from './oneMoreView';
 import { clock } from './parts';
 import { stepOpenedText, type StepOpenReply } from '../shared/stepText';
+import { actFor } from './askView';
+import type { AskActionId, AskDecision } from '../../core/askSidy';
 
 type View =
   | { name: 'home' }
@@ -46,7 +48,17 @@ function render() {
   }
   // Room on every side so the panel's shadow fades out inside the window instead of being cut
   // into a visible box at the window edge.
+  const typing = document.activeElement?.id === 'ask';
   app.innerHTML = `<div class="mini-room">${h}</div>`;
+  const ask = app.querySelector<HTMLInputElement>('#ask');
+  if (ask && typing) {
+    ask.focus();
+    ask.setSelectionRange(ask.value.length, ask.value.length);
+  }
+  ask?.addEventListener('input', () => (home = { ...home, ask: { line: ask.value, state: 'idle' } }));
+  ask?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') void askNow();
+  });
   const panel = app.querySelector<HTMLElement>('.panel');
   if (panel) void api.invoke('side:mini.resize', { height: Math.ceil(panel.getBoundingClientRect().height) + 2 * MINI_ROOM });
   app.querySelector<HTMLInputElement>('#tm')?.addEventListener('input', (e) => (line = (e.target as HTMLInputElement).value));
@@ -101,11 +113,49 @@ async function toastAndClose(text: string) {
   await api.invoke('side:mini.close');
 }
 
+// ---- Ask sidy: one line → at most one fixed action, run as its own button would run it ----
+
+async function askNow() {
+  const line = (app.querySelector<HTMLInputElement>('#ask')?.value ?? '').trim();
+  if (!line || home.ask?.state === 'asking') return;
+  home = { ...home, notice: undefined, ask: { line, state: 'asking' } };
+  render();
+  const r = await api.invoke<{ decision?: AskDecision; latest?: boolean; error?: string }>('side:ask', { line });
+  // A newer ask, or a different screen by now: this answer is not applied.
+  if (!r.decision || r.latest === false || view.name !== 'home' || home.ask?.line !== line) return;
+  if (r.decision.kind === 'action') {
+    home = { ...home, ask: { line: '', state: 'idle' } };
+    return askDo(r.decision.action);
+  }
+  home = { ...home, ask: { line, state: 'reply', reply: r.decision } };
+  render();
+}
+
+async function askDo(id: AskActionId) {
+  home = { ...home, ask: { line: '', state: 'idle' } };
+  if (id === 'open_step' && !state?.step) {
+    home = { ...home, notice: "There's no next step yet. It's made after you set today aside." };
+    return render();
+  }
+  if (id === 'quiet_hour') home = { ...home, notice: 'Quiet for 1 hour. No bubbles until then.' };
+  const el = document.createElement('button');
+  el.dataset.act = actFor(id);
+  if (state?.step) el.dataset.step = state.step.id;
+  await act(el);
+  render();
+}
+
 async function act(el: HTMLElement) {
   const a = el.dataset.act;
   const key = el.dataset.key ?? '';
   switch (a) {
     case 'close': return void api.invoke('side:mini.close');
+    case 'ask': return void askNow();
+    case 'ask-do': return void askDo(el.dataset.action as AskActionId);
+    case 'ask-copy':
+      await navigator.clipboard.writeText(el.dataset.text ?? '').catch(() => undefined);
+      el.textContent = 'Copied';
+      return;
     case 'open-main': await api.invoke('side:open.main'); return void api.invoke('side:mini.close');
     case 'home': home = {}; return go({ name: 'home' });
     case 'wrap': return void startWrap();
@@ -266,6 +316,9 @@ if (api.fixture) {
   };
   state = FIXTURES[api.params.get('state') ?? 'night'] ?? FIXTURES.night;
   const P = api.params.get('state') === 'long' ? FIXTURE_PREVIEW_LONG : api.params.get('state') === 'files' ? FIXTURE_PREVIEW_FILES : FIXTURE_PREVIEW;
+  if (v === 'ask-asking') home = { ask: { line: "I'm done for today", state: 'asking' } };
+  if (v === 'ask-menu') home = { ask: { line: 'order the groceries', state: 'reply', reply: { kind: 'declined', reason: 'outside_action', by: 'claude' } } };
+  if (v === 'ask-howto') home = { ask: { line: 'how do I do a VLOOKUP in Excel', state: 'reply', reply: { kind: 'how_to', search: 'Excel VLOOKUP tutorial', by: 'claude' } } };
   if (v === 'preview') view = { name: 'preview', p: P };
   if (v === 'preview-close') { wrap = { close: ['g1'], open: [] }; view = { name: 'preview', p: P }; }
   if (v === 'checking') view = { name: 'checking', p: FIXTURE_PREVIEW };

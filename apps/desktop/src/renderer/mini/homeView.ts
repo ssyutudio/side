@@ -3,12 +3,17 @@
 import type { ViewState } from '../../main/viewState';
 import { html, type SafeHtml } from '../shared/html';
 import { cap, chip, clock, facts, footer, head, panel, quick, setAsideText, type QuickAction } from './parts';
+import { askBlock, type AskLocal } from './askView';
 
 export interface HomeLocal {
   /** A one-line result from the last quick action (e.g. after Undo). */
   notice?: string;
   checking?: boolean;
+  /** Ask sidy: the line, and what is under the box. */
+  ask?: AskLocal;
 }
+
+const IDLE: AskLocal = { line: '', state: 'idle' };
 
 const HIDE: QuickAction = { icon: '🙈', title: 'Hide sidy', act: 'hide', key: '⌃⌥S' };
 const ONE_MORE: QuickAction = { icon: '⏳', title: 'One more hour', sub: 'Keep going, with one check-in', act: 'one-more' };
@@ -38,7 +43,8 @@ ${quick([
   { icon: '🌙', title: 'Set aside today', sub: 'Needs Chrome — connect first.', act: 'wrap', off: true },
   { icon: '↩️', title: 'Bring back the last tabs', sub: 'Needs Chrome — connect first.', act: 'undo', off: true },
   HIDE,
-])}</div>`,
+])}
+${askBlock(local.ask ?? IDLE)}</div>`,
       footer,
     ]);
   }
@@ -60,7 +66,8 @@ ${quick([
   { icon: '↩️', title: "Bring back today's tabs", sub: `Unfolds the ${w.groups.length} ${w.groups.length === 1 ? 'group' : 'groups'}`, act: 'undo' },
   ONE_MORE,
   HIDE,
-])}</div>`,
+])}
+${askBlock(local.ask ?? IDLE)}</div>`,
       footer,
     ]);
   }
@@ -84,7 +91,8 @@ ${quick([
   ...(w && w.canUndo ? [{ icon: '↩️', title: `Bring back ${w.when === 'yesterday' ? "yesterday's" : 'the last'} tabs`, act: 'undo' }] : []),
   focusAction(s),
   HIDE,
-])}</div>`,
+])}
+${askBlock(local.ask ?? IDLE)}</div>`,
       footer,
     ]);
   }
@@ -100,7 +108,8 @@ ${facts([
   ['Set aside', setAsideText(s)],
   ['Next step', 'Ready after you set aside'],
 ])}
-${quick([ONE_MORE, focusAction(s), HIDE])}</div>`,
+${quick([ONE_MORE, focusAction(s), HIDE])}
+${askBlock(local.ask ?? IDLE)}</div>`,
     footer,
   ]);
 }
