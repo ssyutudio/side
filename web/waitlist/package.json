@@ -2,6 +2,7 @@
   "name": "@side/waitlist",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "postgres": "^4.1.0"
   }

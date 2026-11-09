@@ -1,7 +1,7 @@
 // POST /api/join {email, consent} -> one row per email. GET /api/join -> {count}.
-import { getSql, type SqlTag } from '../lib/db';
-import { DB_DOWN_REASON, methodNotAllowed, readBody, sendJson, type ReqLike, type ResLike } from '../lib/http';
-import { validateJoin } from '../lib/validate';
+import { getSql, type SqlTag } from '../lib/db.js';
+import { DB_DOWN_REASON, methodNotAllowed, readBody, sendJson, type ReqLike, type ResLike } from '../lib/http.js';
+import { validateJoin } from '../lib/validate.js';
 
 async function countRows(sql: SqlTag): Promise<number> {
   const rows = await sql<{ count: number }>`select count(*)::int as count from waitlist`;

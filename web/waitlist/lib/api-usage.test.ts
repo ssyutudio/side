@@ -1,5 +1,5 @@
-import { createUsageHandler } from '../api/usage';
-import { fakeRes, fakeSql } from './testing';
+import { createUsageHandler } from '../api/usage.js';
+import { fakeRes, fakeSql } from './testing.js';
 
 const ID = '3f1c2a9e-7b4d-4c1a-9e2f-5a6b7c8d9e0f';
 

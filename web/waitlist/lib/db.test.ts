@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { databaseUrl, connectionOptions, getSql, resetSqlForTests } from './db';
+import { databaseUrl, connectionOptions, getSql, resetSqlForTests } from './db.js';
 
 describe('databaseUrl', () => {
   it('prefers DATABASE_URL', () => {

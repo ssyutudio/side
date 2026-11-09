@@ -15,9 +15,24 @@ describe('vercel deploy layout', () => {
     expect(Object.keys(cfg.functions)).toContain('api/*.ts');
   });
 
-  it('compiles functions as CommonJS so extensionless relative imports resolve', () => {
+  it('runs functions as ES modules, because postgres v4 cannot be required from CommonJS', () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-    expect(pkg.type).not.toBe('module');
+    expect(pkg.type).toBe('module');
     expect(pkg.dependencies.postgres).toBeTruthy();
+  });
+
+  it('gives every runtime relative import a .js extension, as Node ESM requires', () => {
+    const runtime = [
+      ...readdirSync(join(ROOT, 'api')).map((f) => join('api', f)),
+      ...readdirSync(join(ROOT, 'lib')).filter((f) => !f.endsWith('.test.ts') && f !== 'testing.ts').map((f) => join('lib', f)),
+    ];
+    const bare: string[] = [];
+    for (const f of runtime) {
+      const src = readFileSync(join(ROOT, f), 'utf8');
+      for (const m of src.matchAll(/from '(\.{1,2}\/[^']+)'/g)) {
+        if (!m[1].endsWith('.js')) bare.push(`${f}: ${m[1]}`);
+      }
+    }
+    expect(bare).toEqual([]);
   });
 });

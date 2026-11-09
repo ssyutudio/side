@@ -1,5 +1,5 @@
-import { createJoinHandler } from '../api/join';
-import { fakeRes, fakeSql } from './testing';
+import { createJoinHandler } from '../api/join.js';
+import { fakeRes, fakeSql } from './testing.js';
 
 describe('join handler', () => {
   it('stores a new email and returns the count', async () => {

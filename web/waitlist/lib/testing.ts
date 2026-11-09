@@ -1,6 +1,6 @@
 // Test doubles for the Vercel handlers: a recording sql tag and a minimal response.
-import type { SqlTag } from './db';
-import type { ResLike } from './http';
+import type { SqlTag } from './db.js';
+import type { ResLike } from './http.js';
 
 export interface FakeSql {
   tag: SqlTag;

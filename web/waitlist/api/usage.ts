@@ -1,8 +1,8 @@
 // POST /api/usage -> anonymous counts for one install (opt-in, off by default).
 // GET /api/usage -> totals across installs, for the deck. Numbers only.
-import { getSql, type SqlTag } from '../lib/db';
-import { DB_DOWN_REASON, methodNotAllowed, readBody, sendJson, type ReqLike, type ResLike } from '../lib/http';
-import { validateUsage } from '../lib/validate';
+import { getSql, type SqlTag } from '../lib/db.js';
+import { DB_DOWN_REASON, methodNotAllowed, readBody, sendJson, type ReqLike, type ResLike } from '../lib/http.js';
+import { validateUsage } from '../lib/validate.js';
 
 interface TotalsRow {
   installs: number;

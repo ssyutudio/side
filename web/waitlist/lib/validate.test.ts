@@ -1,4 +1,4 @@
-import { validateJoin, validateUsage } from './validate';
+import { validateJoin, validateUsage } from './validate.js';
 
 describe('validateJoin', () => {
   it('accepts an email with consent and normalizes it', () => {
