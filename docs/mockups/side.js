@@ -327,6 +327,131 @@ S['main-settings'] = () => { const sz = Q.get('sz') || 's'; return M('settings',
   <div class="r"><b>Chrome</b><p>Connected · Side extension 0.1.0</p><span class="ctl"><button class="btn sm">Check again</button></span></div>
   </div>`)(); };
 
+/* ---------- M1 (11/9): connections, files, editor spots, Ask sidy — for Director approval ---------- */
+/* Settings → Connections. The general rows are taken from main-settings as they are; the page opens scrolled to Connections. */
+const SET_TOP = () => S['main-settings']().ov.split('<h2 style="font-size:18px;margin:28px 0 0">Connections</h2>')[0];
+const CHIP = { ok: '<span class="chip ok">Connected</span>', no: '<span class="chip warn">Not connected</span>', chk: '<span class="chip wait chk"><span class="spin" style="width:12px;height:12px;border-width:2px"></span>Checking</span>' };
+const crow = (name, chip, line, ctl, extra = '', aria = '') => `<div class="r cn"${aria ? ` aria-label="${aria}"` : ''}><div class="hd"><b>${name}</b>${CHIP[chip]}</div><p>${line}</p><span class="ctl row">${ctl}</span>${extra}</div>`;
+const AGAIN = `<button class="btn">Check again</button>`;
+const TG = (label, on, to) => `<button class="tg" role="switch" aria-checked="${on}" aria-label="${label}" onclick="go('${to}')"><span class="sw" aria-hidden="true"></span></button>`;
+const APPS = ['Word', 'Excel', 'PowerPoint', 'Photoshop'];
+function appsBlock() {
+  return `<div class="apps"><div class="al">Found on this computer</div>
+   ${APPS.map(a => `<button class="tg row-tg" role="switch" aria-checked="false" onclick="this.setAttribute('aria-checked',this.getAttribute('aria-checked')!=='true');this.querySelector('.st').textContent=this.getAttribute('aria-checked')==='true'?'On':'Off'"><span class="nm">${a} · <span class="st">Off</span></span><span class="sw" aria-hidden="true"></span></button>`).join('')}
+   <p class="note" style="margin:10px 0 4px">sidy reads only file names and when you last used them, never what's inside.</p>
+   <div class="fr"><div><b>Work folder</b><p>Optional. sidy looks for files only in this folder.</p></div><button class="btn">Choose…</button></div>
+   <div class="fr"><div><b>Excluded folders</b><p>Files in these folders are never read.</p></div><button class="btn">Add…</button></div></div>`;
+}
+function conn({ apps = false, cal = 'off' } = {}) {
+  const calRow = {
+    off: ['Calendar · Off', 'no', "Turn it on so sidy knows when tomorrow starts. Titles stay on this computer.", TG('Calendar', false, 'conn-cal-checking')],
+    chk: ['Calendar · On', 'chk', 'Waiting for macOS to ask you.', TG('Calendar', true, 'conn')],
+    on: ['Calendar · On', 'ok', "Reads tomorrow's first event time and how many are left today. Titles stay on this computer.", TG('Calendar', true, 'conn')],
+    denied: ['Calendar · Off', 'no', 'macOS said no. Allow Side in System Settings > Privacy &amp; Security > Calendars.', AGAIN + TG('Calendar', false, 'conn-cal-checking')],
+  }[cal];
+  const [cn, cc, cl, ctl] = calRow;
+  const body = `<h2 id="conn" style="font-size:18px;margin:28px 0 0">Connections</h2><p class="note" style="margin:2px 0 0">Where sidy can open your next step. Nothing is read until you connect it.</p><div class="set">
+   ${crow('Chrome', 'ok', 'Side extension 0.1.0', AGAIN, '', 'Chrome connected')}
+   ${crow('Desktop apps', 'no', 'Turn on the apps sidy may open a file in.', `<button class="btn" aria-expanded="${apps}" onclick="go('${apps ? 'conn' : 'conn-apps'}')">${apps ? 'Hide apps' : 'Show apps'}</button>`, apps ? appsBlock() : '', 'Desktop apps not connected')}
+   ${crow('VS Code / Cursor', 'no', 'Install the Side extension for VS Code, then open a folder.', AGAIN, '', 'VS Code not connected')}
+   ${crow('Claude Code', 'no', "Add Side's hook to Claude Code. One line in README.", AGAIN, '', 'Claude Code not connected')}
+   ${crow(cn.replace(' · ', '<span class="state"> · ') + '</span>', cc, cl, ctl, '', `Calendar ${cc === 'ok' ? 'connected' : cc === 'chk' ? 'checking' : 'not connected'}`)}
+  </div>`;
+  return { bg: chrome({ tabs: 'after', page: 'vid' }), edge: 'quiet', ov: SET_TOP() + body + '</main></div>', after: scrollTo('#conn') };
+}
+const scrollTo = (sel) => () => { const c = document.querySelector('.content'), h = document.querySelector(sel); if (!c || !h) return;
+  c.scrollTop += h.getBoundingClientRect().top - c.getBoundingClientRect().top - 36;
+  // never leave a row half cut at the top: show it whole when most of it is visible
+  const top = c.getBoundingClientRect().top;
+  for (const r of c.querySelectorAll('.set > .r')) { const b = r.getBoundingClientRect(); if (b.top < top && b.bottom > top) { if (top - b.top < b.height / 2) c.scrollTop -= top - b.top; break; } } };
+S['conn'] = () => conn();
+S['conn-apps'] = () => conn({ apps: true });
+S['conn-cal-checking'] = () => { auto('conn-cal', 1800); return conn({ cal: 'chk' }); };
+S['conn-cal'] = () => conn({ cal: 'on' });
+S['conn-cal-denied'] = () => conn({ cal: 'denied' });
+
+/* Wrap up with files saved today: listed only, never closed or touched. */
+const FILES = `<div class="files"><h4>Files saved today</h4><ul><li>november-orders.xlsx — Excel</li><li>cover.psd — Photoshop</li></ul>
+  <p class="note" style="margin:6px 0 0">Left as they are. sidy only remembers them for tomorrow.</p></div>`;
+S['wrap-files'] = () => ({ bg: chrome({}), edge: 'quiet', ov: panel(`${head(OK, 'mini-night')}${wrapBody(false).replace(/<\/div>$/, FILES + '</div>')}
+  <div class="pf"><button class="btn fill" style="width:100%" onclick="go('wrap-checking',{op:''})">${PRIMARY()}</button>
+  <div class="row" style="justify-content:space-between;margin-top:6px"><button class="btn ghost sm" onclick="go('omh')">One more hour</button><button class="btn ghost sm" onclick="go('mini-night')">Cancel</button></div></div>`, 900) });
+
+/* Return with a file in a desktop app, or a spot in the editor. One action, same bubble as return. */
+S['return-file'] = () => ({ bg: chrome({ tabs: 'after', page: 'vid' }), edge: 'out', ov: bubble(`${X('day-quiet', 'Not now')}
+  <p style="text-wrap:pretty">“why does row 88 not add up” — november-orders is ready to open in Excel.</p>
+  <span class="meta">Last wrap-up · Yesterday</span>
+  <div class="row"><button class="btn fill grow" onclick="go('return-file-done')">Step inside</button><button class="btn grow" onclick="go('rest')">Rest today</button></div>`, { w: 360, h: 196 }) });
+S['return-editor'] = () => ({ bg: chrome({ tabs: 'after', page: 'vid' }), edge: 'out', ov: bubble(`${X('day-quiet', 'Not now')}
+  <p style="text-wrap:balance">retry.test.ts is ready in VS Code, at line 88.</p>
+  <span class="meta">Last wrap-up · Yesterday</span>
+  <div class="row"><button class="btn fill grow">Step inside</button><button class="btn grow" onclick="go('rest')">Rest today</button></div>`, { w: 360, h: 148 }) });
+/* A plain spreadsheet window standing in for the opened file (no app branding). */
+function sheetBg() {
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G'], items = ['Desk lamp', 'Notebook, A5', 'Pen set', 'Mug', 'Phone stand', 'Cable ties', 'Desk mat'];
+  let rows = '';
+  for (let r = 74; r <= 110; r++) {
+    const f = r <= 96, k = r % 7, q = (r % 4) + 1, p = 6 + k * 3;
+    rows += `<tr><th>${r}</th>${f ? `<td>NW-${1000 + r}</td><td>${items[k]}</td><td class="n">${q}</td><td class="n">${p}.00</td><td class="n${r === 96 ? ' sel' : ''}">${(q * p).toFixed(2)}</td>` : '<td></td><td></td><td></td><td></td><td></td>'}<td></td><td></td></tr>`;
+  }
+  return `<div class="sheetwin"><div class="titlebar"><i></i><i></i><i></i><span>november-orders.xlsx</span></div>
+   <div class="fx"><span>E96</span><span>=C96*D96</span></div>
+   <table class="xl"><thead><tr><th></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+S['return-file-done'] = () => { auto('file-quiet', 4000); return { bg: sheetBg(), edge: 'out',
+  ov: bubble(`${X('file-quiet')}<p style="margin-bottom:0;text-wrap:pretty">Go to the last filled cell of november-orders in Excel — done.</p>`, { w: 360, h: 72 }) }; };
+S['file-quiet'] = () => ({ bg: sheetBg(), edge: 'quiet' });
+
+/* What Side saw, with files and editor spots. */
+S['saw-files'] = M('saw', `<div class="compact"><h1>What Side saw</h1><p class="lead">From your last wrap-up, Mon, Nov 9.</p>
+  <div class="counts" style="margin:0 0 6px"><span><b>37</b>tabs read</span><span><b>1</b>skipped</span><span><b>36</b>titles sent to Claude</span></div>
+  <div class="counts" style="margin:0 0 24px"><span><b>3</b>files read</span><span><b>1</b>skipped (excluded folder)</span><span><b>1</b>editor spot</span></div>
+  <section class="sec"><h2>Read</h2><p class="note" style="margin:-4px 0 10px">Title, address and where you stopped on the page. Never the page text.</p>
+  <table class="tbl"><thead><tr><th>Tab</th><th>Site</th><th>Where you stopped</th></tr></thead><tbody>
+   <tr><td>Pricing page — draft</td><td>docs.google.com</td><td>“Annual plans save 20%…”</td></tr>
+   <tr><td>Webhook signatures</td><td>docs.stripe.com</td><td>62% down the page</td></tr></tbody></table>
+   <button class="link" style="margin-top:10px">Show all 37</button></section>
+  <section class="sec"><h2>Files and editor spots</h2><p class="note" style="margin:-4px 0 10px">File name and when you last used it. Never what's inside. Paths stay on this computer.</p>
+  <table class="tbl"><thead><tr><th>File</th><th>App</th><th>What sidy kept</th></tr></thead><tbody>
+   <tr><td>november-orders.xlsx</td><td>Excel</td><td>Name · last used yesterday</td></tr>
+   <tr><td>cover.psd</td><td>Photoshop</td><td>Name · last used yesterday</td></tr>
+   <tr><td>q4-plan.docx</td><td>Word</td><td>Name · last used yesterday</td></tr>
+   <tr><td>retry.test.ts</td><td>VS Code</td><td>Name · line 88 (editor spot)</td></tr></tbody></table></section>
+  <section class="sec"><h2>Skipped</h2><div class="quiet"><ul style="margin:0;padding-left:18px"><li>1 tab from client-portal.acme.com — excluded site, not read.</li><li>1 file in an excluded folder — not read.</li></ul></div></section>
+  <section class="sec"><h2>Sent off this computer</h2><p class="quiet">36 tab titles and your one line, to Claude (Anthropic), to name 3 groups and suggest tomorrow's question. No addresses, no page text, no file names, nothing from excluded sites. Anonymous counts: off. <button class="link" onclick="go('main-settings')">Settings</button></p></section></div>`);
+
+/* Ask sidy in Mini: one line becomes at most one fixed action. Wording from core/askSidy.ts askCopy. */
+const ASK_ACTS = [['Set aside today', 'wrap-preview'], ['Open the next step', 'opened'], ['One more hour', 'omh'], ['Quiet for 1 hour', 'quiet-night'],
+  ['Hide sidy', 'hide-toast'], ['Open Side', 'main-today'], ['Exclude this site', 'main-excluded']];
+window.askGo = () => { const v = (document.getElementById('ask') || {}).value || '';
+  go(/\bhow\b|tutorial/i.test(v) ? 'mini-ask-howto' : /\b(order|buy|pay|book|send)\b/i.test(v) ? 'mini-ask-menu' : 'mini-ask-asking'); };
+function askBlock(state) {
+  const val = { asking: "I'm done for today", menu: 'order the groceries', howto: 'how do I do a VLOOKUP in Excel' }[state] || '';
+  const busy = state === 'asking';
+  const reply = state === 'menu'
+    ? `<div class="reply" role="status"><p>I can't do that for you. I can open your work so you can do it yourself. I can do these:</p>
+       <div class="acts">${ASK_ACTS.map(([t, to]) => `<button onclick="go('${to}')">${t}</button>`).join('')}</div>
+       <p class="note" style="margin:8px 0 0">Set aside today opens the preview first. Nothing closes.</p></div>`
+    : state === 'howto'
+      ? `<div class="reply" role="status"><p>I don't give guides. Search for: </p>
+       <div class="copy" style="margin-top:0"><code>Excel VLOOKUP tutorial</code><button class="btn" onclick="this.textContent='Copied'">Copy</button></div></div>`
+      : busy ? `<div class="row asking" role="status" aria-live="polite"><span class="spin"></span>Asking sidy…</div>` : '';
+  return `<div class="ask field"><label for="ask">Ask sidy</label>
+    <div class="row"><input id="ask" placeholder="e.g. I'm done for today" autocomplete="off" value="${val}"${busy ? ' aria-disabled="true" readonly' : ''} onkeydown="if(event.key==='Enter')askGo()"><button class="btn"${busy ? ' aria-disabled="true"' : ''} onclick="askGo()">Ask</button></div>
+    ${reply || `<p class="note" style="margin:6px 0 0">Tell sidy in a few words. Only this line goes to Claude, to pick one action. Set aside only opens the preview.</p>`}</div>`;
+}
+const miniAsk = (state) => () => { if (state === 'asking') auto('wrap-preview', 1800); return { bg: chrome({}), edge: 'quiet', ov: panel(`${head(OK, 'quiet-night')}<div class="pb">
+  <div class="step"><div class="lbl">Stopping for today?</div><div class="t">Fold 38 tabs into 3 groups</div><div class="w">Nothing closes. Undo any time tonight.</div>
+   <button class="btn fill" style="width:100%" onclick="go('wrap-preview')">Set aside today</button></div>
+  <div class="facts"><div><span>Tabs in Chrome</span><b>38</b></div><div><span>Set aside</span><b>0</b></div><div><span>Next step</span><b>Ready after you set aside</b></div></div>
+  ${QA([['⏳', 'One more hour', 'Keep going, with one check-in', 'omh'], ['🙈', 'Hide sidy', '', 'hide-toast', '⌃⌥S']])}
+  ${askBlock(state)}
+  </div>${FOOT}`, state === 'menu' ? 1040 : state === 'howto' ? 760 : 680) }; };
+S['mini-ask'] = miniAsk('');
+S['mini-ask-asking'] = miniAsk('asking');
+S['mini-ask-menu'] = miniAsk('menu');
+S['mini-ask-howto'] = miniAsk('howto');
+
 /* ---------- render ---------- */
 function render() {
   const sc = (S[ST] || S['quiet-night'])();
@@ -334,6 +459,7 @@ function render() {
   stage.innerHTML = sc.bg + edge(sc.edge) + (sc.ov || '') + (STATIC ? '' : mockBar());
   if (Q.has('guide')) stage.classList.add('hitguide');
   if (sc.cls) stage.classList.add(sc.cls);
+  if (sc.after) sc.after();
   if (Q.has('t')) { stage.classList.add('frz'); const t = +Q.get('t'); stage.querySelectorAll('.edge svg').forEach(el => el.style.animationDelay = `${-t}s`); stage.querySelectorAll('.notes span').forEach((el, k) => el.style.animationDelay = `${(0.35 * k - t).toFixed(2)}s`); }
 }
 function mockBar() {

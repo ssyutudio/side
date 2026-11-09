@@ -251,3 +251,48 @@ kbd{font-family:var(--font);font-size:14px;border:1.5px solid var(--line);border
 @keyframes rx-stretch{0%,100%{transform:none}35%{transform:translateX(-34%) scale(1,1.16)}60%{transform:translateX(-34%) scale(1,.94)}80%{transform:translateX(-10%)}}
 @keyframes rx-nod{0%,100%{transform:none}15%,45%{transform:translateY(12%) rotate(-9deg)}30%,60%{transform:none}}
 .notes span{font-size:20px;color:#fff;-webkit-text-stroke:1.2px #1E2025;paint-order:stroke fill}
+
+/* M1 (11/9): connections, files, editor spots, Ask sidy */
+.set .r.cn .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.set .r.cn .hd b{font-size:16px}
+.set .r.cn .state{font-weight:500;color:var(--ink2)}
+.set .r.cn .ctl{align-items:center;gap:12px}
+.tg{display:inline-flex;align-items:center;justify-content:flex-end;gap:12px;min-height:44px;min-width:60px;border:0;background:none;padding:0}
+.tg .sw{display:inline-block;flex:none}
+.tg[aria-checked=true] .sw{background:var(--blue)}.tg[aria-checked=true] .sw::after{left:25px}
+.apps{grid-column:1/3;margin-top:12px;border:1.5px solid var(--line);border-radius:14px;padding:8px 16px 6px}
+.apps .al{font-size:13px;font-weight:600;color:var(--ink2);padding:4px 0 2px}
+.apps .row-tg{width:100%;justify-content:space-between;min-height:52px;border-bottom:1px solid var(--line);font-size:15px;font-weight:600;text-align:left}
+.apps .row-tg .st{font-weight:500;color:var(--ink2)}
+.apps .fr{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line)}
+.apps .fr b{font-size:15px}.apps .fr p{margin:2px 0 0;font-size:14px;color:var(--ink2)}
+.files{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px}
+.files h4{margin:0 0 6px;font-size:14px}
+.files ul{margin:0;padding:0;list-style:none}.files li{font-size:14px;padding:2px 0}
+.ask input::placeholder{color:var(--ink2)}
+.ask .row input{flex:1;min-width:0}
+.ask input[readonly]{background:var(--canvas);color:var(--ink2)}
+.ask .btn[aria-disabled=true]{color:var(--ink2);cursor:not-allowed}
+.asking{align-items:center;gap:10px;min-height:44px;font-size:15px;font-weight:600;margin-top:6px}
+.reply{background:var(--canvas);border-radius:12px;padding:12px 14px;margin-top:10px}
+.reply>p{margin:0 0 10px;font-size:15px;line-height:1.4}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.acts button{min-height:44px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:0 12px;font-size:14px;font-weight:600}
+.acts button:hover{border-color:#C7CAD1}
+.reply .copy code{background:#fff;border:1.5px solid var(--line);height:44px}
+/* stand-in spreadsheet window behind return-file-done */
+.sheetwin{position:absolute;inset:0;background:#fff;display:flex;flex-direction:column}
+.sheetwin .titlebar{height:44px;flex:none;grid-column:auto}
+.sheetwin .fx{display:flex;gap:16px;align-items:center;height:40px;padding:0 16px;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink2)}
+.sheetwin .fx span:first-child{width:64px;font-weight:600;color:var(--ink)}
+.xl{border-collapse:collapse;font-size:14px;table-layout:fixed;width:100%}
+.xl th{background:var(--canvas);color:var(--ink2);font-weight:500;border:1px solid var(--line);height:28px;width:150px}
+.xl th:first-child{width:48px}
+.xl td{border:1px solid #EDEEF1;height:28px;padding:0 8px;white-space:nowrap}
+.xl td.n{text-align:right}
+.xl td.sel{outline:2.5px solid var(--ink);outline-offset:-2px;background:#F6F7F9}
+.chip.chk::before{display:none}
+.ask .row input{height:44px}
+.reply>p.note{font-size:13px}
+.reply .copy code{font-family:var(--font);font-size:15px}
+.compact .sec{margin-bottom:20px}.compact .tbl td{padding:10px 12px}.compact .sec h2{margin-bottom:8px}
