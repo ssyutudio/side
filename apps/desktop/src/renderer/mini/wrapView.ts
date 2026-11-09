@@ -98,7 +98,8 @@ function todayText(s: ViewState, sa: SetAside): { line: string; note: string } {
   };
 }
 
-export function doneView(s: ViewState, sa: SetAside, local: { line: string }): SafeHtml {
+export function doneView(s: ViewState, sa: SetAside, local: { line: string; suggestions?: string[] }): SafeHtml {
+  const sugg = local.suggestions ?? [];
   const r = sa.result ?? { grouped: [], closed: [], kept: [] };
   const folded = r.grouped.reduce((n, g) => n + g.tabIds.length, 0);
   const groups = new Set(r.grouped.filter((g) => g.tabIds.length).map((g) => g.key)).size;
@@ -119,8 +120,13 @@ export function doneView(s: ViewState, sa: SetAside, local: { line: string }): S
 <div class="done-line"><b>${result}</b> ${stillOpen} still open. Chrome confirmed.${kept}</div>
 <button class="btn" data-act="undo" data-id="${sa.id}">Undo · bring back ${plural(folded + closed, 'tab')}</button>
 <div class="field" style="margin-top:4px"><label for="tm">What are you most curious about tomorrow?</label>
-<input id="tm" maxlength="200" placeholder="One line, if you like" autocomplete="off" value="${local.line}">
-<p class="note" style="margin:6px 0 0">Optional. sidy brings it back tomorrow.</p></div></div>
+${sugg.length
+  ? html`<div class="chips" role="group" aria-label="Suggestions">${sugg.map(
+      (c) => html`<button aria-pressed="${c === local.line ? 'true' : 'false'}" data-act="chip" data-text="${c}">${c}</button>`,
+    )}</div>`
+  : ''}
+<input id="tm" maxlength="200"${sugg.length ? ' style="margin-top:8px"' : ''} placeholder="${sugg.length ? 'Or write your own' : 'One line, if you like'}" autocomplete="off" value="${local.line}">
+<p class="note" style="margin:6px 0 0">Optional.${sugg.length ? ' Suggested by Claude from your group names.' : ''} sidy brings it back tomorrow.</p></div></div>
 <div class="pf"><div class="row"><button class="btn fill grow" data-act="save-line" data-id="${sa.id}">Save</button><button class="btn grow" data-act="skip" data-id="${sa.id}">Skip</button></div></div>`,
   ]);
 }

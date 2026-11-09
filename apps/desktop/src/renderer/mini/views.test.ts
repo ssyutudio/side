@@ -120,6 +120,29 @@ describe('Wrap up done', () => {
   });
 });
 
+describe('Wrap up tomorrow suggestions', () => {
+  const two = ['Why does the refund webhook fire twice?', 'Will annual pricing beat monthly?'];
+
+  it('shows two tappable suggestions from Claude with their source, and the own-words field', () => {
+    const h = s(doneView(FIXTURES.wrapped, confirmed(), { line: '', suggestions: two }));
+    expect(h).toContain('data-act="chip" data-text="Why does the refund webhook fire twice?"');
+    expect(h).toContain('Suggested by Claude from your group names.');
+    expect(h).toContain('placeholder="Or write your own"');
+  });
+
+  it('marks only the picked one, and the line field holds it', () => {
+    const h = s(doneView(FIXTURES.wrapped, confirmed(), { line: two[1], suggestions: two }));
+    expect((h.match(/aria-pressed="true"/g) ?? []).length).toBe(1);
+    expect(h).toMatch(/aria-pressed="true"[^>]*data-text="Will annual pricing beat monthly\?"/);
+  });
+
+  it('shows no chips and no Claude note when there are none', () => {
+    const h = s(doneView(FIXTURES.wrapped, confirmed(), { line: '', suggestions: [] }));
+    expect(h).not.toContain('data-act="chip"');
+    expect(h).not.toContain('Suggested by Claude');
+  });
+});
+
 describe('Wrap up failures', () => {
   it('tells a Chrome silence from a save failure, each with Try again', () => {
     const silent = s(failedView({ kind: 'unconfirmed' }));

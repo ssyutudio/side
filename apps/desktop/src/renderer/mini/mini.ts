@@ -27,6 +27,7 @@ let state: ViewState | null = null;
 let view: View = { name: 'home' };
 let wrap: WrapLocal = { close: [], open: [] };
 let line = '';
+let suggestions: string[] = [];
 let home: HomeLocal = {};
 
 function render() {
@@ -37,7 +38,7 @@ function render() {
     case 'loading': h = loadingView(); break;
     case 'preview': h = previewView(view.p, wrap); break;
     case 'checking': h = checkingView(view.p, wrap); break;
-    case 'done': h = doneView(state, view.sa, { line }); break;
+    case 'done': h = doneView(state, view.sa, { line, suggestions }); break;
     case 'failed': h = failedView(view.f); break;
     case 'onemore': h = oneMoreView(state.now, state.settings.wakeMinutes, view.minutes, state); break;
   }
@@ -52,8 +53,21 @@ function go(v: View) {
   render();
 }
 
+async function loadSuggestions(id: string) {
+  const r = await api.invoke<{ suggestions?: string[] }>('side:wrapup.suggest', { id });
+  // Only if the user is still on that result.
+  if (view.name === 'done' && view.sa.id === id && r?.suggestions?.length) {
+    suggestions = r.suggestions;
+    render();
+  }
+}
+
 function afterWrap(out: WrapOut, p: PreviewView | null) {
-  if ((out.kind === 'applied' || out.kind === 'partial') && out.setAside) return go({ name: 'done', sa: out.setAside });
+  if ((out.kind === 'applied' || out.kind === 'partial') && out.setAside) {
+    suggestions = [];
+    go({ name: 'done', sa: out.setAside });
+    return void loadSuggestions(out.setAside.id);
+  }
   if (out.kind === 'no_preview') return void startWrap();
   const f: Failure =
     out.kind === 'unconfirmed' ? { kind: 'unconfirmed' }
@@ -124,6 +138,10 @@ async function act(el: HTMLElement) {
     case 'save-line':
       await api.invoke('side:wrapup.tomorrow', { id: el.dataset.id, line: line.trim() || null });
       return toastAndClose(line.trim() ? 'Saved your question. See you tomorrow.' : 'Set aside. See you tomorrow.');
+    case 'chip':
+      // Picking again replaces the line: only the last value is kept.
+      line = el.dataset.text ?? '';
+      return render();
     case 'skip':
       await api.invoke('side:wrapup.tomorrow', { id: el.dataset.id, line: null });
       return toastAndClose('Set aside. See you tomorrow.');

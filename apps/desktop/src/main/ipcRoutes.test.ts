@@ -11,6 +11,8 @@ function fakeController() {
     previewWrapup: rec('previewWrapup'),
     confirmWrapup: rec('confirmWrapup'),
     openStep: rec('openStep'),
+    suggestTomorrow: rec('suggestTomorrow'),
+    saveTomorrowLine: rec('saveTomorrowLine'),
     oneMoreHour: rec('oneMoreHour'),
     bubbleDrawn: rec('bubbleDrawn'),
     updateSettings: rec('updateSettings'),
@@ -34,10 +36,11 @@ describe('routeIpc', () => {
     const { ctl, calls } = fakeController();
     await routeIpc(ctl, 'side:wrapup.confirm', { closeGroupKeys: ['g1'] });
     await routeIpc(ctl, 'side:wrapup.tomorrow', { id: 'sa1', line: null });
+    await routeIpc(ctl, 'side:wrapup.suggest', { id: 'sa1' });
     await routeIpc(ctl, 'side:onemore.choose', { minutes: 30 });
     await routeIpc(ctl, 'side:settings.set', { sidySize: 'large' });
     await routeIpc(ctl, 'side:demo', { cmd: 'next-day' });
-    expect(calls.map((c) => c[0])).toEqual(['confirmWrapup', 'setTomorrowLine', 'choose', 'updateSettings', 'demo']);
+    expect(calls.map((c) => c[0])).toEqual(['confirmWrapup', 'saveTomorrowLine', 'suggestTomorrow', 'choose', 'updateSettings', 'demo']);
   });
 
   it('rejects malformed or unknown requests without calling anything', async () => {

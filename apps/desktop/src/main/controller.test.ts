@@ -182,3 +182,56 @@ describe('SideController step inside right after a relaunch', () => {
     expect(out).toEqual({ kind: 'unconfirmed', reason: 'not_connected' });
   });
 });
+
+describe('SideController night suggestions', () => {
+  it('asks Claude for two questions from group names once the result shows, and none when the LLM is off', async () => {
+    const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-ctl-')), 'd.json'), defaultAppData);
+    await store.load();
+    const bridge = new FakeBridge();
+    const sent: string[] = [];
+    const ctl = new SideController({
+      store, bridge, clock: new DemoClock(fixedClock(REAL)),
+      llm: async (req) => {
+        sent.push(req.system + req.user);
+        return req.system.includes('two short questions') ? '{"suggestions":["Why does retry need jitter?","What fails on issue 2?"]}' : '{"groups":[]}';
+      },
+      edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
+    });
+    bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
+    await ctl.previewWrapup();
+    const out = await ctl.confirmWrapup([]);
+    const id = (out as { setAside: { id: string } }).setAside.id;
+    expect(await ctl.suggestTomorrow(id)).toEqual(['Why does retry need jitter?', 'What fails on issue 2?']);
+    await ctl.updateSettings({ llmEnabled: false });
+    const before = sent.length;
+    const fresh = new SideController({
+      store, bridge, clock: new DemoClock(fixedClock(REAL)), llm: async () => { sent.push('x'); return '{}'; },
+      edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
+    });
+    expect(await fresh.suggestTomorrow(id)).toEqual([]);
+    expect(sent.length).toBe(before);
+  });
+});
+
+describe('SideController morning recall', () => {
+  it('after a saved line, moves the one step to the tab Claude picked from the ids it was sent', async () => {
+    const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-ctl-')), 'd.json'), defaultAppData);
+    await store.load();
+    const bridge = new FakeBridge();
+    const ctl = new SideController({
+      store, bridge, clock: new DemoClock(fixedClock(REAL)),
+      llm: async (req) => (req.system.includes('Pick the ONE tab') ? '{"id":"T2"}' : '{"groups":[]}'),
+      edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
+    });
+    bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
+    await ctl.previewWrapup();
+    const out = await ctl.confirmWrapup([]);
+    const id = (out as { setAside: { id: string } }).setAside.id;
+    await ctl.saveTomorrowLine(id, 'What fails on issue 2?');
+    await new Promise((r) => setTimeout(r, 50));
+    const steps = store.get().steps.filter((s) => s.fromSetAside === id);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].action.url).toBe('https://github.com/acme/retry-lib/issues/2');
+    expect(steps[0].label).toContain('“What fails on issue 2?”');
+  });
+});

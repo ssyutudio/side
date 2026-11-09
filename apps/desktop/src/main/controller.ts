@@ -9,6 +9,7 @@ import type { KeepReason } from '@side/shared';
 import { WrapupService, type WrapupOutcome } from './wrapupService';
 import { StepService } from './stepService';
 import { SpeakService, type Bubble } from './speakService';
+import { HelpService } from './helpService';
 import { buildViewState, type ViewState } from './viewState';
 import { demoOffset, type DemoCommand } from './demoClock';
 import { todayDone } from '../core/todayDone';
@@ -54,6 +55,7 @@ export class SideController {
   readonly wrapup: WrapupService;
   readonly step: StepService;
   readonly speak: SpeakService;
+  readonly help: HelpService;
   lastReport: TabsReport | null = null;
   private waiters: ((r: TabsReport | null) => void)[] = [];
   private draft: { preview: WrapupPreview; report: TabsReport } | null = null;
@@ -62,6 +64,7 @@ export class SideController {
     const { store, bridge, clock, llm } = deps;
     this.wrapup = new WrapupService({ store, port: bridge, clock, llm });
     this.step = new StepService({ store, port: bridge, clock });
+    this.help = new HelpService({ store, clock, llm });
     this.speak = new SpeakService({
       store,
       clock,
@@ -171,6 +174,24 @@ export class SideController {
     if (out.kind !== 'storage_failed') this.draft = null;
     this.publish();
     return out;
+  }
+
+  // ---- Tomorrow's line (Claude's two suggestions, then the morning recall) ----
+
+  /** Two questions for tomorrow from the group names; none when the LLM is off or slow. */
+  suggestTomorrow(setAsideId: string): Promise<string[]> {
+    return this.help.suggest(setAsideId);
+  }
+
+  /** Saves the line (or skip). With a line and the LLM on, the next step may move to the tab that matches it. */
+  async saveTomorrowLine(setAsideId: string, line: string | null): Promise<void> {
+    await this.wrapup.setTomorrowLine(setAsideId, line);
+    this.publish();
+    if (line && line.trim()) {
+      void this.help.recall(setAsideId).then((r) => {
+        if (r === 'replaced') this.publish();
+      });
+    }
   }
 
   // ---- Step inside ----
