@@ -67,7 +67,7 @@ SIDE_DEMO=night npm start
 
 **Cut 4, Step Inside (next day).**
 1. Quit Side from the Side menu, then **Quit**.
-2. In Chrome, open a YouTube video and let it play in front.
+2. In Chrome, bring the YouTube tab (https://www.youtube.com/watch?v=ge1SuhGgJUQ&t=2090s, opened by the demo script) to the front and let it play. When its sound starts, sidy whistles once and is still again.
 3. Relaunch Side with the next-day clock:
    ```bash
    SIDE_DEMO=next-day npm start
