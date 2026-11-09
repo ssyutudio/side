@@ -4,7 +4,7 @@
 import { startOfLocalDay } from '../core/clock';
 import { WORK_DAY_START_HOURS, workDayOf } from '../core/todayDone';
 
-export const DEMO_COMMANDS = ['night', 'next-day', 'three-days', 'reset'] as const;
+export const DEMO_COMMANDS = ['night', 'plus-30', 'next-day', 'three-days', 'reset'] as const;
 export type DemoCommand = (typeof DEMO_COMMANDS)[number];
 
 const NIGHT_AT = { h: 1, m: 30 };
@@ -24,6 +24,9 @@ export function demoTarget(cmd: DemoCommand, now: number): number | null {
     case 'night':
       // Early hours after this work day's midnight: still the same work day.
       return at(day, 1, NIGHT_AT.h, NIGHT_AT.m);
+    case 'plus-30':
+      // Just past a 30-minute check-in.
+      return now + 31 * 60_000;
     case 'next-day':
       return at(day, 1, EVENING_AT.h, EVENING_AT.m);
     case 'three-days':

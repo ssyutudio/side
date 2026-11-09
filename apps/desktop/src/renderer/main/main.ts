@@ -98,6 +98,10 @@ root.addEventListener('click', (e) => {
       if (state && (el.dataset.key === 'llmEnabled' || el.dataset.key === 'uploadEnabled')) {
         setSettings({ [el.dataset.key]: !state.settings[el.dataset.key] });
       }
+      if (state && el.dataset.key === 'reactions') setSettings({ reactions: state.settings.reactions === false });
+      break;
+    case 'demo':
+      void api.invoke('side:demo', { cmd: el.dataset.cmd });
       break;
     case 'quiet-on':
       setSettings({ quietHours: { start: 22 * 60, end: 8 * 60 } });

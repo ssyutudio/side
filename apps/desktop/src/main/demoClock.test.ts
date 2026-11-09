@@ -24,6 +24,10 @@ describe('demoTarget', () => {
     expect(dayLabel(night, later)).toBe('Mon, Nov 9');
   });
 
+  it('skips 31 minutes ahead, so a 30-minute check-in comes due on camera', () => {
+    expect(demoTarget('plus-30', afternoon)).toBe(afternoon + 31 * 60_000);
+  });
+
   it('resets to real time', () => {
     expect(demoTarget('reset', afternoon)).toBeNull();
   });

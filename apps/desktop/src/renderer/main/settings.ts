@@ -19,7 +19,7 @@ const SIZES: [ViewState['settings']['sidySize'], string][] = [
   ['large', 'Large'],
 ];
 
-function sw(key: 'llmEnabled' | 'uploadEnabled', on: boolean, label: string): SafeHtml {
+function sw(key: 'llmEnabled' | 'uploadEnabled' | 'reactions', on: boolean, label: string): SafeHtml {
   return html`<button type="button" class="sw" role="switch" aria-checked="${on ? 'true' : 'false'}" aria-label="${label}" data-act="toggle" data-key="${key}"></button>`;
 }
 
@@ -45,9 +45,22 @@ export function settingsView(s: ViewState): SafeHtml {
 <div class="r"><b>Show or hide sidy</b><p>Works from any app. Clicking Side in the Dock also brings sidy back.</p><span class="ctl"><kbd>${shortcutKeys(st.shortcut)}</kbd></span></div>
 <div class="r"><b>Quiet hours</b><p>sidy won't start talking in this window. A check-in you asked for still comes, once.</p>${quiet}</div>
 <div class="r"><b>Wake-up time</b><p>Used for one fact when you choose One more hour.</p><span class="ctl">${timeSelect('wake', 'Wake-up time', st.wakeMinutes)}</span></div>
+<div class="r"><b>Little reactions</b><p>sidy stretches when you unlock, whistles when a video starts, nods to music — once, then still. Off with Reduce Motion too.</p><span class="ctl">${sw('reactions', st.reactions !== false, 'Little reactions')}</span></div>
 <div class="r"><b>AI drafting</b><p>On: sends tab titles and your one line to Claude (Anthropic) to name groups. Never addresses, page text or excluded sites. Off: sidy uses simple rules.</p><span class="ctl">${sw('llmEnabled', st.llmEnabled, 'AI drafting')}</span></div>
 <div class="r"><b>Share anonymous counts</b><p>Numbers only — tabs set aside, steps shown and opened. No titles, sites or words.</p><span class="ctl">${sw('uploadEnabled', st.uploadEnabled, 'Share anonymous counts')}</span></div>
 </div>
 <h2 class="set-h">Connections</h2><p class="note" style="margin:2px 0 0">Where sidy can open your next step. Chrome is the first.</p>
-<div class="set">${chromeRow(s.connection)}</div>`;
+<div class="set">${chromeRow(s.connection)}</div>
+<h2 class="set-h">Demo clock</h2><p class="note" style="margin:2px 0 0">For recording a demo. Moves only Side's own clock, never your computer's.</p>
+<div class="set"><div class="r"><b>Side's clock</b><p>${s.demoOffsetMs ? 'Demo time is on.' : 'Real time.'}</p><span class="ctl row">${DEMO.map(
+    ([cmd, label]) => html`<button type="button" class="btn sm" data-act="demo" data-cmd="${cmd}">${label}</button>`,
+  )}</span></div></div>`;
 }
+
+const DEMO: [string, string][] = [
+  ['night', 'Tonight'],
+  ['plus-30', '+30 min'],
+  ['next-day', 'Next evening'],
+  ['three-days', '3 days later'],
+  ['reset', 'Real time'],
+];
