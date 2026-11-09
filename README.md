@@ -100,7 +100,7 @@ Manual checks that need a real screen are in `docs/manual-check.md`.
 
 - **Full screen.** sidy shows over full-screen apps through a macOS panel window. If your macOS version does not allow that, sidy stays on top of normal windows only.
 - **Check-ins.** A check-in you set ("One more hour") cannot fire while the app is quit or the computer is asleep. It appears when you come back.
-- **Reading position.** It is captured on the built-in list of work sites. Google Docs and Notion are restored by scroll offset, not cursor position, and Google Docs draws text on a canvas, so the sentence fallback does not apply there.
+- **Reading position.** It is captured on the built-in list of work sites. Google Docs and Notion are restored by the scroll offset of their inner reading area, not cursor position, and Google Docs draws text on a canvas, so the sentence fallback does not apply there. Inner-scrolling pages are covered by tests; the real-Chrome checks for this build used ordinary pages (Wikipedia), so check one of your own Docs.
 - **Pairing.** If you load the extension from a different folder, Chrome gives it a new id, so it pairs as a new extension.
 - **Desktop apps.** Side sees Chrome only. It does not read desktop apps such as Figma or VS Code, and its reactions hear sound from Chrome tabs only, not desktop music apps.
 - **"You stopped here".** The mark appears only on sites Side may read (the built-in list) and only when the spot was confirmed. Otherwise the page opens and sidy says it could not find the exact spot.
