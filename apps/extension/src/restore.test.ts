@@ -35,7 +35,8 @@ describe('openStep', () => {
     const f = createFakeChrome([makeTab(1, 'https://youtube.com/watch?v=x', { active: true })]);
     f.permit('https://docs.google.com/*');
     const statusAtScript: string[] = [];
-    f.onScript((tabId, args) => {
+    f.onScript((tabId, args, fn) => {
+      if (fn === 'showStoppedMarkerInPage') return true;
       statusAtScript.push(f.tabs.get(tabId)!.status!);
       expect(args).toEqual([pos, opts.restoreWaitMs]);
       return 'exact';
@@ -82,6 +83,74 @@ describe('openStep', () => {
       await expect(openStep(api(f), { stepId: 's', url, position: null }, opts)).rejects.toBeInstanceOf(RejectedError);
     }
     expect(f.calls).not.toContain('tabs.create');
+  });
+});
+
+describe('openStep: the "You stopped here" marker', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  async function run(f: FakeChrome, p: Parameters<typeof openStep>[1]) {
+    const r = openStep(api(f), p, opts);
+    await vi.runAllTimersAsync();
+    return r;
+  }
+
+  function track(f: FakeChrome, restore: unknown, marker: () => unknown = () => true) {
+    const marks: unknown[][] = [];
+    f.onScript((_t, args, fn) => {
+      if (fn === 'showStoppedMarkerInPage') {
+        marks.push(args);
+        return marker();
+      }
+      return restore;
+    });
+    return marks;
+  }
+
+  it('marks the spot near the top after an exact restore', async () => {
+    const f = createFakeChrome([makeTab(2, DOC)]);
+    f.permit('https://docs.google.com/*');
+    const marks = track(f, 'exact');
+    const r = await run(f, { stepId: 's1', url: DOC, position: pos });
+    expect(r.restored).toBe('exact');
+    expect(marks).toEqual([[pos, { ms: 8000, anchor: 'top' }]]);
+  });
+
+  it('marks the middle of the view after opening the saved sentence', async () => {
+    const f = createFakeChrome([makeTab(2, DOC)]);
+    f.permit('https://docs.google.com/*');
+    const marks = track(f, 'none');
+    const r = await run(f, { stepId: 's1', url: DOC, position: pos });
+    expect(r.restored).toBe('text');
+    expect(marks).toEqual([[pos, { ms: 8000, anchor: 'center' }]]);
+  });
+
+  it('never marks a spot it could not confirm', async () => {
+    const f = createFakeChrome([makeTab(2, DOC)]);
+    f.permit('https://docs.google.com/*');
+    const marks = track(f, 'approx');
+    const r = await run(f, { stepId: 's1', url: DOC, position: { ...pos, quote: null } });
+    expect(r.restored).toBe('top');
+    expect(marks).toEqual([]);
+  });
+
+  it('never injects a marker without permission for that site', async () => {
+    const f = createFakeChrome([makeTab(2, 'https://example.com/a')]);
+    const marks = track(f, 'exact');
+    const r = await run(f, { stepId: 's1', url: 'https://example.com/a', position: pos });
+    expect(r.restored).toBe('text');
+    expect(marks).toEqual([]);
+  });
+
+  it('keeps the confirmed result when the marker itself fails', async () => {
+    const f = createFakeChrome([makeTab(2, DOC)]);
+    f.permit('https://docs.google.com/*');
+    track(f, 'exact', () => {
+      throw new Error('page blocked it');
+    });
+    const r = await run(f, { stepId: 's1', url: DOC, position: pos });
+    expect(r).toEqual({ tabId: 2, restored: 'exact' });
   });
 });
 

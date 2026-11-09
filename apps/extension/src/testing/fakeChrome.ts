@@ -83,7 +83,7 @@ export function createFakeChrome(initialTabs: FakeTab[] = []) {
   const calls: string[] = [];
   const failures: { name: string; nth: number; seen: number }[] = [];
   const permittedOrigins: string[] = [];
-  let scriptResult: (tabId: number, args: unknown[]) => unknown = () => null;
+  let scriptResult: (tabId: number, args: unknown[], funcName: string) => unknown = () => null;
 
   for (const t of initialTabs) tabs.set(t.id!, { ...t });
 
@@ -249,7 +249,7 @@ export function createFakeChrome(initialTabs: FakeTab[] = []) {
       async executeScript(inj: { target: { tabId: number }; func: (...a: any[]) => unknown; args?: unknown[] }) {
         call('scripting.executeScript');
         if (!tabs.has(inj.target.tabId)) throw new Error(`No tab with id: ${inj.target.tabId}.`);
-        const result = await scriptResult(inj.target.tabId, inj.args ?? []);
+        const result = await scriptResult(inj.target.tabId, inj.args ?? [], inj.func?.name ?? '');
         return [{ documentId: 'doc', frameId: 0, result }];
       },
     },
@@ -272,7 +272,7 @@ export function createFakeChrome(initialTabs: FakeTab[] = []) {
     permit(origin: string) {
       permittedOrigins.push(origin);
     },
-    onScript(fn: (tabId: number, args: unknown[]) => unknown) {
+    onScript(fn: (tabId: number, args: unknown[], funcName: string) => unknown) {
       scriptResult = fn;
     },
   };

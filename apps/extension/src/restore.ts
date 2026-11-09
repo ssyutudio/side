@@ -1,10 +1,11 @@
 // Step inside: bring the saved page to the front and put the user back where they stopped.
 // Opens only the web URL the app sent; reports honestly how close it got.
-import type { StepOpenPayload, StepOpenResult } from '@side/shared';
+import type { PagePosition, StepOpenPayload, StepOpenResult } from '@side/shared';
 import { isWebUrl, urlOf } from './api';
 import type { ChromeApi, TabLike } from './api';
 import { RejectedError, chromeCall } from './journal';
 import { restorePositionInPage, withTimeout } from './position';
+import { showStoppedMarkerInPage } from './marker';
 import { COPY } from './copy';
 
 export interface OpenOptions {
@@ -45,6 +46,21 @@ async function canInject(api: ChromeApi, url: string): Promise<boolean> {
   }
 }
 
+const MARKER_MS = 8000;
+
+/** Best effort: a failure here never changes what Chrome confirmed. Needs permission for the site. */
+async function markSpot(api: ChromeApi, tabId: number, url: string, pos: PagePosition, anchor: 'top' | 'center'): Promise<void> {
+  try {
+    if (!(await canInject(api, url))) return;
+    await withTimeout(
+      api.scripting.executeScript({ target: { tabId }, func: showStoppedMarkerInPage, args: [pos, { ms: MARKER_MS, anchor }] }),
+      3000,
+    );
+  } catch {
+    // The page refused or went away; the spot is still restored.
+  }
+}
+
 export async function openStep(api: ChromeApi, p: StepOpenPayload, opts: OpenOptions): Promise<StepOpenResult> {
   if (!isWebUrl(p.url)) throw new RejectedError(COPY.onlyWebPages);
   let parsed: URL;
@@ -75,13 +91,17 @@ export async function openStep(api: ChromeApi, p: StepOpenPayload, opts: OpenOpt
         api.scripting.executeScript({ target: { tabId }, func: restorePositionInPage, args: [pos, opts.restoreWaitMs] }),
         opts.restoreWaitMs + 2000,
       );
-      if (res?.[0]?.result === 'exact') return { tabId, restored: 'exact' };
+      if (res?.[0]?.result === 'exact') {
+        await markSpot(api, tabId, parsed.href, pos, 'top');
+        return { tabId, restored: 'exact' };
+      }
     } catch {
       // Fall through to the sentence link.
     }
   }
   if (pos.quote) {
     await chromeCall(() => api.tabs.update(tabId, { url: textFragmentUrl(parsed.href, pos.quote as string) }));
+    if (await waitForLoad(api, tabId, opts.loadTimeoutMs)) await markSpot(api, tabId, parsed.href, pos, 'center');
     return { tabId, restored: 'text' };
   }
   return { tabId, restored: 'top' };
