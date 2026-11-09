@@ -109,3 +109,15 @@ describe('currentStep', () => {
     expect(currentStep([], [], [], clock, ids)).toBeNull();
   });
 });
+
+describe('step label with a long line from the user', () => {
+  it('shortens the quoted line so the ready part always survives', async () => {
+    const { step } = await import('./copy');
+    const long = 'Why does the refund webhook fire twice when the customer upgrades from monthly to annual in the middle of a trial?';
+    const label = step.label('Stripe webhooks', long, true);
+    expect(label.endsWith('Stripe webhooks is ready where you stopped.')).toBe(true);
+    expect(label.length).toBeLessThan(130);
+    expect(label).toContain('…');
+    expect(step.label('Pricing page', 'Will annual beat monthly?', false)).toBe('“Will annual beat monthly?” — Pricing page is ready to open.');
+  });
+});

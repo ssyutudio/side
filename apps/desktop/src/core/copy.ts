@@ -19,7 +19,10 @@ export const groupNames = {
 export const step = {
   label: (work: string, userLine: string | null, hasPosition: boolean) => {
     const ready = hasPosition ? `${work} is ready where you stopped.` : `${work} is ready to open.`;
-    return userLine ? `“${userLine}” — ${ready}` : ready;
+    if (!userLine) return ready;
+    // The full line is shown in Mini and Main; here a long one is shortened so "is ready" survives.
+    const q = userLine.length > 70 ? `${userLine.slice(0, 66).trimEnd()}…` : userLine;
+    return `“${q}” — ${ready}`;
   },
 };
 
