@@ -99,13 +99,28 @@ export class SideController {
     this.publish();
   }
 
-  onBridgeStatus(_s: BridgeStatus) {
-    if (_s !== 'connected') {
+  async onBridgeStatus(s: BridgeStatus) {
+    if (s !== 'connected') {
       const waiting = this.waiters;
       this.waiters = [];
       waiting.forEach((w) => w(null));
     }
     this.publish();
+    if (s === 'connected' && !this.data.firstRunDone && !this.firstRunBusy) await this.greetFirstRun();
+  }
+
+  private firstRunBusy = false;
+
+  /** The first words come from the user's real tabs: a fold draft, made by rules when the LLM is off. */
+  private async greetFirstRun() {
+    this.firstRunBusy = true;
+    try {
+      const preview = await this.previewWrapup();
+      if ('error' in preview) return;
+      await this.speak.firstRun({ tabs: preview.foldCount, groups: preview.groups.length });
+    } finally {
+      this.firstRunBusy = false;
+    }
   }
 
   /** Asks the extension for a fresh report (it captures the active tabs' positions first). */

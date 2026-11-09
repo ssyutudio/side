@@ -125,3 +125,27 @@ describe('SpeakService', () => {
     expect((await svc.answer('set_aside')).goToWrapup).toBe(true);
   });
 });
+
+describe('SpeakService first run', () => {
+  it('opens with a draft made from the real tabs, even with no step yet', async () => {
+    const { svc, shown } = await setup({ setAsides: [], steps: [] });
+    await svc.firstRun({ tabs: 24, groups: 4 });
+    expect(shown[0]).toEqual({ kind: 'first_run', tabs: 24, groups: 4 });
+  });
+
+  it('says nothing on first run when there is nothing to fold, or while hidden', async () => {
+    const empty = await setup({ setAsides: [], steps: [] });
+    await empty.svc.firstRun({ tabs: 0, groups: 0 });
+    expect(empty.shown).toEqual([]);
+    const hidden = await setup({ setAsides: [], steps: [], hidden: true });
+    await hidden.svc.firstRun({ tabs: 5, groups: 2 });
+    expect(hidden.shown).toEqual([]);
+  });
+
+  it('marks first run done once that bubble is drawn', async () => {
+    const { svc, store } = await setup({ setAsides: [], steps: [] });
+    await svc.firstRun({ tabs: 5, groups: 2 });
+    await svc.confirmDrawn();
+    expect(store.get().firstRunDone).toBe(true);
+  });
+});

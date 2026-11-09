@@ -20,7 +20,9 @@ import {
 
 export type Bubble =
   | { kind: 'step'; stepId: string; trigger: SpeakTrigger }
-  | { kind: 'promise'; promiseId: string };
+  | { kind: 'promise'; promiseId: string }
+  /** First run: a draft of how the real open tabs would fold. */
+  | { kind: 'first_run'; tabs: number; groups: number };
 
 export interface SpeakDeps {
   store: JsonStore<AppData>;
@@ -81,6 +83,25 @@ export class SpeakService {
     return this.show({ kind: 'step', stepId: stepId!, trigger });
   }
 
+  /** First connection: sidy opens with a draft built from the real tabs, not a question. */
+  async firstRun(draft: { tabs: number; groups: number }): Promise<Bubble | null> {
+    const d = this.data;
+    const decision = decideSpeak('first_run', {
+      now: this.deps.clock.now(),
+      hidden: d.hidden || this.asleep,
+      quietHours: d.settings.quietHours,
+      focusUntil: d.focusUntil,
+      restedUntil: d.restedUntil,
+      lastSpokeAt: null,
+      hasSomethingToSay: draft.tabs > 0,
+    });
+    if (!decision.speak) {
+      await this.logQuiet(decision.reason);
+      return null;
+    }
+    return this.show({ kind: 'first_run', tabs: draft.tabs, groups: draft.groups });
+  }
+
   private show(b: Bubble): Bubble {
     this.onScreen = b;
     this.pending = null;
@@ -92,7 +113,8 @@ export class SpeakService {
   async confirmDrawn(): Promise<void> {
     if (!this.onScreen) return;
     const at = this.deps.clock.now();
-    await this.deps.store.update((d) => ({ ...d, spokeAt: [...d.spokeAt, at] }));
+    const firstRun = this.onScreen.kind === 'first_run';
+    await this.deps.store.update((d) => ({ ...d, spokeAt: [...d.spokeAt, at], firstRunDone: d.firstRunDone || firstRun }));
   }
 
   /** The user closed the bubble (or acted on it). */

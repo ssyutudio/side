@@ -123,3 +123,36 @@ describe('SideController', () => {
     expect(store.get().stepEvents[0].shownAt).not.toBeNull();
   });
 });
+
+describe('SideController first run', () => {
+  it('greets with a rule-based draft of the real tabs when the extension first connects', async () => {
+    const { ctl, bubbles } = await setup();
+    await ctl.onBridgeStatus('connected');
+    // Three tabs are open; the active one stays where it is, so two fold.
+    expect(bubbles.at(-1)).toEqual({ kind: 'first_run', tabs: 2, groups: expect.any(Number) });
+  });
+
+  it('does not greet again after first run is done', async () => {
+    const { ctl, bubbles, store } = await setup();
+    await store.update((d) => ({ ...d, firstRunDone: true }));
+    await ctl.onBridgeStatus('connected');
+    expect(bubbles).toEqual([]);
+  });
+});
+
+describe('SideController privacy defaults', () => {
+  it('never calls the LLM while it is off, even with a key', async () => {
+    const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-ctl-')), 'd.json'), defaultAppData);
+    await store.load();
+    const bridge = new FakeBridge();
+    let llmCalls = 0;
+    const ctl = new SideController({
+      store, bridge, clock: new DemoClock(fixedClock(REAL)),
+      llm: async () => { llmCalls++; return '{}'; },
+      edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
+    });
+    bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
+    await ctl.previewWrapup();
+    expect(llmCalls).toBe(0);
+  });
+});
