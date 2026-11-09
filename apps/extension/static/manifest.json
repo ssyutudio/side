@@ -3,7 +3,7 @@
   "name": "Side",
   "short_name": "Side",
   "version": "0.1.0",
-  "description": "Sets your tabs aside when you stop, and opens the exact spot you left when you come back. Talks only to the Side app on this Mac.",
+  "description": "Sets your tabs aside when you stop, and opens the exact spot you left when you come back. Talks only to the Side app on this computer.",
   "minimum_chrome_version": "116",
   "background": {
     "service_worker": "background.js",
