@@ -12,6 +12,17 @@ export const groupNames = {
   notion: 'Notion page',
 } as const;
 
+/**
+ * The one-step bubble. No day words here (the date label says when, from the
+ * real record), and "where you stopped" only when a position was captured.
+ */
+export const step = {
+  label: (work: string, userLine: string | null, hasPosition: boolean) => {
+    const ready = hasPosition ? `${work} is ready where you stopped.` : `${work} is ready to open.`;
+    return userLine ? `“${userLine}” — ${ready}` : ready;
+  },
+};
+
 /** Lines for "what you did today". Only confirmed events, stated as facts. */
 export const done = {
   setAside: (tabs: number, groups: number) =>
