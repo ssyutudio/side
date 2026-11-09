@@ -23,7 +23,7 @@ Requirements: macOS (the build checked for this event), Node 22 or newer, Google
 git clone https://github.com/ssyutudio/side.git
 cd side
 npm install        # also builds the Chrome extension into apps/extension/dist
-npm start          # builds and launches the Side app; sidy appears on the right edge
+npm start          # builds and launches Side; the first start downloads Electron (about 100 MB)
 ```
 
 On first launch a small **Set up Side** window walks you through connecting Chrome:
