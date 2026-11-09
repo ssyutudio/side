@@ -13,6 +13,7 @@ import { done } from '../core/copy';
 import { STILL_WORKING_AFTER_MS, type PagePosition } from '@side/shared';
 import { secondsToWork } from '../core/stepEvents';
 import { activePromise } from '../core/promise';
+import { ruleBySide } from '../core/llmHelpBySide';
 
 export interface ViewState {
   /** Side's clock (demo clock included), so screens can show times. */
@@ -59,6 +60,8 @@ export interface ViewState {
   hidden: boolean;
   focusUntil: number | null;
   demoOffsetMs: number;
+  /** One sentence from the user's own counts (rule, or Claude's from the numbers only). */
+  bySide: { text: string; byClaude: boolean };
 }
 
 export interface ViewInput {
@@ -67,6 +70,8 @@ export interface ViewInput {
   bridge: BridgeStatus;
   bubble: Bubble | null;
   now: number;
+  /** Claude's sentence when the controller has one for these counts; otherwise the rule is used. */
+  bySide?: { text: string; byClaude: boolean };
 }
 
 /** Where the user was on a page, in words. */
@@ -106,7 +111,8 @@ function buildTimeline(data: AppData, now: number): ViewState['timeline'] {
 const EMPTY_SKIPPED: SkippedSummary = { excluded: 0, excludedByDomain: {}, incognito: 0, internal: 0 };
 const HISTORY_MAX = 30;
 
-export function buildViewState({ data, report, bridge, bubble, now }: ViewInput): ViewState {
+export function buildViewState(input: ViewInput): ViewState {
+  const { data, report, bridge, bubble, now } = input;
   const clock = { now: () => now };
   const live = data.setAsides.filter((s) => s.status === 'applied' || s.status === 'partial');
   const sideGroupNames = live.flatMap((s) => s.groups.map((g) => g.name));
@@ -217,5 +223,6 @@ export function buildViewState({ data, report, bridge, bubble, now }: ViewInput)
     hidden: data.hidden,
     focusUntil: data.focusUntil,
     demoOffsetMs: data.demoOffsetMs,
+    bySide: input.bySide ?? { text: ruleBySide(numbers), byClaude: false },
   };
 }

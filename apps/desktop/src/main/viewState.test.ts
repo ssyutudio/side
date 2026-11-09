@@ -138,3 +138,12 @@ describe('buildViewState for Main', () => {
     expect(v.saw.llm).toEqual({ enabled: true, sends: 1, lastAt: NOW - 5000, lastTitles: 36, lastUserLine: true });
   });
 });
+
+describe('buildViewState By your side', () => {
+  it('defaults to the rule sentence from the counts, and carries a sentence it is given', () => {
+    const v = buildViewState({ data: data(), report, bridge: 'connected', bubble: null, now: NOW });
+    expect(v.bySide).toEqual({ text: expect.stringContaining('still learning'), byClaude: false });
+    const given = buildViewState({ data: data(), report, bridge: 'connected', bubble: null, now: NOW, bySide: { text: 'Given.', byClaude: true } });
+    expect(given.bySide).toEqual({ text: 'Given.', byClaude: true });
+  });
+});

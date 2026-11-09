@@ -4,8 +4,14 @@ import type { ViewState } from '../../main/viewState';
 import type { Bubble } from '../../main/speakService';
 import type { PreviewView } from '../../main/controller';
 import type { SideNumbers } from '../../core/stats';
+import { ruleBySide } from '../../core/llmHelpBySide';
 
 const DAY = new Date(2026, 10, 10, 19, 5).getTime();
+
+/** Fills the By your side sentence from the fixture's own counts unless one is given. */
+function withBySide(o: Partial<ViewState>, v: Omit<ViewState, 'bySide'> & { bySide?: ViewState['bySide'] }): ViewState {
+  return { ...v, bySide: o.bySide ?? { text: ruleBySide(v.numbers), byClaude: false } } as ViewState;
+}
 
 const numbers = (o: Partial<SideNumbers> = {}): SideNumbers => ({
   connected: true,
@@ -25,7 +31,7 @@ const numbers = (o: Partial<SideNumbers> = {}): SideNumbers => ({
   ...o,
 });
 
-const base = (o: Partial<ViewState> = {}): ViewState => ({
+const base = (o: Partial<ViewState> = {}): ViewState => withBySide(o, {
   now: DAY,
   connection: 'connected',
   step: {

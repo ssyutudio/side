@@ -62,6 +62,11 @@ describe('Today', () => {
     expect(h).toContain('sidy is still learning what gets you started. 2 steps opened so far');
     expect(h).toContain('From your own counts only — no titles or sites.');
   });
+  it('labels a sentence Claude wrote from the counts', () => {
+    const h = s(todayView({ ...FIXTURES.day, bySide: { text: '3 of the 4 steps you could judge kept you going past 10 minutes.', byClaude: true } }));
+    expect(h).toContain('3 of the 4 steps you could judge kept you going past 10 minutes.');
+    expect(h).toContain('Written by Claude from your own counts only — no titles or sites.');
+  });
   it('shows today\'s moments with times and why sidy stayed quiet', () => {
     const h = s(todayView(FIXTURES.day));
     expect(h).toContain('9:05 AM');

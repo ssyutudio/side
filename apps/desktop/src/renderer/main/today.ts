@@ -49,9 +49,11 @@ export function bySideSentence(s: ViewState): string {
 }
 
 function bySide(s: ViewState): SafeHtml {
+  const b = s.bySide ?? { text: bySideSentence(s), byClaude: false };
+  const note = b.byClaude ? 'Written by Claude from your own counts only — no titles or sites.' : 'From your own counts only — no titles or sites.';
   return html`<section class="sec"><h2>By your side</h2>
-<div class="bys">${raw(sidySvg(32))}<p>${bySideSentence(s)}</p></div>
-<p class="note" style="margin:6px 0 0">From your own counts only — no titles or sites.</p></section>`;
+<div class="bys">${raw(sidySvg(32))}<p>${b.text}</p></div>
+<p class="note" style="margin:6px 0 0">${note}</p></section>`;
 }
 
 function soFar(s: ViewState): SafeHtml {

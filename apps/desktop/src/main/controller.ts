@@ -80,13 +80,15 @@ export class SideController {
   }
 
   state(): ViewState {
-    return buildViewState({
+    const view = buildViewState({
       data: this.data,
       report: this.deps.bridge.status === 'connected' ? this.lastReport : null,
       bridge: this.deps.bridge.status,
       bubble: this.speak.bubble,
       now: this.deps.clock.now(),
     });
+    // Claude's By your side sentence is cached per set of counts; a new one republishes once.
+    return { ...view, bySide: this.help.bySideFor(view.numbers, () => this.publish()) };
   }
 
   publish() {

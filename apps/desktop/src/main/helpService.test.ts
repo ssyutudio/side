@@ -96,3 +96,37 @@ describe('HelpService morning recall', () => {
     expect(store.get().steps[0].id).toBe('rule');
   });
 });
+
+import type { SideNumbers } from '../core/stats';
+const nums = (clicked: number, judged: number, rate: number): SideNumbers => ({
+  connected: true, tabsInChrome: 30, tabsOpen: 5, tabsSetAside: 25, stepReady: true, todayLine: null,
+  spokeToday: 1, spokeTotal: 6, shown: 6, clicked, clickRate: { value: 0.8, n: 6 }, stillWorkingRate: { value: rate, n: judged },
+  lastSecondsToWork: 1.4, setAsideTotals: { tabs: 80, lines: 3 },
+});
+
+describe('HelpService By your side', () => {
+  it('uses the still-learning rule below three opened steps, with no call', async () => {
+    const { svc, sent } = await setup(true, async () => 'x.');
+    expect(svc.bySideFor(nums(2, 1, 1))).toEqual({ text: expect.stringContaining('still learning'), byClaude: false });
+    expect(sent).toHaveLength(0);
+  });
+
+  it('asks once per change in counts and then shows Claude\'s sentence', async () => {
+    const { svc, sent } = await setup(true, async () => '3 of the 4 steps you could judge kept you going past 10 minutes.');
+    const updated = new Promise<void>((r) => expect(svc.bySideFor(nums(5, 4, 0.75), r).byClaude).toBe(false));
+    await updated;
+    expect(svc.bySideFor(nums(5, 4, 0.75))).toEqual({ text: '3 of the 4 steps you could judge kept you going past 10 minutes.', byClaude: true });
+    svc.bySideFor(nums(5, 4, 0.75));
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).not.toMatch(/https?:|github|Retry|jitter/i);
+  });
+
+  it('keeps the rule sentence when Claude invents a number, and calls nothing when off', async () => {
+    const bad = await setup(true, async () => '9 steps kept you going.');
+    await new Promise<void>((r) => { bad.svc.bySideFor(nums(5, 4, 0.75), r); setTimeout(r, 300); });
+    expect(bad.svc.bySideFor(nums(5, 4, 0.75)).byClaude).toBe(false);
+    const off = await setup(false, async () => 'x.');
+    expect(off.svc.bySideFor(nums(5, 4, 0.75)).byClaude).toBe(false);
+    expect(off.sent).toHaveLength(0);
+  });
+});

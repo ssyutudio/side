@@ -7,11 +7,20 @@ import type { AppData } from './appData';
 import type { Clock } from '../core/clock';
 import type { LlmTransport } from '../core/llmGrouping';
 import { askOnce, buildRecallRequest, buildSuggestRequest, HELP_TIMEOUT_MS, parseRecall, parseSuggestions, stepForTab } from '../core/llmHelp';
+import { buildBySideRequest, bySideCounts, bySideKey, LEARN_AFTER, parseBySide, ruleBySide } from '../core/llmHelpBySide';
+import type { SideNumbers } from '../core/stats';
 
 export type RecallOutcome = 'replaced' | 'kept' | 'skipped';
 
+export interface BySide {
+  text: string;
+  byClaude: boolean;
+}
+
 export class HelpService {
   private suggestions = new Map<string, string[]>();
+  private bySide: { key: string; text: string } | null = null;
+  private bySideAsked = new Set<string>();
 
   constructor(private readonly deps: { store: JsonStore<AppData>; clock: Clock; llm: LlmTransport | null; timeoutMs?: number }) {}
 
@@ -62,5 +71,30 @@ export class HelpService {
     if (!fresh) return 'kept';
     await this.deps.store.update((x) => ({ ...x, steps: [...x.steps.filter((s) => s.fromSetAside !== setAsideId), fresh] }));
     return 'replaced';
+  }
+
+  /**
+   * The By your side sentence for these counts. Returns at once (rule sentence or the cached
+   * Claude sentence); when the counts changed it asks Claude once in the background and calls
+   * onUpdate if a valid sentence came back. Never called on every state push for the same counts.
+   */
+  bySideFor(n: SideNumbers, onUpdate?: () => void): BySide {
+    const c = bySideCounts(n);
+    const key = bySideKey(c);
+    if (c.opened < LEARN_AFTER || !this.on) return { text: ruleBySide(n), byClaude: false };
+    if (this.bySide?.key === key) return { text: this.bySide.text, byClaude: true };
+    if (!this.bySideAsked.has(key)) {
+      this.bySideAsked.add(key);
+      void (async () => {
+        await this.log(0, false);
+        const text = await askOnce(this.deps.llm!, buildBySideRequest(c), this.deps.timeoutMs ?? HELP_TIMEOUT_MS);
+        const sentence = text ? parseBySide(text, c) : null;
+        if (sentence) {
+          this.bySide = { key, text: sentence };
+          onUpdate?.();
+        }
+      })();
+    }
+    return { text: ruleBySide(n), byClaude: false };
   }
 }
