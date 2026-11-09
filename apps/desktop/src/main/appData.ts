@@ -27,8 +27,8 @@ export interface AppData {
   /** Times sidy spoke first (epoch ms). */
   spokeAt: number[];
   promises: StopPromise[];
-  /** Local date key (YYYY-MM-DD) of the day the user chose "Rest today". */
-  restedOn: string | null;
+  /** After "Rest today" / "Not today", sidy stays quiet until this time (next work day). */
+  restedUntil: number | null;
   focusUntil: number | null;
   /** Demo clock offset in ms; 0 means real time. */
   demoOffsetMs: number;
@@ -64,7 +64,7 @@ export function defaultAppData(): AppData {
     quietLog: [],
     spokeAt: [],
     promises: [],
-    restedOn: null,
+    restedUntil: null,
     focusUntil: null,
     demoOffsetMs: 0,
     hidden: false,

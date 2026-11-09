@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { STILL_WORKING_AFTER_MS, type SetAside, type Step, type TabsReport } from '@side/shared';
 import { JsonStore } from './store';
 import { defaultAppData, type AppData } from './appData';
-import { StepService, activeUrlOf, localDateKey } from './stepService';
+import { StepService, activeUrlOf } from './stepService';
+import { restUntil } from '../core/speakPolicy';
 import type { CommandOutcome } from './bridge';
 
 let now = new Date(2026, 10, 10, 19, 0).getTime();
@@ -78,11 +79,11 @@ describe('StepService', () => {
     expect(store.get().stepEvents[0].openedAt).toBeNull();
   });
 
-  it('remembers Rest today for the local date', async () => {
+  it('remembers Rest today until the next work day starts', async () => {
     const { svc, store } = await setup({ status: 'ok', result: {} });
     await svc.dismiss('st1', 'rest_today');
     expect(store.get().stepEvents[0].dismissed).toBe('rest_today');
-    expect(store.get().restedOn).toBe(localDateKey(now));
+    expect(store.get().restedUntil).toBe(restUntil(now));
   });
 
   it('judges still working ten minutes after the click from the active tab', async () => {

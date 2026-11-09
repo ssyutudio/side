@@ -6,6 +6,7 @@ import type { AppData } from './appData';
 import type { CommandPort } from './wrapupService';
 import type { Clock } from '../core/clock';
 import { currentStep } from '../core/step';
+import { restUntil } from '../core/speakPolicy';
 import { applyStillWorking, markClicked, markDismissed, markOpened, markShown, secondsToWork } from '../core/stepEvents';
 
 export type OpenOutcome =
@@ -76,11 +77,11 @@ export class StepService {
   }
 
   async dismiss(stepId: string, kind: DismissKind): Promise<void> {
-    const today = localDateKey(this.deps.clock.now());
+    const until = restUntil(this.deps.clock.now());
     await this.deps.store.update((d) => ({
       ...d,
       stepEvents: markDismissed(d.stepEvents, stepId, kind),
-      restedOn: kind === 'rest_today' ? today : d.restedOn,
+      restedUntil: kind === 'rest_today' ? until : d.restedUntil,
     }));
   }
 
