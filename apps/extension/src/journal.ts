@@ -7,7 +7,7 @@ export class StorageError extends Error {}
 export class ChromeError extends Error {}
 export class RejectedError extends Error {}
 
-export type TabState = 'planned' | 'grouped' | 'kept' | 'closing' | 'closed' | 'reopening' | 'reopened';
+export type TabState = 'planned' | 'grouped' | 'kept' | 'closing' | 'closed' | 'ungrouped' | 'reopening' | 'reopened';
 
 export interface JournalTab {
   key: string;
@@ -17,6 +17,9 @@ export interface JournalTab {
   state: TabState;
   reason?: KeepReason;
   chromeGroupId?: number;
+  /** Ids of tabs already showing this URL before Undo reopened it, so they are never mistaken for ours. */
+  existingIds?: number[];
+  reopenedId?: number;
 }
 
 export interface Journal {
