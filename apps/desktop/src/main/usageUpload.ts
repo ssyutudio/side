@@ -13,8 +13,8 @@ export interface UsagePayload {
   stillWorking10m: number;
 }
 
-/** Set after the waitlist is deployed. Null keeps upload a no-op. */
-export const USAGE_ENDPOINT: string | null = null;
+/** The deployed waitlist function. Upload still does nothing unless the user turns it on. */
+export const USAGE_ENDPOINT: string | null = 'https://side-waitlist.vercel.app/api/usage';
 
 const whole = (n: number | null | undefined) => Math.max(0, Math.round(n ?? 0));
 
