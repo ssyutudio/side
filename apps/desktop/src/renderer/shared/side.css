@@ -212,3 +212,5 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .setup-body{background:var(--canvas);margin:0}
 .onb.setup{position:static;transform:none;margin:28px auto;box-shadow:0 10px 40px rgba(10,14,30,.12);width:620px}
 .copy code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* macOS Reduce Motion: nothing moves anywhere in Side (switches, chevrons, sidy, spinners). */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
