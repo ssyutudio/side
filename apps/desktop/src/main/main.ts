@@ -13,6 +13,7 @@ import { IPC_CHANNELS, routeIpc } from './ipcRoutes';
 import { watchReturns } from './returnWatcher';
 import { parseDemoCommand } from './demoClock';
 import { DemoClock } from '../core/clock';
+import { buildUsagePayload, uploadUsage, USAGE_ENDPOINT } from './usageUpload';
 import { Windows } from './windows';
 import { routeWindow, WINDOW_CHANNELS } from './windowRoutes';
 
@@ -81,6 +82,18 @@ function registerShortcut(accel: string): boolean {
   }
 }
 
+let lastUpload = 0;
+/** Anonymous counts (numbers + install id), only when the user turned it on; at most every 10 minutes. */
+function maybeUpload(force = false) {
+  const d = store.get();
+  if (!d.settings.uploadEnabled || !ctl) return;
+  if (!force && Date.now() - lastUpload < 10 * 60_000) return;
+  lastUpload = Date.now();
+  void uploadUsage({ enabled: true, endpoint: USAGE_ENDPOINT, payload: buildUsagePayload(ctl.state().numbers, d.installId), fetch }).then((r) =>
+    console.log(`[side] anonymous counts: ${r}`),
+  );
+}
+
 function pushToWindows(channel: string, data: unknown) {
   for (const w of BrowserWindow.getAllWindows()) {
     if (!w.isDestroyed()) w.webContents.send(channel, data);
@@ -134,7 +147,10 @@ async function start() {
     llm: transport ? (req) => transport.complete({ system: req.system, prompt: req.user }) : null,
     edge: edgePort,
     registerShortcut,
-    push: (state) => pushToWindows('side:state', state),
+    push: (state) => {
+      pushToWindows('side:state', state);
+      maybeUpload();
+    },
     renderBubble: (bubble) => {
       // While Mini is open the user is already talking to Side: no bubble on top of it.
       if (bubble && windows?.miniOpen()) return void setTimeout(() => ctl?.speak.clear(), 0);
