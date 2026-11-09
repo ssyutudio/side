@@ -268,3 +268,10 @@ describe('One more hour with the calendar on', () => {
     expect(s(oneMoreView(FIXTURES['cal-on'].now, 450, 60, FIXTURES.day))).toContain('Your wake-up');
   });
 });
+
+describe('Mini shows the desktop apps that are on', () => {
+  it('lists them as one fact, and shows nothing when none is on', () => {
+    expect(s(homeView(FIXTURES['apps-on'], {}))).toContain('<span>Desktop apps</span><b>Excel</b>');
+    expect(s(homeView(FIXTURES.night, {}))).not.toContain('Desktop apps');
+  });
+});

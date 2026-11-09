@@ -24,6 +24,12 @@ function focusAction(s: ViewState): QuickAction {
     : { icon: '🎧', title: 'Focus for an hour', sub: 'sidy stays quiet, no bubbles', act: 'focus' };
 }
 
+/** The desktop apps turned on in Connections, so Mini shows what sidy is connected to besides Chrome. */
+function appsFact(s: ViewState): [string, string][] {
+  const on = (s.connections?.apps ?? []).filter((a) => a.on).map((a) => a.tool);
+  return on.length ? [['Desktop apps', on.join(', ')]] : [];
+}
+
 const live = (s: ViewState) => !!s.lastWrapup && (s.lastWrapup.status === 'applied' || s.lastWrapup.status === 'partial');
 
 export function homeView(s: ViewState, local: HomeLocal): SafeHtml {
@@ -36,6 +42,7 @@ export function homeView(s: ViewState, local: HomeLocal): SafeHtml {
 <button class="btn fill" data-act="check"${local.checking ? ' aria-disabled="true"' : ''}>${local.checking ? 'Checking…' : 'Check again'}</button>
 ${facts([
   ['Tabs in Chrome', 'Unknown until connected'],
+  ...appsFact(s),
   ['Set aside', setAsideText(s)],
   ['Next step', s.step ? 'Ready — opens once Chrome is back' : 'Waiting for Chrome'],
 ])}
@@ -59,6 +66,7 @@ ${askBlock(local.ask ?? IDLE)}</div>`,
 <div class="done-line"><b>${set} tabs set aside in ${w.groups.length} ${w.groups.length === 1 ? 'group' : 'groups'}.</b> ${s.numbers.tabsOpen ?? 0} still open.</div>
 ${facts([
   ['Tabs in Chrome', tabs],
+  ...appsFact(s),
   ['Set aside', setAsideText(s)],
   ["Tomorrow's step", s.step ? 'Ready' : 'Made when you come back'],
 ])}
@@ -83,6 +91,7 @@ ${askBlock(local.ask ?? IDLE)}</div>`,
 <button class="btn fill" style="width:100%" data-act="step-open" data-step="${s.step.id}">Step inside</button></div>
 ${facts([
   ['Tabs in Chrome', tabs],
+  ...appsFact(s),
   ['Set aside', setAsideText(s)],
   ['Last wrap-up', w ? cap(w.when) : '—'],
 ])}
@@ -105,6 +114,7 @@ ${askBlock(local.ask ?? IDLE)}</div>`,
 <button class="btn fill" style="width:100%" data-act="wrap">Set aside today</button></div>
 ${facts([
   ['Tabs in Chrome', tabs],
+  ...appsFact(s),
   ['Set aside', setAsideText(s)],
   ['Next step', 'Ready after you set aside'],
 ])}

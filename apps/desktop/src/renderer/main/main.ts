@@ -36,11 +36,28 @@ function body(s: ViewState): SafeHtml {
   }
 }
 
+/** A selector for the focused control, so a redraw can give focus back (switches have no id). */
+function focusKey(el: HTMLElement | null): string | null {
+  if (!el || el === document.body) return null;
+  if (el.id) return `#${CSS.escape(el.id)}`;
+  const a = el.dataset.act;
+  if (!a) return null;
+  const extra = ['key', 'app', 'size', 'cmd', 'domain'].map((k) => (el.dataset[k] ? `[data-${k}="${CSS.escape(el.dataset[k]!)}"]` : '')).join('');
+  return `[data-act="${CSS.escape(a)}"]${extra}`;
+}
+
+let drawnSection: string | null = null;
+
 function render() {
-  const keepFocus = (document.activeElement as HTMLElement | null)?.id;
+  const focus = focusKey(document.activeElement as HTMLElement | null);
+  // A redraw in the same section (a switch flipped, a state update) keeps the scroll position.
+  const scroll = drawnSection === section ? (document.getElementById('content')?.scrollTop ?? 0) : 0;
   const content = failed ? errorView() : !state || forceLoading ? loadingView() : body(state);
   root.innerHTML = String(shellView(section, state, content));
-  if (keepFocus) document.getElementById(keepFocus)?.focus();
+  drawnSection = section;
+  const box = document.getElementById('content');
+  if (box && scroll) box.scrollTop = scroll;
+  if (focus) root.querySelector<HTMLElement>(focus)?.focus({ preventScroll: true });
 }
 
 async function load() {
