@@ -10,6 +10,8 @@ function fakePort() {
     toast: (t, ms) => void calls.push(['toast', [t, ms]]),
     checkConnection: async () => 'connected',
     revealData: () => void calls.push(['revealData', null]),
+    setupInfo: () => ({ extPath: '/x/apps/extension/dist' }),
+    finishSetup: () => void calls.push(['finishSetup', null]),
   };
   return { port, calls };
 }
@@ -25,7 +27,9 @@ describe('routeWindow', () => {
     await routeWindow(port, 'side:mini.resize', { height: 640 });
     await routeWindow(port, 'side:toast', { text: 'Saved your question. See you tomorrow.', ms: 3500 });
     expect(await routeWindow(port, 'side:check.connection', undefined)).toEqual({ status: 'connected' });
-    expect(calls.map((c) => c[0])).toEqual(['openMini', 'resizeMini', 'toast']);
+    expect(await routeWindow(port, 'side:setup.info', undefined)).toEqual({ extPath: '/x/apps/extension/dist' });
+    await routeWindow(port, 'side:setup.done', undefined);
+    expect(calls.map((c) => c[0])).toEqual(['openMini', 'resizeMini', 'toast', 'finishSetup']);
   });
 
   it('refuses bad sizes, long toasts and unknown views without calling anything', async () => {

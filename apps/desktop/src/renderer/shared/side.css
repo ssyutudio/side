@@ -209,3 +209,6 @@ html.transparent,html.transparent body{background:transparent;overflow:hidden;he
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .busy{display:flex;align-items:center;gap:10px;font-size:15px}
+.setup-body{background:var(--canvas);margin:0}
+.onb.setup{position:static;transform:none;margin:28px auto;box-shadow:0 10px 40px rgba(10,14,30,.12);width:620px}
+.copy code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}

@@ -10,6 +10,8 @@ export interface WindowPort {
   toast(text: string, ms: number): void;
   checkConnection(): Promise<string>;
   revealData(): void;
+  setupInfo(): { extPath: string };
+  finishSetup(): void;
 }
 
 const empty = z.unknown();
@@ -21,6 +23,8 @@ const ROUTES = {
   'side:toast': { schema: z.object({ text: z.string().min(1).max(200), ms: z.number().int().min(500).max(20_000) }), run: (p: WindowPort, i: { text: string; ms: number }) => p.toast(i.text, i.ms) },
   'side:check.connection': { schema: empty, run: async (p: WindowPort) => ({ status: await p.checkConnection() }) },
   'side:data.reveal': { schema: empty, run: (p: WindowPort) => p.revealData() },
+  'side:setup.info': { schema: empty, run: (p: WindowPort) => p.setupInfo() },
+  'side:setup.done': { schema: empty, run: (p: WindowPort) => p.finishSetup() },
 } as const;
 
 export type WindowChannel = keyof typeof ROUTES;

@@ -38,6 +38,8 @@ export interface ControllerDeps {
   openMain: () => void;
   /** Real time, for computing demo offsets. */
   realNow?: () => number;
+  /** False while the setup window is open: its "Meet sidy" button greets instead. */
+  greetOnConnect?: () => boolean;
 }
 
 export interface PreviewView {
@@ -106,13 +108,14 @@ export class SideController {
       waiting.forEach((w) => w(null));
     }
     this.publish();
-    if (s === 'connected' && !this.data.firstRunDone && !this.firstRunBusy) await this.greetFirstRun();
+    const allowed = this.deps.greetOnConnect?.() ?? true;
+    if (s === 'connected' && allowed && !this.data.firstRunDone && !this.firstRunBusy) await this.greetFirstRun();
   }
 
   private firstRunBusy = false;
 
   /** The first words come from the user's real tabs: a fold draft, made by the LLM when it is on and reachable, else by rules. */
-  private async greetFirstRun() {
+  async greetFirstRun() {
     this.firstRunBusy = true;
     try {
       const preview = await this.previewWrapup();

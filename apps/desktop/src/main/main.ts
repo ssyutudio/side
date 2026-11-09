@@ -141,6 +141,7 @@ async function start() {
       edge?.win.webContents.send('side:bubble', bubble);
     },
     openMain: () => windows?.openMain(),
+    greetOnConnect: () => !windows?.setupOpen(),
   });
 
   for (const channel of IPC_CHANNELS) {
@@ -165,6 +166,11 @@ async function start() {
       return bridge?.status ?? 'waiting';
     },
     revealData: () => shell.showItemInFolder(store.path),
+    setupInfo: () => ({ extPath: join(app.getAppPath(), 'apps', 'extension', 'dist') }),
+    finishSetup: () => {
+      windows?.closeSetup();
+      void ctl?.greetFirstRun();
+    },
   };
   for (const channel of WINDOW_CHANNELS) {
     ipcMain.handle(channel, (_e, payload) => routeWindow(windowPort, channel, payload));
@@ -183,6 +189,8 @@ async function start() {
   }
 
   if (!store.get().hidden) edge.win.once('ready-to-show', () => edge?.show());
+  // First launch: walk through connecting Chrome before sidy says anything.
+  if (!store.get().firstRunDone && !store.get().pairedOrigin) windows.openSetup();
   if (!registerShortcut(store.get().settings.shortcut)) console.warn(`[side] shortcut ${store.get().settings.shortcut} is taken by another app`);
 
   watchReturns({

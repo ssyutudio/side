@@ -112,11 +112,37 @@ export class Windows {
     this.main.focus();
   }
 
+  private setup: BrowserWindow | null = null;
+
+  openSetup() {
+    if (this.setup && !this.setup.isDestroyed()) return void this.setup.focus();
+    this.setup = new BrowserWindow({
+      width: 700,
+      height: 820,
+      title: 'Set up Side',
+      backgroundColor: '#F2F3F5',
+      resizable: true,
+      show: false,
+      webPreferences: this.webPrefs(),
+    });
+    void this.setup.loadFile(join(this.o.rendererDir, 'onboarding.html'));
+    this.setup.once('ready-to-show', () => this.setup?.show());
+  }
+
+  setupOpen(): boolean {
+    return !!this.setup && !this.setup.isDestroyed() && this.setup.isVisible();
+  }
+
+  closeSetup() {
+    if (this.setup && !this.setup.isDestroyed()) this.setup.close();
+    this.setup = null;
+  }
+
   miniOpen(): boolean {
     return !!this.mini && !this.mini.isDestroyed() && this.mini.isVisible();
   }
 
   all(): BrowserWindow[] {
-    return [this.mini, this.main].filter((w): w is BrowserWindow => !!w && !w.isDestroyed());
+    return [this.mini, this.main, this.setup].filter((w): w is BrowserWindow => !!w && !w.isDestroyed());
   }
 }
