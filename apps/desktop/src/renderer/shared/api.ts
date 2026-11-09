@@ -3,6 +3,7 @@
 import type { ViewState } from '../../main/viewState';
 import type { Bubble } from '../../main/speakService';
 import { FIXTURES, FIXTURE_BUBBLES, FIXTURE_PREVIEW } from './fixtures';
+import type { PreviewView } from '../../main/controller';
 
 export interface Toast {
   text: string;
@@ -34,6 +35,33 @@ export interface SideApi {
   setInteractive(v: boolean): void;
 }
 
+/** Fixture stand-in for the app's draft edit: move a tab or merge two groups. */
+let fixtureDraft: PreviewView | null = null;
+function applyFixtureEdit(payload: unknown): PreviewView {
+  const p = fixtureDraft ?? FIXTURE_PREVIEW;
+  const op = payload as { op: string; tabId?: number; to?: string; from?: string; into?: string };
+  let groups = p.groups.map((g) => ({ ...g, tabs: [...g.tabs] }));
+  if (op.op === 'move') {
+    const from = groups.find((g) => g.tabs.some((t) => t.id === op.tabId));
+    const to = groups.find((g) => g.key === op.to);
+    const tab = from?.tabs.find((t) => t.id === op.tabId);
+    if (from && to && tab && from !== to) {
+      from.tabs = from.tabs.filter((t) => t !== tab);
+      to.tabs.push(tab);
+    }
+  } else {
+    const from = groups.find((g) => g.key === op.from);
+    const into = groups.find((g) => g.key === op.into);
+    if (from && into && from !== into) {
+      into.tabs.push(...from.tabs);
+      from.tabs = [];
+    }
+  }
+  groups = groups.filter((g) => g.tabs.length > 0);
+  fixtureDraft = { ...p, groups };
+  return fixtureDraft;
+}
+
 export function getApi(): SideApi {
   const params = new URLSearchParams(location.search);
   const bridge = (window as unknown as { side?: Bridge }).side;
@@ -55,9 +83,10 @@ export function getApi(): SideApi {
   return {
     fixture: true,
     params,
-    invoke: async <T>(channel: string) => {
+    invoke: async <T>(channel: string, payload?: unknown) => {
       if (channel === 'side:state') return state as T;
       if (channel === 'side:wrapup.preview') return FIXTURE_PREVIEW as T;
+      if (channel === 'side:wrapup.edit') return applyFixtureEdit(payload) as T;
       return { ok: true } as T;
     },
     onState: (cb) => setTimeout(() => cb(state), 0),

@@ -49,10 +49,10 @@ function body(p: PreviewView, local: WrapLocal, dim: boolean): SafeHtml {
     const open = closing || local.open.includes(g.key);
     const sample = g.tabs.slice(0, 3).map((t) => t.title).join(', ');
     return html`<div class="g" data-drop="${g.key}" style="--c:${COLORS[i % COLORS.length]}">
-<button class="dis" data-act="toggle" data-key="${g.key}" draggable="true" data-drag-group="${g.key}" aria-expanded="${open ? 'true' : 'false'}"><span class="chev" aria-hidden="true">▶</span><i style="width:12px;height:12px;border-radius:4px;background:var(--c);flex:none"></i><span class="n">${g.name}</span></button>
+<button class="dis" data-act="toggle" data-key="${g.key}" data-drag-group="${g.key}" aria-expanded="${open ? 'true' : 'false'}"><span class="chev" aria-hidden="true">▶</span><i style="width:12px;height:12px;border-radius:4px;background:var(--c);flex:none"></i><span class="n">${g.name}</span></button>
 <span class="seg" role="group" aria-label="${g.name}: fold or close"><button aria-pressed="${closing ? 'false' : 'true'}" data-act="mode" data-key="${g.key}" data-mode="fold">Fold</button><button aria-pressed="${closing ? 'true' : 'false'}" data-act="mode" data-key="${g.key}" data-mode="close">Close</button></span>
 ${open
-  ? html`${closing ? html`<div class="warn-line">These ${g.tabs.length} tabs will close. Undo brings them back.</div>` : ''}<ul class="tl2" aria-label="${plural(g.tabs.length, 'tab')}">${g.tabs.map((t) => html`<li draggable="true" data-tab="${t.id}">${t.title}</li>`)}</ul>`
+  ? html`${closing ? html`<div class="warn-line">These ${g.tabs.length} tabs will close. Undo brings them back.</div>` : ''}<ul class="tl2" aria-label="${plural(g.tabs.length, 'tab')}">${g.tabs.map((t) => html`<li data-tab="${t.id}">${t.title}</li>`)}</ul>`
   : html`<span class="ex">${plural(g.tabs.length, 'tab')} · ${sample}</span>`}</div>`;
   });
   const content = p.groups.length

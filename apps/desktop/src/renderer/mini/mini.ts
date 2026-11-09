@@ -182,56 +182,67 @@ app.addEventListener('click', (e) => {
   if (el && el.getAttribute('aria-disabled') !== 'true') void act(el);
 });
 // Drag to regroup before confirming: a tab onto another group moves it; a group's header onto
-// another group merges them. The app edits the draft it will confirm, then the preview redraws.
-let dragging: { kind: 'tab'; id: number } | { kind: 'group'; key: string } | null = null;
-const dropTarget = (e: Event) => (e.target as HTMLElement).closest<HTMLElement>('[data-drop]');
+// another group merges them. Built on pointer events: macOS panel windows (Mini is one) start a
+// native HTML5 drag but never deliver its drop. The app edits the draft it will confirm.
+type Drag = { kind: 'tab'; id: number; label: string } | { kind: 'group'; key: string; label: string };
+let press: { drag: Drag; x: number; y: number; source: HTMLElement } | null = null;
+let ghost: HTMLElement | null = null;
+let suppressClick = false;
 const clearDrop = () => app.querySelectorAll('.drop-over').forEach((n) => n.classList.remove('drop-over'));
-app.addEventListener('dragstart', (e) => {
+const targetAt = (x: number, y: number) => (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>('[data-drop]') ?? null;
+const sameGroup = (d: Drag, g: HTMLElement) => d.kind === 'group' && d.key === g.dataset.drop;
+
+app.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || view.name !== 'preview') return;
   const el = e.target as HTMLElement;
+  if (el.closest('.seg')) return; // Fold / Close buttons are not handles
   const tab = el.closest<HTMLElement>('[data-tab]');
   const group = el.closest<HTMLElement>('[data-drag-group]');
-  if (tab) dragging = { kind: 'tab', id: Number(tab.dataset.tab) };
-  else if (group) dragging = { kind: 'group', key: group.dataset.dragGroup ?? '' };
-  else return;
-  e.dataTransfer?.setData('text/plain', 'side');
-  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-  (tab ?? group?.closest('.g'))?.classList.add('dragging');
+  if (tab) press = { drag: { kind: 'tab', id: Number(tab.dataset.tab), label: tab.textContent ?? '' }, x: e.clientX, y: e.clientY, source: tab };
+  else if (group) press = { drag: { kind: 'group', key: group.dataset.dragGroup ?? '', label: group.querySelector('.n')?.textContent ?? '' }, x: e.clientX, y: e.clientY, source: group };
 });
-app.addEventListener('dragover', (e) => {
-  const g = dropTarget(e);
-  if (!dragging || !g) return;
-  if (dragging.kind === 'group' && dragging.key === g.dataset.drop) return;
-  e.preventDefault();
-  if (!g.classList.contains('drop-over')) {
-    clearDrop();
-    g.classList.add('drop-over');
+window.addEventListener('pointermove', (e) => {
+  if (!press) return;
+  if (!ghost) {
+    if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 5) return; // still a click
+    ghost = document.createElement('div');
+    ghost.className = 'drag-ghost';
+    ghost.textContent = press.drag.label;
+    document.body.appendChild(ghost);
+    (press.drag.kind === 'tab' ? press.source : press.source.closest('.g'))?.classList.add('dragging');
   }
-});
-app.addEventListener('dragleave', (e) => {
-  const g = dropTarget(e);
-  if (g && !g.contains(e.relatedTarget as Node)) g.classList.remove('drop-over');
-});
-app.addEventListener('dragend', () => {
-  dragging = null;
+  ghost.style.left = `${e.clientX + 12}px`;
+  ghost.style.top = `${e.clientY + 10}px`;
+  const g = targetAt(e.clientX, e.clientY);
   clearDrop();
+  if (g && !sameGroup(press.drag, g)) g.classList.add('drop-over');
+});
+window.addEventListener('pointerup', async (e) => {
+  const p = press;
+  press = null;
+  if (!p || !ghost) return; // a plain click goes through as usual
+  ghost.remove();
+  ghost = null;
+  suppressClick = true; // the click that ends a drag must not toggle the group
+  setTimeout(() => (suppressClick = false), 0);
   app.querySelectorAll('.dragging').forEach((n) => n.classList.remove('dragging'));
-});
-app.addEventListener('drop', async (e) => {
-  const g = dropTarget(e);
-  const d = dragging;
-  dragging = null;
+  const g = targetAt(e.clientX, e.clientY);
   clearDrop();
-  if (!g || !d || view.name !== 'preview') return;
-  e.preventDefault();
+  if (!g || view.name !== 'preview' || sameGroup(p.drag, g)) return;
   const to = g.dataset.drop ?? '';
-  if (d.kind === 'group' && d.key === to) return;
-  const op = d.kind === 'tab' ? { op: 'move', tabId: d.id, to } : { op: 'merge', from: d.key, into: to };
+  const op = p.drag.kind === 'tab' ? { op: 'move', tabId: p.drag.id, to } : { op: 'merge', from: p.drag.key, into: to };
   const next = await api.invoke<PreviewView | { error: string }>('side:wrapup.edit', op);
   if (!next || 'error' in next || !('groups' in next)) return;
   const keys = new Set(next.groups.map((x) => x.key));
   wrap = { close: wrap.close.filter((k) => keys.has(k)), open: [...new Set([...wrap.open.filter((k) => keys.has(k)), to])] };
   go({ name: 'preview', p: next });
 });
+app.addEventListener('click', (e) => {
+  if (suppressClick) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') void api.invoke('side:mini.close');
@@ -273,6 +284,12 @@ if (api.fixture) {
   if (v === 'preview-drag') {
     app.querySelectorAll('.g')[1]?.classList.add('drop-over');
     app.querySelector('.tl2 li')?.classList.add('dragging');
+    const r = app.querySelectorAll('.g')[1]?.getBoundingClientRect();
+    const gh = document.createElement('div');
+    gh.className = 'drag-ghost';
+    gh.textContent = app.querySelector('.tl2 li')?.textContent ?? '';
+    if (r) Object.assign(gh.style, { left: `${r.left + 120}px`, top: `${r.top + 34}px` });
+    document.body.appendChild(gh);
   }
 } else {
   void api.invoke<ViewState>('side:state').then((s) => {

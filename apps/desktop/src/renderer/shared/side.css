@@ -228,9 +228,10 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .tbl.saw td:nth-child(2){white-space:nowrap}
 .tbl.saw td:first-child{width:55%}
 /* Drag to regroup in the Wrap up preview. */
-.g .tl2 li[draggable=true]{cursor:grab;border-radius:6px}
-.g .tl2 li[draggable=true]:hover{background:var(--canvas)}
-.g .dis[draggable=true]{cursor:grab}
+.g .tl2 li[data-tab]{cursor:grab;border-radius:6px;user-select:none;touch-action:none}
+.g .tl2 li[data-tab]:hover{background:var(--canvas)}
+.g .dis[data-drag-group]{cursor:grab;user-select:none;touch-action:none}
+.drag-ghost{position:fixed;z-index:60;pointer-events:none;max-width:260px;background:#fff;color:var(--ink);border:1.5px solid var(--blue);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 20px rgba(20,24,40,.2)}
 .g.drop-over{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 0 0 2px var(--blue) inset}
 .g.dragging,.g .tl2 li.dragging{opacity:.5}
 /* The stretch leans sidy out until the blue side shows (approved board), then it tucks back. */
