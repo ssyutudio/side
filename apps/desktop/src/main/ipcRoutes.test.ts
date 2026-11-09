@@ -21,6 +21,7 @@ function fakeController() {
     openMain: rec('openMain'),
     wrapup: { retry: rec('retry'), undo: rec('undo'), setTomorrowLine: rec('setTomorrowLine') },
     step: { open: rec('open'), dismiss: rec('dismiss') },
+    ask: { ask: rec('ask') },
     speak: { choose: rec('choose'), answer: rec('answer'), setFocus: rec('setFocus'), clear: rec('clear') },
     publish: () => undefined,
   };
@@ -58,5 +59,23 @@ describe('routeIpc', () => {
   it('returns the view state', async () => {
     const { ctl } = fakeController();
     expect(await routeIpc(ctl, 'side:state', undefined)).toEqual({ connection: 'connected' });
+  });
+
+  it('passes Ask sidy one line and refuses anything else', async () => {
+    const { ctl, calls } = fakeController();
+    expect(await routeIpc(ctl, 'side:ask', { line: "I'm done for today" })).toEqual({ ok: 'ask' });
+    for (const bad of [null, {}, { line: null }, { line: 42 }, { line: 'x'.repeat(2001) }, { line: 'x', run: 'rm -rf ~' }]) {
+      const out = await routeIpc(ctl, 'side:ask', bad);
+      if (bad && typeof bad === 'object' && 'run' in bad) expect(out).toEqual({ ok: 'ask' });
+      else expect(out).toEqual({ error: 'invalid request' });
+    }
+    // An extra key is stripped, never passed on.
+    expect(calls.filter(([n]) => n === 'ask').map(([, a]) => a)).toEqual([["I'm done for today"], ['x']]);
+  });
+
+  it('accepts only adapter-shaped app ids in settings', async () => {
+    const { ctl } = fakeController();
+    expect(await routeIpc(ctl, 'side:settings.set', { apps: ['excel', 'photoshop'] })).toEqual({ ok: 'updateSettings' });
+    expect(await routeIpc(ctl, 'side:settings.set', { apps: ['../../etc'] })).toEqual({ error: 'invalid request' });
   });
 });

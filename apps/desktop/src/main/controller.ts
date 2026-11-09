@@ -10,6 +10,7 @@ import { WrapupService, type WrapupOutcome } from './wrapupService';
 import { StepService } from './stepService';
 import { SpeakService, type Bubble } from './speakService';
 import { HelpService } from './helpService';
+import { AskService } from './askService';
 import { buildViewState, type ViewState } from './viewState';
 import { demoOffset, type DemoCommand } from './demoClock';
 import { todayDone } from '../core/todayDone';
@@ -60,6 +61,7 @@ export class SideController {
   readonly step: StepService;
   readonly speak: SpeakService;
   readonly help: HelpService;
+  readonly ask: AskService;
   lastReport: TabsReport | null = null;
   private waiters: ((r: TabsReport | null) => void)[] = [];
   private draft: { preview: WrapupPreview; report: TabsReport } | null = null;
@@ -69,6 +71,7 @@ export class SideController {
     this.wrapup = new WrapupService({ store, port: bridge, clock, llm, apps: deps.apps ?? null });
     this.step = new StepService({ store, port: bridge, clock, apps: deps.apps ?? null });
     this.help = new HelpService({ store, clock, llm });
+    this.ask = new AskService({ store, clock, llm });
     this.speak = new SpeakService({
       store,
       clock,
