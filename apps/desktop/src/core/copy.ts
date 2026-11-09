@@ -23,6 +23,20 @@ export const step = {
   },
 };
 
+/**
+ * One more hour. Respect first, then one fact about time left before the wake
+ * time. Never a claim about what sleep does for the user.
+ */
+export const oneMoreHour = {
+  respect: 'Sure, keep going. What you did so far is saved.',
+  sleepFact: (amount: string, wake: string) => `Sleep now and you get ${amount} before ${wake}.`,
+  hours: (h: number) => `${h} ${h === 1 ? 'hour' : 'hours'}`,
+  minutes: (m: number) => `${m} ${m === 1 ? 'minute' : 'minutes'}`,
+  askWhen: 'When do you want to stop?',
+  checkIn: 'This is the time you picked.',
+  actions: { setAside: 'Set aside', keepGoing: 'Keep going', notToday: 'Not today' },
+};
+
 /** Lines for "what you did today". Only confirmed events, stated as facts. */
 export const done = {
   setAside: (tabs: number, groups: number) =>
