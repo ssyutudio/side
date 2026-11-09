@@ -1,0 +1,32 @@
+[
+  { "work": "Retry research", "url": "https://en.wikipedia.org/wiki/Exponential_backoff" },
+  { "work": "Retry research", "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Retry-After" },
+  { "work": "Retry research", "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/429" },
+  { "work": "Retry research", "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/503" },
+  { "work": "Retry research", "url": "https://stackoverflow.com/questions/tagged/exponential-backoff" },
+  { "work": "Retry research", "url": "https://en.wikipedia.org/wiki/Thundering_herd_problem" },
+  { "work": "Retry research", "url": "https://en.wikipedia.org/wiki/Idempotence" },
+  { "work": "Retry research", "url": "https://github.com/grpc/proposal/blob/master/A6-client-retries.md" },
+
+  { "work": "p-retry project", "url": "https://github.com/sindresorhus/p-retry" },
+  { "work": "p-retry project", "url": "https://github.com/sindresorhus/p-retry/issues" },
+  { "work": "p-retry project", "url": "https://github.com/sindresorhus/p-retry/pulls" },
+  { "work": "p-retry project", "url": "https://github.com/sindresorhus/p-retry/blob/main/readme.md" },
+  { "work": "p-retry project", "url": "https://github.com/tim-kos/node-retry" },
+
+  { "work": "Pitch reading", "url": "https://en.wikipedia.org/wiki/Procrastination" },
+  { "work": "Pitch reading", "url": "https://en.wikipedia.org/wiki/Flow_(psychology)" },
+  { "work": "Pitch reading", "url": "https://en.wikipedia.org/wiki/Zeigarnik_effect" },
+  { "work": "Pitch reading", "url": "https://en.wikipedia.org/wiki/Time_management" },
+  { "work": "Pitch reading", "url": "https://en.wikipedia.org/wiki/Elevator_pitch" },
+  { "work": "Pitch reading", "url": "https://en.wikipedia.org/wiki/Y_Combinator" },
+
+  { "work": "WebSocket docs", "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API" },
+  { "work": "WebSocket docs", "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSocket" },
+  { "work": "WebSocket docs", "url": "https://en.wikipedia.org/wiki/WebSocket" },
+  { "work": "WebSocket docs", "url": "https://stackoverflow.com/questions/tagged/websocket" },
+
+  { "work": "distraction", "url": "https://www.youtube.com/results?search_query=lofi+focus+music" },
+  { "work": "distraction", "url": "https://news.ycombinator.com/" },
+  { "work": "distraction", "url": "https://news.ycombinator.com/best" }
+]
