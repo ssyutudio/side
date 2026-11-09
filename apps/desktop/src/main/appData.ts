@@ -1,4 +1,5 @@
 // The shape of Side's local data file and its defaults.
+import type { AgentRun } from './connectors/claudeCode';
 import {
   DEFAULT_WAKE_MINUTES,
   SIDY_SIZES,
@@ -37,6 +38,8 @@ export interface AppData {
   firstRunDone: boolean;
   /** What was sent to the LLM (counts only), for "What Side saw". */
   llmLog: { at: number; titles: number; userLine: boolean; files?: number }[];
+  /** Claude Code sessions that finished (folder kept on this computer only). Newest last, at most 20. */
+  agentRuns?: AgentRun[];
 }
 
 export function defaultSettings(): Settings {

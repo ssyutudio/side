@@ -17,6 +17,7 @@ import { todayDone } from '../core/todayDone';
 import type { WrapupPreview } from '../core/wrapupPreview';
 import { mergeGroups, moveTab } from '../core/previewEdit';
 import type { AppsPort } from './connectors/desktopApps';
+import type { AgentRun } from './connectors/claudeCode';
 
 export interface BridgePort {
   readonly status: BridgeStatus;
@@ -214,6 +215,17 @@ export class SideController {
         if (r === 'replaced') this.publish();
       });
     }
+  }
+
+  // ---- Claude Code (K4) ----
+
+  /** Finished Claude Code sessions from the inbox: recorded only. Nothing is run. */
+  async onAgentRuns(runs: AgentRun[]) {
+    if (!runs.length) return;
+    await this.deps.store
+      .update((d) => ({ ...d, agentRuns: [...(d.agentRuns ?? []), ...runs].slice(-20) }))
+      .catch(() => undefined);
+    this.publish();
   }
 
   // ---- Step inside ----

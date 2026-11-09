@@ -10,6 +10,7 @@ import { createEdgeWindow, type EdgeWindow } from './edgeWindow';
 import { llmFromKey } from './llmTransport';
 import { SideController } from './controller';
 import { desktopApps } from './connectors/desktopApps';
+import { watchInbox } from './connectors/claudeCode';
 import { IPC_CHANNELS, routeIpc } from './ipcRoutes';
 import { watchReturns } from './returnWatcher';
 import { parseDemoCommand } from './demoClock';
@@ -262,6 +263,12 @@ async function start() {
   const open = process.env.SIDE_OPEN;
   if (open === 'main') setTimeout(() => windows?.openMain(), 800);
   else if (open === 'mini' || open === 'wrap' || open === 'onemore') setTimeout(() => windows?.openMini(open === 'mini' ? 'home' : open), 1500);
+
+  // Claude Code hook notes (scripts/claude-code-hook.mjs): recorded only, nothing is run.
+  watchInbox(join(app.getPath('userData'), 'inbox'), { now: () => clock.now() }, (runs) => {
+    console.log(`[side] claude code finished: ${runs.map((r) => r.name).join(', ')}`);
+    void ctl?.onAgentRuns(runs);
+  });
 
   if (process.env.SIDE_SMOKE === '1') {
     setTimeout(() => {
