@@ -9,6 +9,7 @@ import { Bridge } from './bridge';
 import { createEdgeWindow, type EdgeWindow } from './edgeWindow';
 import { llmFromKey } from './llmTransport';
 import { SideController } from './controller';
+import { desktopApps } from './connectors/desktopApps';
 import { IPC_CHANNELS, routeIpc } from './ipcRoutes';
 import { watchReturns } from './returnWatcher';
 import { parseDemoCommand } from './demoClock';
@@ -171,6 +172,7 @@ async function start() {
     bridge,
     clock,
     llm: transport ? (req) => transport.complete({ system: req.system, prompt: req.user }) : null,
+    apps: desktopApps,
     edge: edgePort,
     registerShortcut,
     push: (state) => {

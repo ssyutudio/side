@@ -5,7 +5,7 @@ import { newId, type QuietReason, type StopPromise } from '@side/shared';
 import type { JsonStore } from './store';
 import type { AppData } from './appData';
 import type { Clock } from '../core/clock';
-import { currentStep } from '../core/step';
+import { currentStep, enabledApps } from '../core/step';
 import { decideSpeak, keepLatest, type PendingBubble, type SpeakTrigger } from '../core/speakPolicy';
 import {
   activePromise,
@@ -51,7 +51,7 @@ export class SpeakService {
 
   private stepId(): string | null {
     const d = this.data;
-    return currentStep(d.setAsides, d.steps, d.settings.excludedDomains, this.deps.clock)?.id ?? null;
+    return currentStep(d.setAsides, d.steps, d.settings.excludedDomains, this.deps.clock, undefined, { enabled: enabledApps(d.settings) })?.id ?? null;
   }
 
   private async logQuiet(reason: QuietReason) {

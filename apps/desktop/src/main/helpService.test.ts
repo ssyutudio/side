@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { SetAside, Step } from '@side/shared';
+import type { SetAside, Step, OpenUrlAction } from '@side/shared';
 import { JsonStore } from './store';
 import { defaultAppData, type AppData } from './appData';
 import { HelpService } from './helpService';
@@ -71,7 +71,7 @@ describe('HelpService morning recall', () => {
     expect(await svc.recall('sa1')).toBe('replaced');
     const steps = store.get().steps.filter((s) => s.fromSetAside === 'sa1');
     expect(steps).toHaveLength(1);
-    expect(steps[0].action.url).toBe('https://en.wikipedia.org/wiki/Exponential_backoff');
+    expect((steps[0].action as OpenUrlAction).url).toBe('https://en.wikipedia.org/wiki/Exponential_backoff');
     expect(sent[0]).not.toContain('Client 991');
     expect(sent[0]).not.toMatch(/https?:\/\//);
     expect(store.get().llmLog.at(-1)).toMatchObject({ titles: 2, userLine: true });

@@ -1,11 +1,13 @@
 // The one tiny step offered on return. Built from the actual latest set-aside
 // (never "yesterday" by assumption) and checked against the four conditions:
-//   1. no judgment needed  - it only opens a page, no command, no choice
-//   2. cannot fail         - a valid http(s) URL that is not on the exclusion list
-//   3. inside a real tool  - not a video/social/break page
-//   4. result visible      - opening brings the page to the front at once
-// However long the user was away, there is one step and no counts.
-import type { SavedTab, SetAside, Step, StepChecks } from '@side/shared';
+//   1. no judgment needed  - it only opens a page or a file (or does one fixed thing there), no choice
+//   2. cannot fail         - a valid http(s) URL not on the exclusion list, or a file in an app that is
+//                            still turned on, with an action the app adapters gave out
+//   3. inside a real tool  - not a video/social/break page; a desktop app always is
+//   4. result visible      - opening brings the page or the file to the front at once
+// However long the user was away, there is one step and no counts. Between a tab and a file, the one
+// touched last wins.
+import type { SavedFile, SavedTab, SetAside, Step, StepChecks } from '@side/shared';
 import { isExcluded, newId as defaultNewId } from '@side/shared';
 import type { Clock } from './clock';
 import { step as stepCopy } from './copy';
@@ -30,14 +32,31 @@ function isWebUrl(url: string): boolean {
   }
 }
 
-export function checkStep(s: Step, excludedDomains: readonly string[]): { ok: boolean; checks: StepChecks } {
-  const isOpen = s.action.type === 'open_url';
-  const checks: StepChecks = {
-    noJudgment: isOpen,
-    cannotFail: isWebUrl(s.action.url) && !isExcluded(s.action.url, excludedDomains),
-    inRealTool: isWebUrl(s.action.url) && !isBreakUrl(s.action.url),
-    resultVisible: isOpen,
-  };
+/** Desktop apps for steps: which are turned on, and what the adapters would do with a file. */
+export interface AppPicker {
+  enabled: readonly string[];
+  /** Only where the adapters are at hand (Wrap up); without it a stored app step is still checked. */
+  pick?: (f: SavedFile) => { candidateId: string; tool: string; effect: 'runs' | 'opens'; label: string } | null;
+}
+
+type Pick = { candidateId: string; tool: string; effect: 'runs' | 'opens'; label: string };
+
+export function checkStep(s: Step, excludedDomains: readonly string[], enabledApps: readonly string[] = []): { ok: boolean; checks: StepChecks } {
+  let checks: StepChecks;
+  if (s.action.type === 'app') {
+    const on = enabledApps.includes(s.action.adapterId) && s.action.candidateId.length > 0;
+    checks = { noJudgment: true, cannotFail: on, inRealTool: true, resultVisible: true };
+  } else if (s.action.type === 'open_url') {
+    checks = {
+      noJudgment: true,
+      cannotFail: isWebUrl(s.action.url) && !isExcluded(s.action.url, excludedDomains),
+      inRealTool: isWebUrl(s.action.url) && !isBreakUrl(s.action.url),
+      resultVisible: true,
+    };
+  } else {
+    // Anything else (a command, a made-up type) is never a step.
+    checks = { noJudgment: false, cannotFail: false, inRealTool: false, resultVisible: false };
+  }
   return { ok: checks.noJudgment && checks.cannotFail && checks.inRealTool && checks.resultVisible, checks };
 }
 
@@ -61,13 +80,46 @@ function workNameFor(sa: SetAside, t: SavedTab): string {
   return shortName(group?.name || cleanTitle(t.title) || t.title);
 }
 
+/** The newest saved file whose app is still on and can do something with it. */
+function pickFile(sa: SetAside, apps: AppPicker | undefined): { file: SavedFile; pick: Pick } | null {
+  if (!apps?.pick || !apps.enabled.length) return null;
+  const files = (sa.files ?? []).filter((f) => apps.enabled.includes(f.adapterId)).sort((a, b) => b.touchedAt - a.touchedAt);
+  for (const file of files) {
+    const pick = apps.pick(file);
+    if (pick) return { file, pick };
+  }
+  return null;
+}
+
+/** File name without its extension, for sentences. */
+export function fileWorkName(name: string): string {
+  const base = name.replace(/\.[A-Za-z0-9]{1,8}$/, '');
+  return shortName(base || name);
+}
+
+/** A step that opens one saved file in its app. */
+export function appStep(sa: SetAside, file: SavedFile, pick: Pick, clock: Clock, newId: () => string = defaultNewId): Step {
+  return {
+    id: newId(),
+    fromSetAside: sa.id,
+    createdAt: clock.now(),
+    label: stepCopy.appLabel(fileWorkName(file.name), pick.tool, sa.userLine),
+    action: { type: 'app', workId: file.workId, adapterId: file.adapterId, candidateId: pick.candidateId, tool: pick.tool, effect: pick.effect, label: pick.label, name: file.name },
+    checks: { noJudgment: true, cannotFail: true, inRealTool: true, resultVisible: true },
+    source: 'rule',
+  };
+}
+
 export function buildStep(
   sa: SetAside,
   excludedDomains: readonly string[],
   clock: Clock,
   newId: () => string = defaultNewId,
+  apps?: AppPicker,
 ): Step | null {
   const t = pickTab(sa, excludedDomains);
+  const f = pickFile(sa, apps);
+  if (f && (!t || f.file.touchedAt > recency(t))) return appStep(sa, f.file, f.pick, clock, newId);
   if (!t) return null;
   const draft: Step = {
     id: newId(),
@@ -82,6 +134,11 @@ export function buildStep(
   return ok ? { ...draft, checks } : null;
 }
 
+/** The desktop apps turned on in Connections. */
+export function enabledApps(settings: { apps?: string[] }): string[] {
+  return settings.apps ?? [];
+}
+
 /** Exactly one step (or none): the stored step for the latest set-aside, else a new one. */
 export function currentStep(
   setAsides: readonly SetAside[],
@@ -89,10 +146,11 @@ export function currentStep(
   excludedDomains: readonly string[],
   clock: Clock,
   newId: () => string = defaultNewId,
+  apps?: AppPicker,
 ): Step | null {
   const sa = latestSetAside(setAsides);
   if (!sa) return null;
   const stored = steps.find((s) => s.fromSetAside === sa.id);
-  if (stored && checkStep(stored, excludedDomains).ok) return stored;
-  return buildStep(sa, excludedDomains, clock, newId);
+  if (stored && checkStep(stored, excludedDomains, apps?.enabled ?? []).ok) return stored;
+  return buildStep(sa, excludedDomains, clock, newId, apps);
 }

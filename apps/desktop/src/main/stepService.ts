@@ -1,16 +1,20 @@
-// The one step on return: offered, drawn, clicked, opened in Chrome, and judged ten minutes later.
-// Chrome is touched only when the user clicks; nothing opens on its own.
+// The one step on return: offered, drawn, clicked, opened in Chrome or a desktop app, and judged ten
+// minutes later. A tool is touched only when the user clicks; nothing opens on its own.
 import type { DismissKind, Step, StepOpenResult, TabsReport } from '@side/shared';
 import type { JsonStore } from './store';
 import type { AppData } from './appData';
 import type { CommandPort } from './wrapupService';
+import type { AppsPort } from './connectors/desktopApps';
 import type { Clock } from '../core/clock';
-import { currentStep } from '../core/step';
+import { currentStep, enabledApps } from '../core/step';
 import { restUntil } from '../core/speakPolicy';
 import { applyStillWorking, markClicked, markDismissed, markOpened, markShown, secondsToWork } from '../core/stepEvents';
 
 export type OpenOutcome =
   | { kind: 'opened'; restored: StepOpenResult['restored']; seconds: number | null }
+  /** A desktop app answered: `did` says whether it only opened the file or also ran its one action. */
+  | { kind: 'app_opened'; did: 'ran' | 'opened'; tool: string; label: string; name: string; message: string | null; seconds: number | null }
+  | { kind: 'app_failed'; tool: string; message: string }
   | { kind: 'failed'; message: string }
   | { kind: 'unconfirmed'; reason: string }
   | { kind: 'not_found' };
@@ -31,7 +35,7 @@ export function activeUrlOf(report: TabsReport | null): string | null | undefine
 }
 
 export class StepService {
-  constructor(private readonly deps: { store: JsonStore<AppData>; port: CommandPort; clock: Clock }) {}
+  constructor(private readonly deps: { store: JsonStore<AppData>; port: CommandPort; clock: Clock; apps?: AppsPort | null }) {}
 
   private get data() {
     return this.deps.store.get();
@@ -39,7 +43,7 @@ export class StepService {
 
   current(): Step | null {
     const d = this.data;
-    return currentStep(d.setAsides, d.steps, d.settings.excludedDomains, this.deps.clock);
+    return currentStep(d.setAsides, d.steps, d.settings.excludedDomains, this.deps.clock, undefined, { enabled: enabledApps(d.settings) });
   }
 
   /** Called by the renderer after the bubble is actually on screen. */
@@ -60,6 +64,7 @@ export class StepService {
       steps: d.steps.some((s) => s.id === stepId) ? d.steps : [...d.steps, step],
       stepEvents: markClicked(d.stepEvents, stepId, clickedAt),
     }));
+    if (step.action.type === 'app') return this.openInApp(step);
     const outcome = await this.deps.port.command('cmd.step.open', {
       stepId,
       url: step.action.url,
@@ -74,6 +79,25 @@ export class StepService {
     }
     if (outcome.status === 'failed') return { kind: 'failed', message: outcome.error.message };
     return { kind: 'unconfirmed', reason: outcome.reason };
+  }
+
+  /** Is this step one Chrome has to open? (An app step doesn't wait for the extension.) */
+  needsChrome(stepId: string): boolean {
+    return this.find(stepId)?.action.type !== 'app';
+  }
+
+  private async openInApp(step: Step): Promise<OpenOutcome> {
+    const a = step.action;
+    if (a.type !== 'app') return { kind: 'not_found' };
+    const sa = this.data.setAsides.find((s) => s.id === step.fromSetAside);
+    const file = sa?.files?.find((f) => f.workId === a.workId);
+    if (!file || !this.deps.apps) return { kind: 'app_failed', tool: a.tool, message: "That file isn't known any more." };
+    const r = await this.deps.apps.run(file, a.candidateId);
+    if (!r.ok || !r.did) return { kind: 'app_failed', tool: a.tool, message: r.message || `Couldn't open it in ${a.tool}.` };
+    const openedAt = this.deps.clock.now();
+    const d = await this.deps.store.update((x) => ({ ...x, stepEvents: markOpened(x.stepEvents, step.id, openedAt) }));
+    const ev = d.stepEvents.find((e) => e.stepId === step.id)!;
+    return { kind: 'app_opened', did: r.did, tool: r.tool || a.tool, label: a.label, name: a.name, message: r.message ?? null, seconds: secondsToWork(ev) };
   }
 
   async dismiss(stepId: string, kind: DismissKind): Promise<void> {

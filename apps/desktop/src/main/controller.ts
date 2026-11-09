@@ -15,6 +15,7 @@ import { demoOffset, type DemoCommand } from './demoClock';
 import { todayDone } from '../core/todayDone';
 import type { WrapupPreview } from '../core/wrapupPreview';
 import { mergeGroups, moveTab } from '../core/previewEdit';
+import type { AppsPort } from './connectors/desktopApps';
 
 export interface BridgePort {
   readonly status: BridgeStatus;
@@ -33,6 +34,8 @@ export interface ControllerDeps {
   bridge: BridgePort;
   clock: DemoClock;
   llm: LlmTransport | null;
+  /** Desktop apps (Connections). Absent in tests that don't need it. */
+  apps?: AppsPort | null;
   edge: EdgePort | null;
   registerShortcut: (accelerator: string) => boolean;
   push: (state: ViewState) => void;
@@ -63,8 +66,8 @@ export class SideController {
 
   constructor(private readonly deps: ControllerDeps) {
     const { store, bridge, clock, llm } = deps;
-    this.wrapup = new WrapupService({ store, port: bridge, clock, llm });
-    this.step = new StepService({ store, port: bridge, clock });
+    this.wrapup = new WrapupService({ store, port: bridge, clock, llm, apps: deps.apps ?? null });
+    this.step = new StepService({ store, port: bridge, clock, apps: deps.apps ?? null });
     this.help = new HelpService({ store, clock, llm });
     this.speak = new SpeakService({
       store,
@@ -214,6 +217,8 @@ export class SideController {
 
   /** Right after a relaunch or wake the extension may still be reconnecting: wait a little first. */
   async openStep(stepId: string, waitMs = 10_000) {
+    // A file in a desktop app doesn't need Chrome at all.
+    if (!this.step.needsChrome(stepId)) return this.step.open(stepId);
     const end = Date.now() + waitMs;
     while (this.deps.bridge.status !== 'connected' && Date.now() < end) await new Promise((r) => setTimeout(r, 200));
     if (this.deps.bridge.status !== 'connected') return { kind: 'unconfirmed' as const, reason: 'not_connected' };

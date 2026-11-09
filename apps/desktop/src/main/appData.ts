@@ -84,5 +84,6 @@ export function sanitizeSettings(s: Settings): Settings {
     ...s,
     sidySize: (SIDY_SIZES as readonly string[]).includes(s.sidySize) ? s.sidySize : 'small',
     excludedDomains: domains,
+    apps: [...new Set((s.apps ?? []).filter((a) => typeof a === 'string' && /^[a-z_]{1,40}$/.test(a)))].slice(0, 40),
   };
 }

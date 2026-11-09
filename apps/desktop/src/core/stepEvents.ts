@@ -66,6 +66,8 @@ export function judgeStillWorking(
 ): boolean | null {
   if (e.clickedAt === null) return null;
   if (now < e.clickedAt + STILL_WORKING_AFTER_MS) return null;
+  // A step in a desktop app can't be judged from Chrome's active tab.
+  if (step.action.type !== 'open_url') return null;
   if (activeUrl === undefined) return null;
   if (activeUrl === null || isBreakUrl(activeUrl)) return false;
   const host = hostOf(activeUrl);

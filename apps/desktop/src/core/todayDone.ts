@@ -8,6 +8,7 @@ import type { Clock } from './clock';
 import { startOfLocalDay } from './clock';
 import { done } from './copy';
 import { cleanTitle, shortName } from './grouping';
+import { fileWorkName } from './step';
 
 /** A work day starts at 4 a.m., so late-night work belongs to the evening before. */
 export const WORK_DAY_START_HOURS = 4;
@@ -27,6 +28,7 @@ export interface DoneSources {
 
 /** Short name of the work a step opens. */
 export function workName(step: Step): string {
+  if (step.action.type === 'app') return fileWorkName(step.action.name);
   return shortName(cleanTitle(step.action.title) || step.action.title);
 }
 

@@ -96,15 +96,62 @@ export interface SetAside {
   closeRequested: boolean;
   /** Tabs Side did not read at this Wrap up, by count only (for What Side saw). */
   skipped?: SkippedSummary;
+  /** Files worked on that day in the desktop apps turned on in Connections. Never touched or closed. */
+  files?: SavedFile[];
   status: SetAsideStatus;
   result: WrapupResult | null;
 }
 
-export interface StepAction {
+/** Opens a page in Chrome (the first connector). */
+export interface OpenUrlAction {
   type: 'open_url';
   url: string;
   title: string;
   position: PagePosition | null;
+}
+
+/**
+ * One fixed action in a desktop app (Connections → desktop apps), named only by the candidate id
+ * the app adapters gave out. Same shape idea as side-service's StepAction kind "app".
+ */
+export interface AppAction {
+  type: 'app';
+  /** The SavedFile this opens. */
+  workId: string;
+  /** Which app adapter ("excel"); the step is dropped if that app is turned off. */
+  adapterId: string;
+  candidateId: string;
+  /** The app as a person names it: "Excel". */
+  tool: string;
+  /** "runs": the app does one harmless thing and answers. "opens": it can only open the file. */
+  effect: 'runs' | 'opens';
+  /** What the app will do, e.g. "Go to the last filled cell of orders in Excel". */
+  label: string;
+  /** File name only, no folder. */
+  name: string;
+}
+
+export type StepAction = OpenUrlAction | AppAction;
+
+/**
+ * A file someone worked on that day in a desktop app they turned on. Saved with the Wrap up on this
+ * computer only; the folder path is never sent anywhere or shown.
+ */
+export interface SavedFile {
+  /** Stable id from the app adapters: same file, same id. */
+  workId: string;
+  adapterId: string;
+  /** Kept on this computer to open the same file again. Null for apps with no local file. */
+  path: string | null;
+  /** What the adapters keyed the work by (the path, or the app's own project name). */
+  key: string;
+  /** File name only. */
+  name: string;
+  app: string;
+  tool: string;
+  touchedAt: number;
+  /** The latest exported result for creative apps ("look at the last export"). */
+  lookback?: { path: string; name: string; media: string } | null;
 }
 
 export interface StepChecks {
@@ -154,6 +201,8 @@ export interface Settings {
   excludedDomains: string[];
   /** sidy's little reactions (stretch, whistle, nod). Undefined means on (Director 2-A). */
   reactions?: boolean;
+  /** Desktop apps turned on in Connections (adapter ids such as "excel"). Empty or missing: none, so nothing is looked at. */
+  apps?: string[];
 }
 
 /** Why sidy stayed quiet at a moment it could have spoken. Shown in Main. */

@@ -14,12 +14,13 @@ import {
 import type { JsonStore } from './store';
 import type { AppData } from './appData';
 import type { CommandOutcome } from './bridge';
+import type { AppsPort } from './connectors/desktopApps';
 import type { Clock } from '../core/clock';
 import { groupTabs } from '../core/grouping';
 import { groupWithLlm, type LlmTransport } from '../core/llmGrouping';
 import { buildPreview, candidateTabs, toApplyPayload, toSetAside, type WrapupPreview } from '../core/wrapupPreview';
-import { todayDone } from '../core/todayDone';
-import { buildStep, latestSetAside } from '../core/step';
+import { todayDone, workDayOf, WORK_DAY_START_HOURS } from '../core/todayDone';
+import { buildStep, enabledApps, latestSetAside } from '../core/step';
 
 export interface CommandPort {
   command<T extends MessageType>(type: T, payload: PayloadOf<T>): Promise<CommandOutcome>;
@@ -47,6 +48,8 @@ export interface WrapupDeps {
   clock: Clock;
   /** Present when a key exists. Used only while Settings has the LLM on (the default). */
   llm?: LlmTransport | null;
+  /** Desktop apps turned on in Connections. Without it (or with none on) no file is looked at. */
+  apps?: AppsPort | null;
 }
 
 const isLive = (sa: SetAside) => sa.status === 'applied' || sa.status === 'partial';
@@ -61,6 +64,14 @@ export class WrapupService {
   /** Names of the Chrome groups Side made and has not undone. */
   sideGroupNames(): string[] {
     return this.data.setAsides.filter(isLive).flatMap((sa) => sa.groups.map((g) => g.name));
+  }
+
+  /** Files saved today in the apps turned on in Connections. Only names and times are read, never contents. */
+  async filesToday(): Promise<NonNullable<SetAside['files']>> {
+    const on = enabledApps(this.data.settings);
+    if (!on.length || !this.deps.apps) return [];
+    const dayStart = workDayOf(this.deps.clock.now()) + WORK_DAY_START_HOURS * 3_600_000;
+    return this.deps.apps.filesSince(on, dayStart).catch(() => []);
   }
 
   /** Second guard: a report must never carry an excluded-site tab into the preview or the file. */
@@ -105,7 +116,12 @@ export class WrapupService {
     payload.groups = payload.groups
       .map((g) => ({ ...g, tabIds: g.tabIds.filter((t) => !isExcluded(payload.expectUrls[String(t)] ?? '', excluded)) }))
       .filter((g) => g.tabIds.length > 0);
-    const record = { ...toSetAside(id, preview, report, this.deps.clock.now(), null, [], closeGroupKeys.length > 0), skipped: report.skipped };
+    const files = await this.filesToday();
+    const record: SetAside = {
+      ...toSetAside(id, preview, report, this.deps.clock.now(), null, [], closeGroupKeys.length > 0),
+      skipped: report.skipped,
+      ...(files.length ? { files } : {}),
+    };
     try {
       await this.deps.store.update((d) => ({
         ...d,
@@ -158,7 +174,7 @@ export class WrapupService {
         const lines = todayDone({ setAsides: d.setAsides, steps: d.steps, stepEvents: d.stepEvents }, clock);
         const setAsides = d.setAsides.map((sa) => (sa.id === id ? { ...sa, todayDone: lines } : sa));
         const sa = setAsides.find((s) => s.id === id)!;
-        const step = buildStep(sa, d.settings.excludedDomains, clock);
+        const step = buildStep(sa, d.settings.excludedDomains, clock, undefined, { enabled: enabledApps(d.settings), pick: this.deps.apps?.pick });
         const steps = d.steps.filter((s) => s.fromSetAside !== id);
         return { ...d, setAsides, steps: step ? [...steps, step] : steps };
       })

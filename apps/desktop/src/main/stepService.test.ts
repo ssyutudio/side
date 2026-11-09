@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { STILL_WORKING_AFTER_MS, type SetAside, type Step, type TabsReport } from '@side/shared';
+import { STILL_WORKING_AFTER_MS, type SetAside, type Step, type TabsReport, type OpenUrlAction } from '@side/shared';
 import { JsonStore } from './store';
 import { defaultAppData, type AppData } from './appData';
 import { StepService, activeUrlOf } from './stepService';
@@ -66,7 +66,7 @@ describe('StepService', () => {
     expect(port.sent).toHaveLength(0);
     const out = await svc.open('st1');
     expect(out).toMatchObject({ kind: 'opened', restored: 'exact' });
-    expect(port.sent[0]).toEqual({ type: 'cmd.step.open', payload: { stepId: 'st1', url: step.action.url, position: null } });
+    expect(port.sent[0]).toEqual({ type: 'cmd.step.open', payload: { stepId: 'st1', url: (step.action as OpenUrlAction).url, position: null } });
     const ev = store.get().stepEvents[0];
     expect(ev.clickedAt).toBe(now);
     expect(ev.openedAt).toBe(now);

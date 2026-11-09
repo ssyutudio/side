@@ -1,4 +1,4 @@
-import type { PagePosition, SavedTab, SetAside, Step } from '@side/shared';
+import type { PagePosition, SavedTab, SetAside, Step, OpenUrlAction } from '@side/shared';
 import { buildStep, checkStep, currentStep, latestSetAside } from './step';
 import { fixedClock } from './clock';
 
@@ -38,8 +38,8 @@ describe('buildStep', () => {
   it('opens the most recent work, preferring a tab with a known position inside it', () => {
     const step = buildStep(sa('s', 1000, tabs), [], clock, ids)!;
     expect(step.action.type).toBe('open_url');
-    expect(step.action.url).toBe('https://github.com/acme/retry-queue');
-    expect(step.action.position).toEqual(pos);
+    expect((step.action as OpenUrlAction).url).toBe('https://github.com/acme/retry-queue');
+    expect((step.action as OpenUrlAction).position).toEqual(pos);
     expect(step.fromSetAside).toBe('s');
     expect(step.checks).toEqual({ noJudgment: true, cannotFail: true, inRealTool: true, resultVisible: true });
   });
@@ -62,7 +62,7 @@ describe('buildStep', () => {
 
   it('skips tabs from excluded sites', () => {
     const step = buildStep(sa('s', 1000, tabs), ['github.com'], clock, ids)!;
-    expect(step.action.url).toBe('https://docs.google.com/document/d/D1/edit');
+    expect((step.action as OpenUrlAction).url).toBe('https://docs.google.com/document/d/D1/edit');
   });
 });
 
@@ -76,19 +76,19 @@ describe('checkStep', () => {
     expect(checkStep(base, []).ok).toBe(true);
   });
   it('fails a video page (not a real work tool)', () => {
-    const r = checkStep({ ...base, action: { ...base.action, url: 'https://www.youtube.com/watch?v=1' } }, []);
+    const r = checkStep({ ...base, action: { ...(base.action as OpenUrlAction), url: 'https://www.youtube.com/watch?v=1' } }, []);
     expect(r.ok).toBe(false);
     expect(r.checks.inRealTool).toBe(false);
   });
   it('fails a URL that could not open safely', () => {
     for (const url of ['javascript:alert(1)', 'file:///etc/passwd', 'not a url', 'https://client-bank.com/x']) {
-      const r = checkStep({ ...base, action: { ...base.action, url } }, ['client-bank.com']);
+      const r = checkStep({ ...base, action: { ...(base.action as OpenUrlAction), url } }, ['client-bank.com']);
       expect(r.ok).toBe(false);
       expect(r.checks.cannotFail).toBe(false);
     }
   });
   it('fails anything other than opening a page', () => {
-    const r = checkStep({ ...base, action: { ...base.action, type: 'run_command' as 'open_url' } }, []);
+    const r = checkStep({ ...base, action: { ...(base.action as OpenUrlAction), type: 'run_command' as 'open_url' } }, []);
     expect(r.ok).toBe(false);
     expect(r.checks.noJudgment).toBe(false);
   });

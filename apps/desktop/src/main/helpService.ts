@@ -66,7 +66,7 @@ export class HelpService {
     const current = now.steps.find((s) => s.fromSetAside === setAsideId);
     // A step the user has already seen stays as it is.
     if (current && now.stepEvents.some((e) => e.stepId === current.id && (e.shownAt !== null || e.clickedAt !== null))) return 'kept';
-    if (current && current.action.url === sa.tabs.find((t) => t.tabId === tabId)?.url) return 'kept';
+    if (current && current.action.type === 'open_url' && current.action.url === sa.tabs.find((t) => t.tabId === tabId)?.url) return 'kept';
     const fresh = stepForTab(sa, tabId, now.settings.excludedDomains, this.deps.clock);
     if (!fresh) return 'kept';
     await this.deps.store.update((x) => ({ ...x, steps: [...x.steps.filter((s) => s.fromSetAside !== setAsideId), fresh] }));

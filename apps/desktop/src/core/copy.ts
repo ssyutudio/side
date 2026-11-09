@@ -24,6 +24,13 @@ export const step = {
     const q = userLine.length > 70 ? `${userLine.slice(0, 66).trimEnd()}…` : userLine;
     return `“${q}” — ${ready}`;
   },
+  /** A file in a desktop app. sidy can open it (and sometimes do one small thing), never claim the exact spot. */
+  appLabel: (name: string, tool: string, userLine: string | null) => {
+    const ready = `${name} is ready to open in ${tool}.`;
+    if (!userLine) return ready;
+    const q = userLine.length > 70 ? `${userLine.slice(0, 66).trimEnd()}…` : userLine;
+    return `“${q}” — ${ready}`;
+  },
 };
 
 /**

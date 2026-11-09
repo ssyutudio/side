@@ -1,4 +1,4 @@
-import type { SavedTab } from '@side/shared';
+import type { SavedTab, OpenUrlAction } from '@side/shared';
 import {
   askOnce,
   buildRecallRequest,
@@ -107,7 +107,7 @@ describe('stepForTab', () => {
 
   it('builds a checked step for the picked tab, with the user line and the work name', () => {
     const st = stepForTab(sa, 11, [], clock, () => 'stX')!;
-    expect(st.action.url).toBe('https://en.wikipedia.org/wiki/Exponential_backoff');
+    expect((st.action as OpenUrlAction).url).toBe('https://en.wikipedia.org/wiki/Exponential_backoff');
     expect(st.label).toBe('“Why does the 429 retry need jitter?” — Retry research is ready where you stopped.');
     expect(st.source).toBe('llm');
     expect(Object.values(st.checks).every(Boolean)).toBe(true);

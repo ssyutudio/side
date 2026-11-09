@@ -4,6 +4,7 @@ import type { ViewState } from '../../main/viewState';
 import type { Bubble } from '../../main/speakService';
 import { getApi, type Toast } from '../shared/api';
 import { bubbleClass, bubbleView, edgeView, toastView } from './edgeView';
+import { stepOpenedText, type StepOpenReply } from '../shared/stepText';
 
 const api = getApi();
 const app = document.getElementById('app')!;
@@ -62,13 +63,6 @@ function showToast(t: Toast) {
   render();
 }
 
-function openedText(r: { kind: string; restored?: string; message?: string; reason?: string }): string {
-  if (r.kind === 'opened') return r.restored === 'top' ? "Opened the page. sidy couldn't find the exact spot." : 'Opened where you stopped.';
-  if (r.kind === 'failed') return `Chrome couldn't open it. ${r.message ?? ''}`.trim();
-  if (r.kind === 'unconfirmed' && r.reason === 'not_connected') return "Chrome isn't connected. Open Chrome, then press Step inside again.";
-  if (r.kind === 'unconfirmed') return "Chrome didn't answer, so sidy can't say the page opened. Look at Chrome, or try again from Mini.";
-  return 'That step is no longer there.';
-}
 
 async function act(el: HTMLElement) {
   const a = el.dataset.act;
@@ -88,8 +82,8 @@ async function act(el: HTMLElement) {
     bubble = null;
     showToast({ text: 'Opening it in Chrome…', ms: 15000 });
     void api.invoke('side:bubble.close');
-    const r = await api.invoke<{ kind: string; restored?: string; message?: string; reason?: string }>('side:step.open', { stepId: el.dataset.step });
-    return showToast({ text: openedText(r), ms: 4000 });
+    const r = await api.invoke<StepOpenReply>('side:step.open', { stepId: el.dataset.step });
+    return showToast({ text: stepOpenedText(r), ms: 4000 });
   }
   if (a === 'rest-today' && el.dataset.step) {
     bubble = null;

@@ -5,7 +5,7 @@ import { hostOf, type KeepReason, type QuietReason, type SetAside, type SetAside
 import type { AppData } from './appData';
 import type { BridgeStatus } from './bridge';
 import type { Bubble } from './speakService';
-import { currentStep, latestSetAside } from '../core/step';
+import { currentStep, enabledApps, latestSetAside } from '../core/step';
 import { sideNumbers, type SideNumbers } from '../core/stats';
 import { dayLabel } from '../core/dateLabel';
 import { todayDone, workDayOf, workName } from '../core/todayDone';
@@ -119,7 +119,7 @@ export function buildViewState(input: ViewInput): ViewState {
   const clock = { now: () => now };
   const live = data.setAsides.filter((s) => s.status === 'applied' || s.status === 'partial');
   const sideGroupNames = live.flatMap((s) => s.groups.map((g) => g.name));
-  const step = currentStep(data.setAsides, data.steps, data.settings.excludedDomains, clock);
+  const step = currentStep(data.setAsides, data.steps, data.settings.excludedDomains, clock, undefined, { enabled: enabledApps(data.settings) });
   const todayLines = todayDone({ setAsides: data.setAsides, steps: data.steps, stepEvents: data.stepEvents }, clock);
   const numbers = sideNumbers({
     report,
@@ -156,8 +156,8 @@ export function buildViewState(input: ViewInput): ViewState {
           id: step.id,
           label: step.label,
           when: dayLabel(stepSa?.endedAt ?? step.createdAt, now),
-          host: hostOf(step.action.url),
-          hasPosition: step.action.position !== null,
+          host: step.action.type === 'open_url' ? hostOf(step.action.url) : null,
+          hasPosition: step.action.type === 'open_url' && step.action.position !== null,
         }
       : null,
     bubble,

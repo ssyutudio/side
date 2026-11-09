@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as realFs from 'node:fs/promises';
-import type { TabSnapshot, TabsReport } from '@side/shared';
+import type { TabSnapshot, TabsReport, OpenUrlAction } from '@side/shared';
 import { JsonStore, type FsLike } from './store';
 import { defaultAppData, type AppData } from './appData';
 import { WrapupService, type CommandPort } from './wrapupService';
@@ -98,7 +98,7 @@ describe('WrapupService', () => {
     expect(d.setAsides[0].status).toBe('applied');
     expect(d.setAsides[0].todayDone[0]).toMatch(/^Set aside \d+ tabs in \d+ groups\.$/);
     expect(d.steps).toHaveLength(1);
-    expect(d.steps[0].action.url).toMatch(/^https:\/\/github\.com\/acme\/retry-lib/);
+    expect((d.steps[0].action as OpenUrlAction).url).toMatch(/^https:\/\/github\.com\/acme\/retry-lib/);
     const file = readFileSync(path, 'utf8');
     expect(file).not.toContain('client-bank.com/accounts');
     expect(file).not.toContain('Client accounts');

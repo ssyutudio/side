@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { TabSnapshot, TabsReport } from '@side/shared';
+import type { TabSnapshot, TabsReport, OpenUrlAction } from '@side/shared';
 import { JsonStore } from './store';
 import { defaultAppData, type AppData } from './appData';
 import { SideController, type BridgePort } from './controller';
@@ -231,7 +231,7 @@ describe('SideController morning recall', () => {
     await new Promise((r) => setTimeout(r, 50));
     const steps = store.get().steps.filter((s) => s.fromSetAside === id);
     expect(steps).toHaveLength(1);
-    expect(steps[0].action.url).toBe('https://github.com/acme/retry-lib/issues/2');
+    expect((steps[0].action as OpenUrlAction).url).toBe('https://github.com/acme/retry-lib/issues/2');
     expect(steps[0].label).toContain('“What fails on issue 2?”');
   });
 });
