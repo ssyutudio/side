@@ -21,7 +21,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .edge{position:absolute;right:0;z-index:20}
 .edge .hit{position:absolute;right:0;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:flex-end;padding:8px 0 8px 10px;cursor:pointer;background:transparent;border:0}
 .edge .body{transition:transform .32s cubic-bezier(.2,.8,.2,1);will-change:transform}
-.edge.quiet .body{transform:translateX(var(--q))}
+.edge.tucked .body{transform:translateX(var(--q))}
 .edge.out .body,.edge .hit:hover .body,.edge .hit:focus-visible .body{transform:translateX(var(--o))}
 .edge.hidden{display:none}
 @media (prefers-reduced-motion:reduce){.edge .body{transition:none}}
@@ -203,6 +203,8 @@ kbd{font-family:var(--font);font-size:14px;border:1.5px solid var(--line);border
 .notes span{font-size:20px;color:#fff;-webkit-text-stroke:1.2px #1E2025;paint-order:stroke fill}
 
 /* ---------- app windows ---------- */
+/* Director 11/9: at the edge there is only sidy. No panel, bezel or shadow behind it. */
+.edge .hit{-webkit-appearance:none;appearance:none;background:none;box-shadow:none;outline-offset:2px}
 html.transparent,html.transparent body{background:transparent;overflow:hidden;height:100%}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}

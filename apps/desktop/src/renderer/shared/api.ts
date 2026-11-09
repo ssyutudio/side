@@ -69,7 +69,9 @@ export function getApi(): SideApi {
     },
     onLayout: (cb) => {
       const size = Number(params.get('sz') ?? 40);
-      setTimeout(() => cb({ hit: { x: 0, y: 0, width: Math.max(48, size + 8), height: Math.max(48, size + 8) }, sidyHeight: size }), 0);
+      const side = Math.max(48, size + 8);
+      const y = Math.round((window.innerHeight - side) / 2);
+      setTimeout(() => cb({ hit: { x: window.innerWidth - side, y, width: side, height: side }, sidyHeight: size }), 0);
     },
     onMiniView: () => undefined,
     setInteractive: () => undefined,
