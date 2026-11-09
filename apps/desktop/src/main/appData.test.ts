@@ -1,9 +1,9 @@
 import { defaultAppData, defaultSettings, sanitizeSettings } from './appData';
 
 describe('defaultAppData', () => {
-  it('keeps everything on this Mac by default (LLM and upload both off)', () => {
+  it('turns the LLM on by default (Director correction) and keeps anonymous upload off', () => {
     const s = defaultSettings();
-    expect(s.llmEnabled).toBe(false);
+    expect(s.llmEnabled).toBe(true);
     expect(s.uploadEnabled).toBe(false);
     expect(s.excludedDomains).toEqual([]);
   });

@@ -1,4 +1,4 @@
-// Optional LLM help for naming and grouping works (off by default, Director 1-B).
+// LLM help for naming and grouping works (on by default per the Director; the user can turn it off).
 // What leaves the Mac: tab titles with temporary ids (T1..Tn) and the user's own
 // line. Never URLs, hosts or page text. The answer may only pick from those ids;
 // anything else is dropped, leftovers go to the rules, and an answer that arrives

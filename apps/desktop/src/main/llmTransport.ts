@@ -1,4 +1,4 @@
-// The one place Side talks to the LLM. Used only when the user turned it on in Settings.
+// The one place Side talks to the LLM. On by default (Director correction); off in Settings sends nothing.
 // It sends what the core modules built (tab titles with temporary ids, the user's own line) and
 // refuses anything that looks like a web address, as a second guard behind the core checks.
 import Anthropic from '@anthropic-ai/sdk';

@@ -145,7 +145,7 @@ export interface Settings {
   quietHours: { start: number; end: number } | null;
   /** Wake-up time in minutes from midnight, used only for the "if you sleep now" fact line. */
   wakeMinutes: number;
-  /** Off by default (Director 1-B). When on, only tab titles, temporary ids and the user's line are sent. */
+  /** On by default (Director correction of 1-B). Only tab titles, temporary ids and the user's line are sent; never URLs or page text. */
   llmEnabled: boolean;
   /** Off by default (Director 4-B reading). When on, only anonymous counts and an install id are sent. */
   uploadEnabled: boolean;

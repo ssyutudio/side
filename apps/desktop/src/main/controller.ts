@@ -111,7 +111,7 @@ export class SideController {
 
   private firstRunBusy = false;
 
-  /** The first words come from the user's real tabs: a fold draft, made by rules when the LLM is off. */
+  /** The first words come from the user's real tabs: a fold draft, made by the LLM when it is on and reachable, else by rules. */
   private async greetFirstRun() {
     this.firstRunBusy = true;
     try {

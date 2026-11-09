@@ -1,5 +1,5 @@
-// Rule-based grouping of tabs into works. This is the default path (the LLM is
-// off by default), so it must produce a sensible, deterministic draft alone.
+// Rule-based grouping of tabs into works. This is the path whenever the LLM is
+// off, has no key, fails or is slow, so it must produce a sensible, deterministic draft alone.
 //
 // Order of rules:
 //   1. Video and social tabs go to Breaks.

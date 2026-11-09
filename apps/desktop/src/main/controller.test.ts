@@ -141,8 +141,11 @@ describe('SideController first run', () => {
 });
 
 describe('SideController privacy defaults', () => {
-  it('never calls the LLM while it is off, even with a key', async () => {
-    const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-ctl-')), 'd.json'), defaultAppData);
+  it('never calls the LLM once the user turns it off, even with a key', async () => {
+    const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-ctl-')), 'd.json'), () => {
+      const d = defaultAppData();
+      return { ...d, settings: { ...d.settings, llmEnabled: false } };
+    });
     await store.load();
     const bridge = new FakeBridge();
     let llmCalls = 0;

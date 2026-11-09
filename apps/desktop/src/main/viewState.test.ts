@@ -64,7 +64,7 @@ describe('buildViewState', () => {
     expect(v.saw.withPosition).toBe(1);
     expect(v.saw.skipped).toEqual({ excluded: 2, excludedByDomain: { 'client-bank.com': 2 }, incognito: 1, internal: 1 });
     expect(v.saw.hosts.map((h) => h.host)).toEqual(['github.com', 'en.wikipedia.org', 'youtube.com']);
-    expect(v.saw.llm).toEqual({ enabled: false, sends: 0, lastAt: null });
+    expect(v.saw.llm).toEqual({ enabled: true, sends: 0, lastAt: null });
   });
 
   it('reports the connection truthfully when Chrome is not there', () => {

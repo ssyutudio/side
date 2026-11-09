@@ -199,3 +199,24 @@ describe('WrapupService with the LLM turned on', () => {
     expect(readFileSync(path, 'utf8')).not.toContain('Client accounts');
   });
 });
+
+describe('WrapupService when the LLM cannot help', () => {
+  async function withLlm(llm: ((r: { system: string; user: string }) => Promise<string>) | null) {
+    const path = join(mkdtempSync(join(tmpdir(), 'side-llm-')), 'side-data.json');
+    const store = new JsonStore<AppData>(path, defaultAppData);
+    await store.load();
+    expect(store.get().settings.llmEnabled).toBe(true);
+    return new WrapupService({ store, port: new FakePort(groupedAll), clock, llm });
+  }
+
+  it('falls back to the rules when there is no key', async () => {
+    const preview = await (await withLlm(null)).preview(report);
+    expect(preview.foldCount).toBeGreaterThan(0);
+  });
+
+  it('falls back to the rules when the API fails', async () => {
+    const preview = await (await withLlm(async () => { throw new Error('529 overloaded'); })).preview(report);
+    expect(preview.foldCount).toBeGreaterThan(0);
+    expect(preview.fold.every((g) => g.source === 'rule')).toBe(true);
+  });
+});

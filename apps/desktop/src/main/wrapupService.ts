@@ -45,7 +45,7 @@ export interface WrapupDeps {
   store: JsonStore<AppData>;
   port: CommandPort;
   clock: Clock;
-  /** Present only when the user turned the LLM on and a key exists. */
+  /** Present when a key exists. Used only while Settings has the LLM on (the default). */
   llm?: LlmTransport | null;
 }
 

@@ -45,7 +45,7 @@ export function defaultSettings(): Settings {
     shortcut: 'Control+Alt+S',
     quietHours: null,
     wakeMinutes: DEFAULT_WAKE_MINUTES,
-    llmEnabled: false,
+    llmEnabled: true,
     uploadEnabled: false,
     excludedDomains: [],
   };
