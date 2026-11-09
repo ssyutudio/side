@@ -1,12 +1,18 @@
 // Electron main process: owns the data file, the bridge to the extension and the sidy window.
-import { app, globalShortcut, Menu } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor } from 'electron';
 import { join } from 'node:path';
 import { BRIDGE_HOST, BRIDGE_PORT, COMMAND_TIMEOUT_MS, type TabsReport } from '@side/shared';
 import { loadConfig } from './config';
 import { JsonStore } from './store';
 import { defaultAppData, type AppData } from './appData';
-import { Bridge, type BridgeStatus } from './bridge';
+import { Bridge } from './bridge';
 import { createEdgeWindow, type EdgeWindow } from './edgeWindow';
+import { llmFromKey } from './llmTransport';
+import { SideController } from './controller';
+import { IPC_CHANNELS, routeIpc } from './ipcRoutes';
+import { watchReturns } from './returnWatcher';
+import { parseDemoCommand } from './demoClock';
+import { DemoClock } from '../core/clock';
 
 app.setName('Side');
 app.setPath('userData', join(app.getPath('appData'), 'Side'));
@@ -17,11 +23,11 @@ if (!app.requestSingleInstanceLock()) {
 
 const config = loadConfig(join(app.getAppPath(), '.env.local'));
 const store = new JsonStore<AppData>(join(app.getPath('userData'), 'side-data.json'), defaultAppData);
+const clock = new DemoClock();
 
 let edge: EdgeWindow | null = null;
 let bridge: Bridge | null = null;
-let bridgeStatus: BridgeStatus = 'waiting';
-let lastReport: TabsReport | null = null;
+let ctl: SideController | null = null;
 
 function installMenu() {
   // Without an Edit menu, Cmd+C / Cmd+V do not work in text fields on macOS.
@@ -30,10 +36,9 @@ function installMenu() {
   );
 }
 
-function showTabCount(report: TabsReport) {
-  // First card 2 check: the number of tabs the app received, on the Dock icon.
+function logReport(report: TabsReport) {
+  // First card 2 check: the number of tabs the app received, on the Dock icon and in this terminal.
   app.dock?.setBadge(String(report.tabs.length));
-  // Terminal only (this Mac): which tabs came with a non-zero reading position.
   const withPos = report.tabs.filter((t) => t.position && t.position.top > 0);
   console.log(
     `[side] report: ${report.tabs.length} tabs, ${withPos.length} with a position, skipped ${report.skipped.excluded} excluded / ${report.skipped.incognito} incognito / ${report.skipped.internal} internal`,
@@ -44,21 +49,32 @@ function showTabCount(report: TabsReport) {
   }
 }
 
-async function setHidden(hidden: boolean) {
-  if (!edge) return;
-  if (hidden) edge.hide();
-  else edge.show();
-  await store.update((d) => ({ ...d, hidden })).catch((err) => console.warn('[side] could not save hidden state', err));
-}
-
-function registerShortcut() {
-  const accel = store.get().settings.shortcut;
+function registerShortcut(accel: string): boolean {
   globalShortcut.unregisterAll();
-  const ok = globalShortcut.register(accel, () => void setHidden(edge?.isVisible() ?? false));
-  if (!ok) console.warn(`[side] shortcut ${accel} is taken by another app`);
+  try {
+    return globalShortcut.register(accel, () => void ctl?.setHidden(edge?.isVisible() ?? false));
+  } catch {
+    return false;
+  }
 }
 
-async function startBridge() {
+function pushToWindows(channel: string, data: unknown) {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send(channel, data);
+  }
+}
+
+async function start() {
+  installMenu();
+  await store.load();
+  if (store.loadState === 'recovered') console.warn('[side] data file was unreadable JSON and was moved aside:', store.movedAside);
+  if (store.loadState === 'unreadable') console.warn('[side] data file could not be read; Side will not overwrite it this session.');
+  clock.setOffset(store.get().demoOffsetMs);
+
+  const llmEnabled = store.get().settings.llmEnabled;
+  console.log(`[side] llm key ${config.anthropicKey ? 'present' : 'absent'}, llm ${llmEnabled ? 'on' : 'off'}`);
+  const transport = llmFromKey(config.anthropicKey);
+
   bridge = new Bridge({
     host: BRIDGE_HOST,
     port: BRIDGE_PORT,
@@ -68,36 +84,61 @@ async function startBridge() {
     pinOrigin: (origin) => store.update((d) => ({ ...d, pairedOrigin: origin })).then(() => undefined),
     getExclusions: () => store.get().settings.excludedDomains,
     onReport: (report) => {
-      lastReport = report;
-      showTabCount(report);
+      logReport(report);
+      void ctl?.onReport(report);
     },
     onStatus: (s) => {
-      bridgeStatus = s;
       console.log(`[side] extension ${s}`);
+      ctl?.onBridgeStatus(s);
     },
   });
-  try {
-    await bridge.start();
-  } catch (err) {
-    console.error('[side] could not open the local connection for the extension:', (err as Error).message);
-  }
-}
-
-app.whenReady().then(async () => {
-  installMenu();
-  await store.load();
-  if (store.loadState === 'recovered') console.warn('[side] data file was unreadable JSON and was moved aside:', store.movedAside);
-  console.log(`[side] llm key ${config.anthropicKey ? 'present' : 'absent'}, llm ${store.get().settings.llmEnabled ? 'on' : 'off'}`);
-
-  await startBridge();
 
   edge = createEdgeWindow({
     preload: join(__dirname, 'preload.js'),
     page: join(__dirname, 'static', 'edge-placeholder.html'),
     size: store.get().settings.sidySize,
   });
+
+  ctl = new SideController({
+    store,
+    bridge,
+    clock,
+    llm: transport ? (req) => transport.complete({ system: req.system, prompt: req.user }) : null,
+    edge,
+    registerShortcut,
+    push: (state) => pushToWindows('side:state', state),
+    renderBubble: (bubble) => edge?.win.webContents.send('side:bubble', bubble),
+    openMain: () => console.log('[side] Main opens here once its screen is approved.'),
+  });
+
+  for (const channel of IPC_CHANNELS) {
+    ipcMain.handle(channel, (_e, payload) => routeIpc(ctl!, channel, payload));
+  }
+
+  try {
+    await bridge.start();
+  } catch (err) {
+    console.error('[side] could not open the local connection for the extension:', (err as Error).message);
+  }
+
+  const demo = parseDemoCommand(process.env.SIDE_DEMO);
+  if (demo) {
+    await ctl.demo(demo);
+    console.log(`[side] demo clock: ${demo} -> ${new Date(clock.now()).toString()}`);
+  }
+
   if (!store.get().hidden) edge.win.once('ready-to-show', () => edge?.show());
-  registerShortcut();
+  if (!registerShortcut(store.get().settings.shortcut)) console.warn(`[side] shortcut ${store.get().settings.shortcut} is taken by another app`);
+
+  watchReturns({
+    power: powerMonitor,
+    onTrigger: (t) => void ctl?.speak.trigger(t),
+    onAsleep: (asleep) => {
+      if (ctl) ctl.speak.asleep = asleep;
+    },
+  });
+  setInterval(() => void ctl?.speak.tick(), 30_000);
+  void ctl.speak.trigger('app_start');
 
   if (process.env.SIDE_SMOKE === '1') {
     setTimeout(() => {
@@ -109,18 +150,22 @@ app.whenReady().then(async () => {
             focused: w.isFocused(),
             alwaysOnTop: w.isAlwaysOnTop(),
             bounds: w.getBounds(),
-            bridge: bridgeStatus,
-            tabs: lastReport?.tabs.length ?? null,
+            bridge: bridge?.status,
+            channels: IPC_CHANNELS.length,
+            step: ctl?.state().step?.id ?? null,
+            demoOffsetMs: store.get().demoOffsetMs,
           }),
       );
       app.quit();
     }, 2500);
   }
-});
+}
+
+app.whenReady().then(start);
 
 // Dock click brings sidy back after Hide.
-app.on('activate', () => void setHidden(false));
-app.on('second-instance', () => void setHidden(false));
+app.on('activate', () => void ctl?.setHidden(false));
+app.on('second-instance', () => void ctl?.setHidden(false));
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
   void bridge?.stop();
