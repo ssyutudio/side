@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Side",
+  "short_name": "Side",
+  "version": "0.1.0",
+  "description": "Sets your tabs aside when you stop, and opens the exact spot you left when you come back. Talks only to the Side app on this Mac.",
+  "minimum_chrome_version": "116",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["tabs", "tabGroups", "storage", "scripting", "alarms"],
+  "host_permissions": [
+    "https://docs.google.com/*",
+    "https://github.com/*",
+    "https://developer.mozilla.org/*",
+    "https://en.wikipedia.org/*",
+    "https://stackoverflow.com/*",
+    "https://www.notion.so/*",
+    "https://news.ycombinator.com/*"
+  ],
+  "optional_host_permissions": ["https://*/*", "http://*/*"]
+}
