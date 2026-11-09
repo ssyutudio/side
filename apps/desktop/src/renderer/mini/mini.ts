@@ -150,6 +150,10 @@ async function act(el: HTMLElement) {
   const key = el.dataset.key ?? '';
   switch (a) {
     case 'close': return void api.invoke('side:mini.close');
+    case 'rename':
+      wrap = { ...wrap, renaming: key };
+      render();
+      return focusRename();
     case 'ask': return void askNow();
     case 'ask-do': return void askDo(el.dataset.action as AskActionId);
     case 'ask-copy':
@@ -242,7 +246,7 @@ const sameGroup = (d: Drag, g: HTMLElement) => d.kind === 'group' && d.key === g
 app.addEventListener('pointerdown', (e) => {
   if (e.button !== 0 || view.name !== 'preview') return;
   const el = e.target as HTMLElement;
-  if (el.closest('.seg')) return; // Fold / Close buttons are not handles
+  if (el.closest('.seg, .rn-btn, .rn')) return; // Fold / Close, Rename and the name box are not handles
   const tab = el.closest<HTMLElement>('[data-tab]');
   const group = el.closest<HTMLElement>('[data-drag-group]');
   if (tab) press = { drag: { kind: 'tab', id: Number(tab.dataset.tab), label: tab.textContent ?? '' }, x: e.clientX, y: e.clientY, source: tab };
@@ -277,12 +281,20 @@ window.addEventListener('pointerup', async (e) => {
   clearDrop();
   if (!g || view.name !== 'preview' || sameGroup(p.drag, g)) return;
   const to = g.dataset.drop ?? '';
-  const op = p.drag.kind === 'tab' ? { op: 'move', tabId: p.drag.id, to } : { op: 'merge', from: p.drag.key, into: to };
+  // The dashed box at the end starts a new group with that one tab; a whole group can't go there.
+  if (to === '__new' && p.drag.kind !== 'tab') return;
+  const before = new Set(view.p.groups.map((x) => x.key));
+  const op = to === '__new' && p.drag.kind === 'tab' ? { op: 'new', tabId: p.drag.id }
+    : p.drag.kind === 'tab' ? { op: 'move', tabId: p.drag.id, to } : { op: 'merge', from: p.drag.key, into: to };
   const next = await api.invoke<PreviewView | { error: string }>('side:wrapup.edit', op);
   if (!next || 'error' in next || !('groups' in next)) return;
   const keys = new Set(next.groups.map((x) => x.key));
-  wrap = { close: wrap.close.filter((k) => keys.has(k)), open: [...new Set([...wrap.open.filter((k) => keys.has(k)), to])] };
+  const made = next.groups.find((x) => !before.has(x.key))?.key;
+  const shown = made ?? to;
+  // A new group opens with its name ready to type.
+  wrap = { close: wrap.close.filter((k) => keys.has(k)), open: [...new Set([...wrap.open.filter((k) => keys.has(k)), shown])], renaming: made };
   go({ name: 'preview', p: next });
+  if (made) focusRename();
 });
 app.addEventListener('click', (e) => {
   if (suppressClick) {
@@ -291,7 +303,40 @@ app.addEventListener('click', (e) => {
   }
 }, true);
 
+function focusRename() {
+  const i = app.querySelector<HTMLInputElement>('#rn');
+  i?.focus();
+  i?.select();
+  i?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      void saveRename(i.closest('form') as HTMLFormElement);
+    }
+  });
+}
+
+async function saveRename(form: HTMLFormElement) {
+  const key = form.dataset.key ?? '';
+  const name = form.querySelector<HTMLInputElement>('#rn')?.value ?? '';
+  wrap = { ...wrap, renaming: undefined };
+  if (view.name !== 'preview') return;
+  const next = await api.invoke<PreviewView | { error: string }>('side:wrapup.edit', { op: 'rename', key, name });
+  go({ name: 'preview', p: next && 'groups' in next ? next : view.p });
+}
+
+app.addEventListener('submit', (e) => {
+  const form = (e.target as HTMLElement).closest<HTMLFormElement>('form.rn');
+  if (!form) return;
+  e.preventDefault();
+  void saveRename(form);
+});
+
 window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && wrap.renaming) {
+    // Escape leaves the name as it was.
+    wrap = { ...wrap, renaming: undefined };
+    return render();
+  }
   if (e.key === 'Escape') void api.invoke('side:mini.close');
 });
 
@@ -320,6 +365,7 @@ if (api.fixture) {
   if (v === 'ask-menu') home = { ask: { line: 'order the groceries', state: 'reply', reply: { kind: 'declined', reason: 'outside_action', by: 'claude' } } };
   if (v === 'ask-howto') home = { ask: { line: 'how do I do a VLOOKUP in Excel', state: 'reply', reply: { kind: 'how_to', search: 'Excel VLOOKUP tutorial', by: 'claude' } } };
   if (v === 'preview') view = { name: 'preview', p: P };
+  if (v === 'preview-rename') { wrap = { close: [], open: [], renaming: 'g2' }; view = { name: 'preview', p: P }; }
   if (v === 'preview-close') { wrap = { close: ['g1'], open: [] }; view = { name: 'preview', p: P }; }
   if (v === 'checking') view = { name: 'checking', p: FIXTURE_PREVIEW };
   if (v === 'done') view = { name: 'done', sa };

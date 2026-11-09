@@ -39,9 +39,20 @@ export interface SideApi {
 let fixtureDraft: PreviewView | null = null;
 function applyFixtureEdit(payload: unknown): PreviewView {
   const p = fixtureDraft ?? FIXTURE_PREVIEW;
-  const op = payload as { op: string; tabId?: number; to?: string; from?: string; into?: string };
+  const op = payload as { op: string; tabId?: number; to?: string; from?: string; into?: string; key?: string; name?: string };
   let groups = p.groups.map((g) => ({ ...g, tabs: [...g.tabs] }));
-  if (op.op === 'move') {
+  if (op.op === 'rename') {
+    const g = groups.find((x) => x.key === op.key);
+    const name = (op.name ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    if (g && name) g.name = name;
+  } else if (op.op === 'new') {
+    const from = groups.find((g) => g.tabs.some((t) => t.id === op.tabId));
+    const tab = from?.tabs.find((t) => t.id === op.tabId);
+    if (from && tab && from.tabs.length > 1) {
+      from.tabs = from.tabs.filter((t) => t !== tab);
+      groups.push({ key: `u${groups.length + 1}`, name: 'New group', tabs: [tab] });
+    }
+  } else if (op.op === 'move') {
     const from = groups.find((g) => g.tabs.some((t) => t.id === op.tabId));
     const to = groups.find((g) => g.key === op.to);
     const tab = from?.tabs.find((t) => t.id === op.tabId);

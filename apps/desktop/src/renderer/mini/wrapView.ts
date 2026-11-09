@@ -12,6 +12,8 @@ export interface WrapLocal {
   close: string[];
   /** Group keys whose tab list is open. */
   open: string[];
+  /** The group whose name is being edited. */
+  renaming?: string;
 }
 
 const COLORS = ['#1A73E8', '#9334E6', '#188038', '#E8710A', '#D93025', '#007B83', '#B06000', '#5F6368'];
@@ -53,16 +55,21 @@ function body(p: PreviewView, local: WrapLocal, dim: boolean): SafeHtml {
     const closing = local.close.includes(g.key);
     const open = closing || local.open.includes(g.key);
     const sample = g.tabs.slice(0, 3).map((t) => t.title).join(', ');
-    return html`<div class="g" data-drop="${g.key}" style="--c:${COLORS[i % COLORS.length]}">
-<button class="dis" data-act="toggle" data-key="${g.key}" data-drag-group="${g.key}" aria-expanded="${open ? 'true' : 'false'}"><span class="chev" aria-hidden="true">▶</span><i style="width:12px;height:12px;border-radius:4px;background:var(--c);flex:none"></i><span class="n">${g.name}</span></button>
+    const renaming = local.renaming === g.key;
+    const head = renaming
+      ? html`<form class="rn" data-key="${g.key}"><i style="width:12px;height:12px;border-radius:4px;background:var(--c);flex:none"></i><input id="rn" maxlength="40" value="${g.name}" aria-label="Group name" autocomplete="off"><button type="submit" class="btn sm">Save</button></form>`
+      : html`<button class="dis" data-act="toggle" data-key="${g.key}" data-drag-group="${g.key}" aria-expanded="${open ? 'true' : 'false'}"><span class="chev" aria-hidden="true">▶</span><i style="width:12px;height:12px;border-radius:4px;background:var(--c);flex:none"></i><span class="n">${g.name}</span></button>
 <span class="seg" role="group" aria-label="${g.name}: fold or close"><button aria-pressed="${closing ? 'false' : 'true'}" data-act="mode" data-key="${g.key}" data-mode="fold">Fold</button><button aria-pressed="${closing ? 'true' : 'false'}" data-act="mode" data-key="${g.key}" data-mode="close">Close</button></span>
+<button type="button" class="rn-btn" data-act="rename" data-key="${g.key}" aria-label="Rename ${g.name}"><span class="ic" aria-hidden="true">✏️</span>Rename</button>`;
+    return html`<div class="g" data-drop="${g.key}" style="--c:${COLORS[i % COLORS.length]}">
+${head}
 ${open
   ? html`${closing ? html`<div class="warn-line">These ${g.tabs.length} tabs will close. Undo brings them back.</div>` : ''}<ul class="tl2" aria-label="${plural(g.tabs.length, 'tab')}">${g.tabs.map((t) => html`<li data-tab="${t.id}">${t.title}</li>`)}</ul>`
   : html`<span class="ex">${plural(g.tabs.length, 'tab')} · ${sample}</span>`}</div>`;
   });
   const content = p.groups.length
-    ? html`<div><h2 class="wh">Set today aside</h2><p class="sub">${plural(p.groups.length, 'group')}, folded in Chrome. Nothing closes unless you pick Close.</p>${p.groups.length > 1 ? html`<p class="note" style="margin:4px 0 0">Drag a tab to another group, or a group onto another to merge them.</p>` : ''}</div>
-<div class="gl">${groups}</div>`
+    ? html`<div><h2 class="wh">Set today aside</h2><p class="sub">${plural(p.groups.length, 'group')}, folded in Chrome. Nothing closes unless you pick Close.</p>${p.groups.length > 1 ? html`<p class="note" style="margin:4px 0 0">Drag a tab to another group or to a new one, or a group onto another to merge them.</p>` : ''}</div>
+<div class="gl">${groups}<div class="new-drop" data-drop="__new">➕ Drop a tab here to start a new group</div></div>`
     : html`<div><h2 class="wh">Nothing to fold right now.</h2><p class="sub">Every open tab is one sidy leaves alone. Here is why.</p></div>`;
   return html`<div class="pb"${dim ? ' style="opacity:.45;pointer-events:none"' : ''}>${content}
 ${stay.length ? html`<div class="stay"><h4>${stayCount ? `${stayCount} stay open` : 'Left as they are'}</h4><ul>${stay.map(([t, r]) => html`<li>${t}<span>${r}</span></li>`)}</ul></div>` : ''}

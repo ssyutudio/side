@@ -78,4 +78,13 @@ describe('routeIpc', () => {
     expect(await routeIpc(ctl, 'side:settings.set', { apps: ['excel', 'photoshop'] })).toEqual({ ok: 'updateSettings' });
     expect(await routeIpc(ctl, 'side:settings.set', { apps: ['../../etc'] })).toEqual({ error: 'invalid request' });
   });
+
+  it('accepts a new group and a rename for the Wrap up draft, and nothing else', async () => {
+    const { ctl, calls } = fakeController();
+    ctl.editWrapup = (...a: unknown[]) => (calls.push(['editWrapup', a]), Promise.resolve({ ok: 'edit' }));
+    expect(await routeIpc(ctl, 'side:wrapup.edit', { op: 'new', tabId: 3 })).toEqual({ ok: 'edit' });
+    expect(await routeIpc(ctl, 'side:wrapup.edit', { op: 'rename', key: 'g1', name: 'Retry' })).toEqual({ ok: 'edit' });
+    expect(await routeIpc(ctl, 'side:wrapup.edit', { op: 'rename', key: 'g1', name: 'x'.repeat(201) })).toEqual({ error: 'invalid request' });
+    expect(await routeIpc(ctl, 'side:wrapup.edit', { op: 'delete', key: 'g1' })).toEqual({ error: 'invalid request' });
+  });
 });

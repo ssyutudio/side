@@ -49,6 +49,8 @@ const ROUTES = {
     z.discriminatedUnion('op', [
       z.object({ op: z.literal('move'), tabId: z.number().int(), to: id }),
       z.object({ op: z.literal('merge'), from: id, into: id }),
+      z.object({ op: z.literal('new'), tabId: z.number().int() }),
+      z.object({ op: z.literal('rename'), key: id, name: z.string().max(200) }),
     ]),
     (c, i) => c.editWrapup(i),
   ),

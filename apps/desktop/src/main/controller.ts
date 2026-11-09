@@ -17,7 +17,7 @@ import { buildViewState, type ViewState } from './viewState';
 import { demoOffset, type DemoCommand } from './demoClock';
 import { todayDone } from '../core/todayDone';
 import type { WrapupPreview } from '../core/wrapupPreview';
-import { mergeGroups, moveTab } from '../core/previewEdit';
+import { mergeGroups, moveTab, newGroup, renameGroup } from '../core/previewEdit';
 import type { AppsPort } from './connectors/desktopApps';
 import type { AgentRun } from './connectors/claudeCode';
 
@@ -192,10 +192,16 @@ export class SideController {
   }
 
   /** The user dragged a tab to another group, or a group onto another, before confirming. */
-  async editWrapup(op: { op: 'move'; tabId: number; to: string } | { op: 'merge'; from: string; into: string }): Promise<PreviewView | { error: 'no_preview' }> {
+  async editWrapup(
+    op: { op: 'move'; tabId: number; to: string } | { op: 'merge'; from: string; into: string } | { op: 'new'; tabId: number } | { op: 'rename'; key: string; name: string },
+  ): Promise<PreviewView | { error: 'no_preview' }> {
     if (!this.draft) return { error: 'no_preview' };
     const { preview, report, files } = this.draft;
-    const next = op.op === 'move' ? moveTab(preview, op.tabId, op.to) : mergeGroups(preview, op.from, op.into);
+    const next =
+      op.op === 'move' ? moveTab(preview, op.tabId, op.to)
+      : op.op === 'merge' ? mergeGroups(preview, op.from, op.into)
+      : op.op === 'new' ? newGroup(preview, op.tabId).preview
+      : renameGroup(preview, op.key, op.name);
     this.draft = { preview: next, report, files };
     return this.viewOf(next, report, files);
   }

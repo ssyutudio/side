@@ -189,7 +189,7 @@ describe('One more hour', () => {
 describe('Wrap up preview: drag to regroup', () => {
   it('lets each tab in an open group be dragged, and each group take drops or be dragged onto another', () => {
     const h = s(previewView(FIXTURE_PREVIEW, { close: [], open: ['g1'] }));
-    expect(h).toContain('Drag a tab to another group, or a group onto another to merge them.');
+    expect(h).toContain('Drag a tab to another group or to a new one, or a group onto another to merge them.');
     expect(h).toMatch(/<li data-tab="\d+">Pricing table patterns<\/li>/);
     expect((h.match(/data-drop="g\d"/g) ?? []).length).toBe(3);
     expect((h.match(/data-drag-group="g\d"/g) ?? []).length).toBe(3);
@@ -273,5 +273,21 @@ describe('Mini shows the desktop apps that are on', () => {
   it('lists them as one fact, and shows nothing when none is on', () => {
     expect(s(homeView(FIXTURES['apps-on'], {}))).toContain('<span>Desktop apps</span><b>Excel</b>');
     expect(s(homeView(FIXTURES.night, {}))).not.toContain('Desktop apps');
+  });
+});
+
+describe('Wrap up preview: new group and rename', () => {
+  it('has a pencil per group and one dashed drop box for a new group', () => {
+    const h = s(previewView(FIXTURE_PREVIEW, { close: [], open: [] }));
+    expect((h.match(/data-act="rename"/g) ?? []).length).toBe(3);
+    expect(h).toContain('data-drop="__new"');
+    expect(fills(h)).toBe(1);
+  });
+
+  it('while renaming, shows the name in a box with Save instead of the group button', () => {
+    const h = s(previewView(FIXTURE_PREVIEW, { close: [], open: [], renaming: 'g2' }));
+    expect(h).toMatch(/<form class="rn" data-key="g2">[\s\S]*value="Stripe webhooks"[\s\S]*>Save<\/button><\/form>/);
+    expect(h).not.toContain('data-drag-group="g2"');
+    expect(h).toContain('data-drag-group="g1"');
   });
 });
