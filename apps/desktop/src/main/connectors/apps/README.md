@@ -48,9 +48,9 @@ Sizes: 1 is the smallest step. "Runs" means the app does something and answers; 
 
 | App | Size 1 | Size 2 | Size 3 | Tested for real |
 |---|---|---|---|---|
-| Excel | Runs: jumps to the last filled cell | | Opens | No |
-| Word | Runs: jumps to the end | | Opens | No |
-| PowerPoint | Runs: goes to the last slide | Runs: slide show from the last slide | Opens | No |
+| Excel | Runs: jumps to the last filled cell | | Opens | Yes (Side, Nov 9): C10 picked over a formatted empty F40; unsaved typing kept on reopen and re-jump |
+| Word | Runs: jumps to the end | | Opens | Yes (Side, Nov 9): cursor at the end; a renamed file gives file_moved and opens nothing |
+| PowerPoint | Runs: goes to the last slide | Runs: slide show from the last slide | Opens | Yes (Side, Nov 9): slide 3 of 3; show from slide 3, nothing to save afterwards |
 | Numbers | Runs: jumps to the last filled cell | | Opens | No |
 | Keynote | Runs: goes to the last slide | Runs: plays from the last slide | Opens | No |
 | Pages | | | Opens. No documented way to move inside the document. | No |

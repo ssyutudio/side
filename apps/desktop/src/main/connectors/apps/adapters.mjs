@@ -30,7 +30,7 @@ export const ADAPTERS = Object.freeze([
     appFile: /^Microsoft Excel\.app$/,
     exts: ["xlsx", "xlsm", "xlsb", "xls"],
     front: "excel_front",
-    verified: false,
+    verified: true,
     actions: [
       jump("jump_last_cell", 1, "excel_jump_last_cell", "Go to the last filled cell of {name} in Excel"),
       open("Open {name} in Excel"),
@@ -44,7 +44,7 @@ export const ADAPTERS = Object.freeze([
     appFile: /^Microsoft Word\.app$/,
     exts: ["docx", "docm", "doc"],
     front: "word_front",
-    verified: false,
+    verified: true,
     actions: [jump("jump_end", 1, "word_jump_end", "Go to the end of {name} in Word"), open("Open {name} in Word")],
   },
   {
@@ -55,7 +55,7 @@ export const ADAPTERS = Object.freeze([
     appFile: /^Microsoft PowerPoint\.app$/,
     exts: ["pptx", "pptm", "ppt"],
     front: "powerpoint_front",
-    verified: false,
+    verified: true,
     actions: [
       jump("go_last_slide", 1, "powerpoint_go_last_slide", "Go to the last slide of {name} in PowerPoint"),
       jump("play_last_slide", 2, "powerpoint_play_last_slide", "Play the last slide of {name} as a slide show"),
