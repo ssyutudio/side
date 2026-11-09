@@ -111,6 +111,11 @@ describe('Wrap up done', () => {
     expect(s(doneView(FIXTURES.wrapped, sa, { line: '' }))).toContain('2 still open.');
   });
 
+  it('counts tabs Side skipped (excluded, incognito, browser pages) as still open too', () => {
+    const sa = { ...confirmed(), skipped: { excluded: 1, excludedByDomain: { 'bank.com': 1 }, incognito: 0, internal: 1 } };
+    expect(s(doneView(FIXTURES.wrapped, sa, { line: '' }))).toContain('2 still open.');
+  });
+
   it('counts closed tabs separately', () => {
     expect(s(doneView(FIXTURES.wrapped, confirmed([7, 8]), { line: '' }))).toContain('5 tabs folded in 2 groups, 2 closed.');
   });

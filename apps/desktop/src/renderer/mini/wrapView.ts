@@ -111,8 +111,10 @@ export function doneView(s: ViewState, sa: SetAside, local: { line: string; sugg
     ? html` Chrome kept ${plural(r.kept.length, 'tab')} as ${r.kept.length === 1 ? 'it was' : 'they were'} (${[...new Set(r.kept.map((k) => REASON[k.reason].toLowerCase()))].join(', ')}).`
     : '';
   const today = todayText(s, sa);
-  // Tabs Side left as they were (from the preview) plus any Chrome kept: from the confirmed record.
-  const stillOpen = sa.kept.length + r.kept.length;
+  // Tabs Side left as they were (from the preview), any Chrome kept, and tabs it skipped:
+  // all from the confirmed record.
+  const sk = sa.skipped;
+  const stillOpen = sa.kept.length + r.kept.length + (sk ? sk.excluded + sk.incognito + sk.internal : 0);
   return panel([
     head(OK_CHIP),
     html`<div class="pb">
