@@ -254,3 +254,17 @@ describe('Ask sidy in Mini', () => {
     expect(actFor('quiet_hour')).toBe('focus');
   });
 });
+
+describe('One more hour with the calendar on', () => {
+  it("counts to tomorrow's first event (time only, no title) instead of the wake-up time", () => {
+    const st = FIXTURES['cal-on'];
+    const h = s(oneMoreView(st.now, 450, 60, st));
+    expect(h).toContain('<span>First event tomorrow</span><b>9:30 AM</b>');
+    expect(h).toContain('<span>Stop now and you get</span><b>9 h 50 min</b>');
+    expect(h).not.toContain('Your wake-up');
+  });
+
+  it('falls back to the wake-up time when the calendar is off', () => {
+    expect(s(oneMoreView(FIXTURES['cal-on'].now, 450, 60, FIXTURES.day))).toContain('Your wake-up');
+  });
+});

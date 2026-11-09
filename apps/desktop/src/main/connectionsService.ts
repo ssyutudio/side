@@ -1,40 +1,59 @@
-// What Settings → Connections shows for desktop apps: the apps found on this computer that Side can
-// open a file in, and which ones are turned on (all off by default). The probe runs when asked
-// (startup, Check again), never in the background.
+// What Settings → Connections shows: the desktop apps found on this computer that this build opens
+// files in (Word, Excel, PowerPoint, Photoshop — the approved list; all off by default), and the
+// calendar (off by default; macOS asks the first time it is turned on). Probes run when asked
+// (startup, Check again, turning something on, One more hour), never in the background.
 import type { JsonStore } from './store';
 import type { AppData } from './appData';
+import type { CalendarPort, CalendarStatus } from './connectors/calendar';
 
-/** Apps that only play back an export (no files of their own to open) are not listed. */
-const NOT_LISTED = new Set(['quicktime', 'preview']);
+/** The apps listed, in this order (approved mockup m1-conn-apps). Others found are not listed. */
+export const LISTED_APPS = ['word', 'excel', 'powerpoint', 'photoshop'] as const;
 
 export interface ConnectionsView {
   apps: { id: string; tool: string; on: boolean }[];
+  calendar?: { on: boolean; status: CalendarStatus | 'checking'; firstTomorrow: number | null };
 }
 
 export interface ConnectionsDeps {
   store: JsonStore<AppData>;
   installedApps: () => Promise<{ id: string; tool: string }[]>;
+  calendar?: CalendarPort;
+  now?: () => number;
   onChange: () => void;
 }
 
 export class ConnectionsService {
   private installed: { id: string; tool: string }[] = [];
+  private calStatus: CalendarStatus = 'not_asked';
+  private checking = false;
+  private firstTomorrow: number | null = null;
 
   constructor(private readonly deps: ConnectionsDeps) {}
+
+  private get on() {
+    return this.deps.store.get().settings.calendar === true;
+  }
 
   /** Looks again (startup, Check again). */
   async refresh(): Promise<void> {
     const apps = await this.deps.installedApps().catch(() => []);
-    this.installed = apps.filter((a) => !NOT_LISTED.has(a.id));
+    this.installed = LISTED_APPS.flatMap((id) => apps.filter((a) => a.id === id));
+    if (this.deps.calendar) this.calStatus = (await this.deps.calendar.status()).status;
+    await this.peekCalendar();
     this.deps.onChange();
   }
 
   view(): ConnectionsView {
     const on = new Set(this.deps.store.get().settings.apps ?? []);
-    return { apps: this.installed.map((a) => ({ id: a.id, tool: a.tool, on: on.has(a.id) })) };
+    return {
+      apps: this.installed.map((a) => ({ id: a.id, tool: a.tool, on: on.has(a.id) })),
+      ...(this.deps.calendar
+        ? { calendar: { on: this.on && this.calStatus === 'allowed', status: this.checking ? 'checking' : this.calStatus, firstTomorrow: this.on ? this.firstTomorrow : null } }
+        : {}),
+    };
   }
 
-  /** Turning an app on or off. Only apps found on this computer can be turned on. */
+  /** Turning an app on or off. Only listed apps found on this computer can be turned on. */
   async setApp(id: string, on: boolean): Promise<void> {
     if (on && !this.installed.some((a) => a.id === id)) return;
     await this.deps.store.update((d) => {
@@ -43,6 +62,34 @@ export class ConnectionsService {
       else next.delete(id);
       return { ...d, settings: { ...d.settings, apps: [...next] } };
     });
+    this.deps.onChange();
+  }
+
+  /** Reads tomorrow's first event time, only while the calendar is on and allowed. */
+  async peekCalendar(): Promise<number | null> {
+    if (!this.deps.calendar || !this.on || this.calStatus !== 'allowed') return (this.firstTomorrow = null);
+    const p = await this.deps.calendar.peek((this.deps.now ?? Date.now)());
+    this.calStatus = p.status === 'unavailable' ? this.calStatus : p.status;
+    return (this.firstTomorrow = p.status === 'allowed' ? p.firstTomorrow : null);
+  }
+
+  /** Turning the calendar on asks macOS the first time; a "no" leaves it off and is said as it is. */
+  async setCalendar(on: boolean): Promise<void> {
+    if (!this.deps.calendar) return;
+    if (!on) {
+      await this.deps.store.update((d) => ({ ...d, settings: { ...d.settings, calendar: false } }));
+      this.firstTomorrow = null;
+      return this.deps.onChange();
+    }
+    this.checking = true;
+    this.deps.onChange();
+    try {
+      this.calStatus = (await this.deps.calendar.request((this.deps.now ?? Date.now)())).status;
+    } finally {
+      this.checking = false;
+    }
+    await this.deps.store.update((d) => ({ ...d, settings: { ...d.settings, calendar: this.calStatus === 'allowed' } }));
+    await this.peekCalendar();
     this.deps.onChange();
   }
 }

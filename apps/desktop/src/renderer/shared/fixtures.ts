@@ -126,7 +126,7 @@ const base = (o: Partial<ViewState> = {}): ViewState => withBySide(o, {
     { id: 'excel', tool: 'Excel', on: false },
     { id: 'powerpoint', tool: 'PowerPoint', on: false },
     { id: 'photoshop', tool: 'Photoshop', on: false },
-  ] },
+  ], calendar: { on: false, status: 'not_asked', firstTomorrow: null } },
   ...o,
 });
 
@@ -242,3 +242,7 @@ FIXTURES['apps-on'] = base({ connections: { apps: base().connections!.apps.map((
 
 // Wrap up with files saved today in desktop apps that are turned on.
 export const FIXTURE_PREVIEW_FILES: PreviewView = { ...FIXTURE_PREVIEW, files: [{ name: 'november-orders.xlsx', tool: 'Excel' }, { name: 'q4-plan.docx', tool: 'Word' }] };
+
+// Calendar on: tomorrow's first event at 9:30 AM (One more hour counts to it).
+FIXTURES['cal-on'] = base({ now: new Date(2026, 10, 9, 23, 40).getTime(), connections: { apps: base().connections!.apps, calendar: { on: true, status: 'allowed', firstTomorrow: new Date(2026, 10, 10, 9, 30).getTime() } } });
+FIXTURES['cal-denied'] = base({ connections: { apps: base().connections!.apps, calendar: { on: false, status: 'denied', firstTomorrow: null } } });

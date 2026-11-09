@@ -12,6 +12,7 @@ import { SpeakService, type Bubble } from './speakService';
 import { HelpService } from './helpService';
 import { AskService } from './askService';
 import { ConnectionsService } from './connectionsService';
+import type { CalendarPort } from './connectors/calendar';
 import { buildViewState, type ViewState } from './viewState';
 import { demoOffset, type DemoCommand } from './demoClock';
 import { todayDone } from '../core/todayDone';
@@ -41,6 +42,8 @@ export interface ControllerDeps {
   apps?: AppsPort | null;
   /** Desktop apps found on this computer, for Settings → Connections. */
   installedApps?: () => Promise<{ id: string; tool: string }[]>;
+  /** This computer's calendar (Connections), read-only. */
+  calendar?: CalendarPort;
   edge: EdgePort | null;
   registerShortcut: (accelerator: string) => boolean;
   push: (state: ViewState) => void;
@@ -79,7 +82,7 @@ export class SideController {
     this.step = new StepService({ store, port: bridge, clock, apps: deps.apps ?? null });
     this.help = new HelpService({ store, clock, llm, apps: deps.apps ?? null });
     this.ask = new AskService({ store, clock, llm });
-    this.conn = new ConnectionsService({ store, installedApps: deps.installedApps ?? (async () => []), onChange: () => this.publish() });
+    this.conn = new ConnectionsService({ store, installedApps: deps.installedApps ?? (async () => []), calendar: deps.calendar, now: () => clock.now(), onChange: () => this.publish() });
     this.speak = new SpeakService({
       store,
       clock,
@@ -252,6 +255,9 @@ export class SideController {
   // ---- One more hour ----
 
   async oneMoreHour() {
+    // The calendar's first event tomorrow, if it is on, for the one fact line.
+    await this.conn.peekCalendar().catch(() => null);
+    this.publish();
     const lines = todayDone({ setAsides: this.data.setAsides, steps: this.data.steps, stepEvents: this.data.stepEvents }, this.deps.clock);
     return this.speak.oneMoreHour(lines);
   }

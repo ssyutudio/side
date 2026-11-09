@@ -117,6 +117,9 @@ root.addEventListener('click', (e) => {
       local.appsOpen = !local.appsOpen;
       render();
       break;
+    case 'cal-toggle':
+      void api.invoke('side:calendar.set', { on: el.dataset.on !== '1' });
+      break;
     case 'app-toggle':
       if (el.dataset.app) void api.invoke('side:apps.set', { id: el.dataset.app, on: el.dataset.on !== '1' });
       break;

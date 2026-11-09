@@ -11,6 +11,7 @@ import { llmFromKey } from './llmTransport';
 import { SideController } from './controller';
 import { desktopApps } from './connectors/desktopApps';
 import { installedApps } from './connectors/apps/index.mjs';
+import { calendarPort } from './connectors/calendar';
 import { watchInbox } from './connectors/claudeCode';
 import { IPC_CHANNELS, routeIpc } from './ipcRoutes';
 import { watchReturns } from './returnWatcher';
@@ -176,6 +177,7 @@ async function start() {
     llm: transport ? (req) => transport.complete({ system: req.system, prompt: req.user }) : null,
     apps: desktopApps,
     installedApps: () => installedApps(),
+    calendar: calendarPort(),
     edge: edgePort,
     registerShortcut,
     push: (state) => {

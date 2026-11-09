@@ -26,6 +26,19 @@ ${apps.length
 <p class="note" style="margin:10px 0 4px">sidy reads only file names and when you last used them, never what's inside. With AI drafting on, file names (no folders) go to Claude to pick your next step.</p></div>`;
 }
 
+/** Calendar (approved mockups m1-conn-cal, -checking, -denied): off by default, macOS asks once. */
+function calendarRow(c: NonNullable<NonNullable<ViewState['connections']>['calendar']>): SafeHtml {
+  const tg = (on: boolean) =>
+    html`<button type="button" class="tg" role="switch" aria-checked="${on ? 'true' : 'false'}" aria-label="Calendar" data-act="cal-toggle" data-on="${on ? '1' : '0'}"><span class="sw" aria-hidden="true"></span></button>`;
+  const row = (state: string, chipHtml: SafeHtml, line: string, ctl: SafeHtml) =>
+    html`<div class="r cn"><div class="hd"><b>Calendar<span class="state"> · ${state}</span></b>${chipHtml}</div><p>${line}</p><span class="ctl row">${ctl}</span></div>`;
+  if (c.status === 'checking') return row('On', html`<span class="chip wait chk"><span class="spin" style="width:12px;height:12px;border-width:2px"></span>Checking</span>`, 'Waiting for macOS to ask you.', tg(true));
+  if (c.on) return row('On', chip(true), "Reads tomorrow's first event time and how many are left today. Titles stay on this computer.", tg(true));
+  if (c.status === 'denied' || c.status === 'restricted')
+    return row('Off', chip(false), 'macOS said no. Allow Side in System Settings > Privacy & Security > Calendars.', html`<button type="button" class="btn sm" data-act="check">Check again</button>${tg(false)}`);
+  return row('Off', chip(false), 'Turn it on so sidy knows when tomorrow starts. Titles stay on this computer.', tg(false));
+}
+
 export function connectionsView(s: ViewState, open: boolean): SafeHtml {
   const apps = s.connections?.apps ?? [];
   const anyOn = apps.some((a) => a.on);
@@ -33,5 +46,5 @@ export function connectionsView(s: ViewState, open: boolean): SafeHtml {
     anyOn ? `On: ${apps.filter((a) => a.on).map((a) => a.tool).join(', ')}.` : 'Turn on the apps sidy may open a file in.'
   }</p><span class="ctl row"><button type="button" class="btn sm" data-act="apps-show" aria-expanded="${open ? 'true' : 'false'}">${open ? 'Hide apps' : 'Show apps'}</button></span>${open ? appsBlock(apps) : ''}</div>`;
   return html`<h2 class="set-h">Connections</h2><p class="note" style="margin:2px 0 0">Where sidy can open your next step. Nothing is read until you connect it.</p>
-<div class="set">${chromeRow(s.connection)}${desktop}</div>`;
+<div class="set">${chromeRow(s.connection)}${desktop}${s.connections?.calendar ? calendarRow(s.connections.calendar) : ''}</div>`;
 }
