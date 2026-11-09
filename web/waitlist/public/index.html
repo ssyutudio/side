@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Side — join the waitlist</title>
+<meta name="description" content="Side folds your tabs into named groups when you stop, and hands you one small step when you come back.">
+<link rel="icon" href="sidy.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="wl">
+  <section class="intro">
+    <p class="brand"><img src="sidy.svg" width="36" height="36" alt=""><span>Side</span></p>
+    <h1>Stop for the night. Start again with one small step.</h1>
+    <p class="lead">Side is a desktop app with a Chrome extension. When you stop, it folds your tabs into named groups. When you come back, sidy hands you one step — the exact spot you left.</p>
+    <ul class="four" aria-label="Four moments">
+      <li>Set aside</li><li>Be beside</li><li>Step inside</li><li>By your side</li>
+    </ul>
+
+    <form id="join" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required aria-describedby="email-err">
+        <p class="err" id="email-err" hidden></p>
+      </div>
+      <label class="ck"><input id="consent" type="checkbox" required> <span>Email me when Side is ready to download. Nothing else.</span></label>
+      <p class="err" id="consent-err" hidden>Tick the box so we can email you once Side is ready.</p>
+      <button class="btn fill big" id="submit" type="submit">Join the waitlist</button>
+      <div class="alert" id="fail" role="alert" hidden><b>Couldn't save that.</b><span id="fail-why">Check your connection and press Join the waitlist again. Your email is still here.</span></div>
+    </form>
+    <div class="done-line" id="done" role="status" hidden><b>You're on the list.</b><br>We'll write when Side is ready.</div>
+  </section>
+
+  <aside class="qr" id="qr-card">
+    <div class="code"><img id="qr" src="qr.svg" width="232" height="232" alt="QR code that opens this page"></div>
+    <p>Scan to join from your phone.<br>Same code on the deck, the video and the README.</p>
+  </aside>
+
+  <p class="foot">Tab titles go to Claude to name your groups. Addresses and page text stay on your computer. This page stores only your email, once.</p>
+</main>
+<div class="edgepeek" aria-hidden="true"><img src="sidy.svg" width="40" height="40" alt=""></div>
+<script src="app.js"></script>
+</body>
+</html>
