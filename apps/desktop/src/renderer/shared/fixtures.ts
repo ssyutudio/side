@@ -154,7 +154,15 @@ export const FIXTURES: Record<string, ViewState> = {
   }),
 };
 
-export const FIXTURE_PREVIEW: PreviewView = {
+type DraftTab = { title: string; host: string | null };
+type Draft = Omit<PreviewView, 'groups'> & { groups: { key: string; name: string; tabs: DraftTab[] }[] };
+/** Gives every fixture tab an id, as the app does. */
+function withIds(d: Draft): PreviewView {
+  let n = 100;
+  return { ...d, groups: d.groups.map((g) => ({ ...g, tabs: g.tabs.map((t) => ({ id: n++, ...t })) })) };
+}
+
+export const FIXTURE_PREVIEW: PreviewView = withIds({
   groups: [
     { key: 'g1', name: 'Pricing page', tabs: [
       { title: 'Pricing table patterns', host: 'github.com' },
@@ -175,7 +183,7 @@ export const FIXTURE_PREVIEW: PreviewView = {
   alreadySetAside: 0,
   skipped: { excluded: 1, incognito: 0, internal: 2 },
   foldCount: 31,
-};
+});
 
 export const FIXTURE_BUBBLES: Record<string, Bubble> = {
   step: { kind: 'step', stepId: 'st1', trigger: 'app_start' },
@@ -213,7 +221,7 @@ FIXTURES.long = base({
   settings: { ...base().settings, excludedDomains: ['very-long-client-portal-subdomain.enterprise-customer-example.com'] },
 });
 
-export const FIXTURE_PREVIEW_LONG: PreviewView = {
+export const FIXTURE_PREVIEW_LONG: PreviewView = withIds({
   ...FIXTURE_PREVIEW,
   groups: [
     { key: 'g1', name: 'Stripe webhook signature verification and idempotency', tabs: Array.from({ length: 14 }, (_, i) => ({ title: `Webhooks: verify signatures, handle retries and avoid duplicate events, part ${i + 1} — Stripe Documentation`, host: 'docs.stripe.com' })) },
@@ -221,4 +229,4 @@ export const FIXTURE_PREVIEW_LONG: PreviewView = {
   ],
   kept: [{ title: 'Pricing page draft for the Northwind store — annual plans section with the twenty percent discount', reason: 'active' }],
   foldCount: 23,
-};
+});

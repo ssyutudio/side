@@ -99,3 +99,15 @@ describe('idle return', () => {
     expect(nextIdle(s, 0).returned).toBe(false);
   });
 });
+
+describe('decideSpeak reason order', () => {
+  it('names focus, quiet hours or rest before "nothing to say", so Main explains the silence', async () => {
+    const { decideSpeak } = await import('./speakPolicy');
+    const now = new Date(2026, 10, 9, 12, 22).getTime();
+    const base = { now, hidden: false, quietHours: null, focusUntil: null, restedUntil: null, lastSpokeAt: null, hasSomethingToSay: false };
+    expect(decideSpeak('unlock', { ...base, focusUntil: now + 60_000 })).toEqual({ speak: false, reason: 'focus' });
+    expect(decideSpeak('unlock', { ...base, quietHours: { start: 12 * 60, end: 13 * 60 } })).toEqual({ speak: false, reason: 'quiet_hours' });
+    expect(decideSpeak('unlock', { ...base, restedUntil: now + 60_000 })).toEqual({ speak: false, reason: 'rested_today' });
+    expect(decideSpeak('unlock', base)).toEqual({ speak: false, reason: 'nothing_to_say' });
+  });
+});

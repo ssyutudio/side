@@ -181,6 +181,58 @@ app.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
   if (el && el.getAttribute('aria-disabled') !== 'true') void act(el);
 });
+// Drag to regroup before confirming: a tab onto another group moves it; a group's header onto
+// another group merges them. The app edits the draft it will confirm, then the preview redraws.
+let dragging: { kind: 'tab'; id: number } | { kind: 'group'; key: string } | null = null;
+const dropTarget = (e: Event) => (e.target as HTMLElement).closest<HTMLElement>('[data-drop]');
+const clearDrop = () => app.querySelectorAll('.drop-over').forEach((n) => n.classList.remove('drop-over'));
+app.addEventListener('dragstart', (e) => {
+  const el = e.target as HTMLElement;
+  const tab = el.closest<HTMLElement>('[data-tab]');
+  const group = el.closest<HTMLElement>('[data-drag-group]');
+  if (tab) dragging = { kind: 'tab', id: Number(tab.dataset.tab) };
+  else if (group) dragging = { kind: 'group', key: group.dataset.dragGroup ?? '' };
+  else return;
+  e.dataTransfer?.setData('text/plain', 'side');
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  (tab ?? group?.closest('.g'))?.classList.add('dragging');
+});
+app.addEventListener('dragover', (e) => {
+  const g = dropTarget(e);
+  if (!dragging || !g) return;
+  if (dragging.kind === 'group' && dragging.key === g.dataset.drop) return;
+  e.preventDefault();
+  if (!g.classList.contains('drop-over')) {
+    clearDrop();
+    g.classList.add('drop-over');
+  }
+});
+app.addEventListener('dragleave', (e) => {
+  const g = dropTarget(e);
+  if (g && !g.contains(e.relatedTarget as Node)) g.classList.remove('drop-over');
+});
+app.addEventListener('dragend', () => {
+  dragging = null;
+  clearDrop();
+  app.querySelectorAll('.dragging').forEach((n) => n.classList.remove('dragging'));
+});
+app.addEventListener('drop', async (e) => {
+  const g = dropTarget(e);
+  const d = dragging;
+  dragging = null;
+  clearDrop();
+  if (!g || !d || view.name !== 'preview') return;
+  e.preventDefault();
+  const to = g.dataset.drop ?? '';
+  if (d.kind === 'group' && d.key === to) return;
+  const op = d.kind === 'tab' ? { op: 'move', tabId: d.id, to } : { op: 'merge', from: d.key, into: to };
+  const next = await api.invoke<PreviewView | { error: string }>('side:wrapup.edit', op);
+  if (!next || 'error' in next || !('groups' in next)) return;
+  const keys = new Set(next.groups.map((x) => x.key));
+  wrap = { close: wrap.close.filter((k) => keys.has(k)), open: [...new Set([...wrap.open.filter((k) => keys.has(k)), to])] };
+  go({ name: 'preview', p: next });
+});
+
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') void api.invoke('side:mini.close');
 });
@@ -213,7 +265,15 @@ if (api.fixture) {
   if (v === 'failed') view = { name: 'failed', f: { kind: 'unconfirmed' }, retryId: 'sa9', p: FIXTURE_PREVIEW };
   if (v === 'save-failed') view = { name: 'failed', f: { kind: 'storage_failed', message: '' }, retryId: null, p: FIXTURE_PREVIEW };
   if (v === 'onemore') view = { name: 'onemore', minutes: 60 };
+  if (v === 'preview-drag') {
+    wrap = { close: [], open: ['g1'] };
+    view = { name: 'preview', p: P };
+  }
   render();
+  if (v === 'preview-drag') {
+    app.querySelectorAll('.g')[1]?.classList.add('drop-over');
+    app.querySelector('.tl2 li')?.classList.add('dragging');
+  }
 } else {
   void api.invoke<ViewState>('side:state').then((s) => {
     state = s;

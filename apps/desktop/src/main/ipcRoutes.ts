@@ -24,7 +24,7 @@ const settingsPatch = z
 
 type Ctl = Pick<
   SideController,
-  'state' | 'previewWrapup' | 'confirmWrapup' | 'openStep' | 'suggestTomorrow' | 'saveTomorrowLine' | 'oneMoreHour' | 'bubbleDrawn' | 'updateSettings' | 'setHidden' | 'demo' | 'openMain' | 'publish'
+  'state' | 'previewWrapup' | 'confirmWrapup' | 'editWrapup' | 'openStep' | 'suggestTomorrow' | 'saveTomorrowLine' | 'oneMoreHour' | 'bubbleDrawn' | 'updateSettings' | 'setHidden' | 'demo' | 'openMain' | 'publish'
 > & {
   wrapup: Pick<SideController['wrapup'], 'retry' | 'undo' | 'setTomorrowLine'>;
   step: Pick<SideController['step'], 'open' | 'dismiss'>;
@@ -41,6 +41,13 @@ const ROUTES = {
   'side:state': route(empty, (c) => c.state()),
   'side:wrapup.preview': route(empty, (c) => c.previewWrapup()),
   'side:wrapup.confirm': route(z.object({ closeGroupKeys: z.array(id).max(50) }), (c, i) => c.confirmWrapup(i.closeGroupKeys)),
+  'side:wrapup.edit': route(
+    z.discriminatedUnion('op', [
+      z.object({ op: z.literal('move'), tabId: z.number().int(), to: id }),
+      z.object({ op: z.literal('merge'), from: id, into: id }),
+    ]),
+    (c, i) => c.editWrapup(i),
+  ),
   'side:wrapup.retry': route(z.object({ id }), (c, i) => c.wrapup.retry(i.id)),
   'side:wrapup.undo': route(z.object({ id }), (c, i) => c.wrapup.undo(i.id)),
   'side:wrapup.tomorrow': route(z.object({ id, line: z.string().max(500).nullable() }), (c, i) => c.saveTomorrowLine(i.id, i.line)),

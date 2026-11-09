@@ -227,3 +227,11 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 /* What Side saw: a site name stays on one line; the title column takes the wrapping. */
 .tbl.saw td:nth-child(2){white-space:nowrap}
 .tbl.saw td:first-child{width:55%}
+/* Drag to regroup in the Wrap up preview. */
+.g .tl2 li[draggable=true]{cursor:grab;border-radius:6px}
+.g .tl2 li[draggable=true]:hover{background:var(--canvas)}
+.g .dis[draggable=true]{cursor:grab}
+.g.drop-over{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 0 0 2px var(--blue) inset}
+.g.dragging,.g .tl2 li.dragging{opacity:.5}
+/* The stretch leans sidy out until the blue side shows (approved board), then it tucks back. */
+.react-stretch .edge .body{transform:translateX(var(--o))!important}

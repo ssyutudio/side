@@ -184,3 +184,13 @@ describe('One more hour', () => {
     expect(untilWake(now, 450)).toBe('7 h 50 min');
   });
 });
+
+describe('Wrap up preview: drag to regroup', () => {
+  it('lets each tab in an open group be dragged, and each group take drops or be dragged onto another', () => {
+    const h = s(previewView(FIXTURE_PREVIEW, { close: [], open: ['g1'] }));
+    expect(h).toContain('Drag a tab to another group, or a group onto another to merge them.');
+    expect(h).toMatch(/<li draggable="true" data-tab="\d+">Pricing table patterns<\/li>/);
+    expect((h.match(/data-drop="g\d"/g) ?? []).length).toBe(3);
+    expect((h.match(/draggable="true" data-drag-group="g\d"/g) ?? []).length).toBe(3);
+  });
+});

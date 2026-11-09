@@ -235,3 +235,30 @@ describe('SideController morning recall', () => {
     expect(steps[0].label).toContain('“What fails on issue 2?”');
   });
 });
+
+describe('SideController hand edits to the Wrap up draft', () => {
+  it('moves a tab or merges groups, and confirm sends the edited groups', async () => {
+    const { ctl, bridge } = await setup();
+    const first = await ctl.previewWrapup();
+    if ('error' in first) throw new Error('not connected');
+    expect(first.groups.flatMap((g) => g.tabs.map((t) => t.id)).sort()).toEqual([1, 2]);
+    // Put both tabs into one group by merging the others into the first.
+    let view = first;
+    for (const g of first.groups.slice(1)) {
+      const next = await ctl.editWrapup({ op: 'merge', from: g.key, into: first.groups[0].key });
+      if ('error' in next) throw new Error('edit failed');
+      view = next;
+    }
+    expect(view.groups).toHaveLength(1);
+    expect(view.groups[0].tabs.map((t) => t.id).sort()).toEqual([1, 2]);
+    await ctl.confirmWrapup([]);
+    const apply = bridge.sent.find((s) => s.type === 'cmd.wrapup.apply')!.payload as { groups: { tabIds: number[] }[] };
+    expect(apply.groups).toHaveLength(1);
+    expect(apply.groups[0].tabIds.sort()).toEqual([1, 2]);
+  });
+
+  it('needs a draft first', async () => {
+    const { ctl } = await setup();
+    expect(await ctl.editWrapup({ op: 'move', tabId: 1, to: 'x' })).toEqual({ error: 'no_preview' });
+  });
+});

@@ -43,11 +43,12 @@ const quiet = (reason: QuietReason): SpeakDecision => ({ speak: false, reason })
 
 export function decideSpeak(trigger: SpeakTrigger, c: SpeakContext): SpeakDecision {
   if (c.hidden) return quiet('hidden');
-  if (!c.hasSomethingToSay) return quiet('nothing_to_say');
-  if (trigger === 'promise_due' || trigger === 'first_run') return { speak: true };
+  if (trigger === 'promise_due' || trigger === 'first_run') return c.hasSomethingToSay ? { speak: true } : quiet('nothing_to_say');
+  // A quiet state the user chose is named first, so Main can say why sidy was silent.
   if (c.restedUntil !== null && c.now < c.restedUntil) return quiet('rested_today');
   if (inQuietHours(c.now, c.quietHours)) return quiet('quiet_hours');
   if (c.focusUntil !== null && c.now < c.focusUntil) return quiet('focus');
+  if (!c.hasSomethingToSay) return quiet('nothing_to_say');
   if (c.lastSpokeAt !== null && c.now - c.lastSpokeAt < SPEAK_COOLDOWN_MS) return quiet('spoke_recently');
   return { speak: true };
 }

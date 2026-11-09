@@ -239,8 +239,15 @@ async function start() {
     power: powerMonitor,
     // Unlock: one stretch first; the return bubble, if any, follows it.
     onTrigger: (t) => {
-      if (t === 'unlock' && react('stretch')) setTimeout(() => void ctl?.speak.trigger(t), 2300);
-      else void ctl?.speak.trigger(t);
+      console.log(`[side] return moment: ${t}`);
+      if (t !== 'unlock') return void ctl?.speak.trigger(t);
+      // Wait until the lock screen has faded, so the stretch is seen; the bubble (if any) follows it.
+      setTimeout(() => {
+        const played = react('stretch');
+        console.log(`[side] stretch ${played ? 'played' : 'skipped (off, hidden, focus, quiet hours, a bubble, Reduce Motion, or played in the last 10 min)'}`);
+        if (played) setTimeout(() => void ctl?.speak.trigger(t), 2300);
+        else void ctl?.speak.trigger(t);
+      }, 800);
     },
     onAsleep: (asleep) => {
       if (ctl) ctl.speak.asleep = asleep;

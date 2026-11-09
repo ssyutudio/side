@@ -14,6 +14,7 @@ import { buildViewState, type ViewState } from './viewState';
 import { demoOffset, type DemoCommand } from './demoClock';
 import { todayDone } from '../core/todayDone';
 import type { WrapupPreview } from '../core/wrapupPreview';
+import { mergeGroups, moveTab } from '../core/previewEdit';
 
 export interface BridgePort {
   readonly status: BridgeStatus;
@@ -44,7 +45,7 @@ export interface ControllerDeps {
 }
 
 export interface PreviewView {
-  groups: { key: string; name: string; tabs: { title: string; host: string | null }[] }[];
+  groups: { key: string; name: string; tabs: { id: number; title: string; host: string | null }[] }[];
   kept: { title: string; reason: KeepReason }[];
   alreadySetAside: number;
   skipped: WrapupPreview['skipped'];
@@ -154,18 +155,31 @@ export class SideController {
     if (!report || this.deps.bridge.status !== 'connected') return { error: 'not_connected' };
     const preview = await this.wrapup.preview(report);
     this.draft = { preview, report };
+    return this.viewOf(preview, report);
+  }
+
+  private viewOf(preview: WrapupPreview, report: TabsReport): PreviewView {
     const byId = new Map(report.tabs.map((t) => [t.tabId, t]));
     return {
       groups: preview.fold.map((g) => ({
         key: g.key,
         name: g.name,
-        tabs: g.tabIds.map((id) => ({ title: byId.get(id)?.title ?? '', host: hostOf(byId.get(id)?.url ?? '') })),
+        tabs: g.tabIds.map((id) => ({ id, title: byId.get(id)?.title ?? '', host: hostOf(byId.get(id)?.url ?? '') })),
       })),
       kept: preview.kept.map((k) => ({ title: k.title, reason: k.reason })),
       alreadySetAside: preview.alreadySetAside.length,
       skipped: preview.skipped,
       foldCount: preview.foldCount,
     };
+  }
+
+  /** The user dragged a tab to another group, or a group onto another, before confirming. */
+  async editWrapup(op: { op: 'move'; tabId: number; to: string } | { op: 'merge'; from: string; into: string }): Promise<PreviewView | { error: 'no_preview' }> {
+    if (!this.draft) return { error: 'no_preview' };
+    const { preview, report } = this.draft;
+    const next = op.op === 'move' ? moveTab(preview, op.tabId, op.to) : mergeGroups(preview, op.from, op.into);
+    this.draft = { preview: next, report };
+    return this.viewOf(next, report);
   }
 
   async confirmWrapup(closeGroupKeys: string[]): Promise<WrapupOutcome | { kind: 'no_preview' }> {
