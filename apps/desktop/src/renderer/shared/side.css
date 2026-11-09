@@ -221,3 +221,9 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .steps>li{grid-template-columns:30px minmax(0,1fr)}
 .steps>li>div{min-width:0}
 .copy code{height:auto;min-height:40px;padding:9px 12px;white-space:normal;word-break:break-all;overflow:visible;text-overflow:clip;line-height:1.45}
+/* A long line from the user must not make the bubble taller than sidy's window: four lines at
+   most here (the full line is in Mini and Main). */
+.bubble p{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+/* What Side saw: a site name stays on one line; the title column takes the wrapping. */
+.tbl.saw td:nth-child(2){white-space:nowrap}
+.tbl.saw td:first-child{width:55%}

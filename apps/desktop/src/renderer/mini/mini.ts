@@ -4,7 +4,7 @@ import type { ViewState } from '../../main/viewState';
 import type { PreviewView } from '../../main/controller';
 import type { SetAside } from '@side/shared';
 import { getApi } from '../shared/api';
-import { FIXTURE_PREVIEW, FIXTURES } from '../shared/fixtures';
+import { FIXTURE_PREVIEW, FIXTURE_PREVIEW_LONG, FIXTURES } from '../shared/fixtures';
 import { homeView, type HomeLocal } from './homeView';
 import { checkingView, doneView, failedView, loadingView, previewView, type Failure, type WrapLocal } from './wrapView';
 import { oneMoreView } from './oneMoreView';
@@ -205,8 +205,9 @@ if (api.fixture) {
     result: { grouped: [{ key: 'g1', chromeGroupId: 1, tabIds: Array.from({ length: 12 }, (_, i) => i) }, { key: 'g2', chromeGroupId: 2, tabIds: Array.from({ length: 11 }, (_, i) => 20 + i) }, { key: 'g3', chromeGroupId: 3, tabIds: Array.from({ length: 8 }, (_, i) => 40 + i) }], closed: [], kept: [] },
   };
   state = FIXTURES[api.params.get('state') ?? 'night'] ?? FIXTURES.night;
-  if (v === 'preview') view = { name: 'preview', p: FIXTURE_PREVIEW };
-  if (v === 'preview-close') { wrap = { close: ['g1'], open: [] }; view = { name: 'preview', p: FIXTURE_PREVIEW }; }
+  const P = api.params.get('state') === 'long' ? FIXTURE_PREVIEW_LONG : FIXTURE_PREVIEW;
+  if (v === 'preview') view = { name: 'preview', p: P };
+  if (v === 'preview-close') { wrap = { close: ['g1'], open: [] }; view = { name: 'preview', p: P }; }
   if (v === 'checking') view = { name: 'checking', p: FIXTURE_PREVIEW };
   if (v === 'done') view = { name: 'done', sa };
   if (v === 'failed') view = { name: 'failed', f: { kind: 'unconfirmed' }, retryId: 'sa9', p: FIXTURE_PREVIEW };

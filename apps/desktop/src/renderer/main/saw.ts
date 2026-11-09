@@ -46,7 +46,7 @@ export function sawView(s: ViewState, local: SawLocal): SafeHtml {
   return html`<h1>What Side saw</h1><p class="lead">${lead}</p>
 <div class="counts" style="margin-top:0"><span><b>${saw.readTabs}</b>tabs read</span><span><b>${skipped}</b>skipped</span><span><b>${sent}</b>titles sent to Claude</span></div>
 <section class="sec"><h2>Read</h2><p class="note" style="margin:-4px 0 10px">Title, site and where you stopped on the page. Page text is never sent.</p>
-<table class="tbl"><thead><tr><th>Tab</th><th>Site</th><th>Where you stopped</th></tr></thead><tbody>${rows.map(
+<table class="tbl saw"><thead><tr><th>Tab</th><th>Site</th><th>Where you stopped</th></tr></thead><tbody>${rows.map(
     (t) => html`<tr><td>${t.title}</td><td>${t.host ?? '—'}</td><td>${t.where}</td></tr>`,
   )}</tbody></table>
 ${saw.tabs.length > FIRST ? html`<button type="button" class="link" style="margin-top:10px" data-act="saw-all">${local.showAll ? 'Show fewer' : `Show all ${saw.tabs.length}`}</button>` : ''}</section>

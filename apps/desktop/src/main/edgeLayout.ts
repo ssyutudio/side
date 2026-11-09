@@ -21,7 +21,7 @@ export interface EdgeLayout {
 /** Width reserved for the speech bubble to the left of sidy. */
 const BUBBLE_ROOM = 470;
 /** Window height: tall enough for a bubble with one sentence, one action and a close. */
-const WINDOW_HEIGHT = 240;
+const WINDOW_HEIGHT = 300;
 /** Vertical anchor of sidy's center, as a fraction of the work area height. */
 const ANCHOR = 0.62;
 

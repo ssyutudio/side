@@ -182,3 +182,43 @@ export const FIXTURE_BUBBLES: Record<string, Bubble> = {
   first: { kind: 'first_run', tabs: 38, groups: 3 },
   promise: { kind: 'promise', promiseId: 'p1', minutes: 30 },
 };
+
+// Stress state: real titles and lines can be long. Short fixture text once hid an overflow.
+const LONG_LINE = 'Why does the refund webhook fire twice when the customer upgrades from monthly to annual in the middle of a trial?';
+FIXTURES.long = base({
+  step: {
+    id: 'st1',
+    label: `“${LONG_LINE}” — Stripe webhook signature verification and idempotency notes is ready where you stopped.`,
+    when: 'yesterday',
+    host: 'docs.google.com',
+    hasPosition: true,
+  },
+  lastWrapup: {
+    ...base().lastWrapup!,
+    userLine: LONG_LINE,
+    groups: [
+      { key: 'g1', name: 'Stripe webhook signature verification and idempotency', count: 14 },
+      { key: 'g2', name: 'Competitor pricing pages and annual discount research', count: 9 },
+    ],
+  },
+  history: base().history.map((h) => ({ ...h, userLine: LONG_LINE, groups: ['Stripe webhook signature verification and idempotency', 'Competitor pricing pages and annual discount research', 'Reading'] })),
+  saw: {
+    ...base().saw,
+    tabs: [
+      { title: 'Webhooks: verify signatures, handle retries, avoid duplicate events, and test locally with the Stripe CLI — Stripe Documentation', host: 'docs.stripe.com', where: 'At “Verify webhook signatures with official libraries”' },
+      { title: 'Exponential backoff - Wikipedia', host: 'en.wikipedia.org', where: 'About halfway down' },
+    ],
+    skipped: { excluded: 3, excludedByDomain: { 'very-long-client-portal-subdomain.enterprise-customer-example.com': 3 }, incognito: 0, internal: 1 },
+  },
+  settings: { ...base().settings, excludedDomains: ['very-long-client-portal-subdomain.enterprise-customer-example.com'] },
+});
+
+export const FIXTURE_PREVIEW_LONG: PreviewView = {
+  ...FIXTURE_PREVIEW,
+  groups: [
+    { key: 'g1', name: 'Stripe webhook signature verification and idempotency', tabs: Array.from({ length: 14 }, (_, i) => ({ title: `Webhooks: verify signatures, handle retries and avoid duplicate events, part ${i + 1} — Stripe Documentation`, host: 'docs.stripe.com' })) },
+    { key: 'g2', name: 'Competitor pricing pages and annual discount research', tabs: Array.from({ length: 9 }, (_, i) => ({ title: `Pricing — plans for teams of every size, compare monthly and annual billing ${i + 1}`, host: 'example.com' })) },
+  ],
+  kept: [{ title: 'Pricing page draft for the Northwind store — annual plans section with the twenty percent discount', reason: 'active' }],
+  foldCount: 23,
+};
