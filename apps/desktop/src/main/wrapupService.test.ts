@@ -171,3 +171,31 @@ describe('WrapupService', () => {
     expect(store.get().setAsides[0].userLine).toBeNull();
   });
 });
+
+describe('WrapupService with the LLM turned on', () => {
+  it('sends titles only, never an excluded site, and logs the send by count', async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'side-llm-')), 'side-data.json');
+    const store = new JsonStore<AppData>(path, () => {
+      const d = defaultAppData();
+      return { ...d, settings: { ...d.settings, llmEnabled: true, excludedDomains: ['client-bank.com'] } };
+    });
+    await store.load();
+    const sent: string[] = [];
+    const svc = new WrapupService({
+      store,
+      port: new FakePort(groupedAll),
+      clock,
+      llm: async (req) => {
+        sent.push(req.system + '\n' + req.user);
+        return '{"groups":[]}';
+      },
+    });
+    await svc.preview(report);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).not.toContain('Client accounts');
+    expect(sent[0]).not.toContain('client-bank');
+    expect(sent[0]).not.toMatch(/https?:\/\//);
+    expect(store.get().llmLog).toHaveLength(1);
+    expect(readFileSync(path, 'utf8')).not.toContain('Client accounts');
+  });
+});
