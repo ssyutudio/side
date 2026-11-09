@@ -9,6 +9,12 @@ Side is a macOS app and a Chrome extension for people who can't stop when they'r
 - **Step Inside.** When you come back, the next day or three days later, sidy offers one tiny step: the page you stopped on, opened where you stopped reading.
 - **By your side.** Side keeps a record of which steps got you going again and whether you kept working ten minutes later, so the next step can learn from it.
 
+## Join the waitlist
+
+**[side-waitlist.vercel.app](https://side-waitlist.vercel.app/)**: one email field, nothing else stored.
+
+<img src="docs/assets/waitlist-qr.png" width="160" alt="QR code for the Side waitlist">
+
 ## Install (about 3 minutes)
 
 Requirements: macOS, Node 22 or newer, Google Chrome 116 or newer.
