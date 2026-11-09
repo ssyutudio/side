@@ -70,7 +70,7 @@ export class SideController {
     const { store, bridge, clock, llm } = deps;
     this.wrapup = new WrapupService({ store, port: bridge, clock, llm, apps: deps.apps ?? null });
     this.step = new StepService({ store, port: bridge, clock, apps: deps.apps ?? null });
-    this.help = new HelpService({ store, clock, llm });
+    this.help = new HelpService({ store, clock, llm, apps: deps.apps ?? null });
     this.ask = new AskService({ store, clock, llm });
     this.speak = new SpeakService({
       store,

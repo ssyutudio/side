@@ -36,7 +36,7 @@ export interface AppData {
   hidden: boolean;
   firstRunDone: boolean;
   /** What was sent to the LLM (counts only), for "What Side saw". */
-  llmLog: { at: number; titles: number; userLine: boolean }[];
+  llmLog: { at: number; titles: number; userLine: boolean; files?: number }[];
 }
 
 export function defaultSettings(): Settings {

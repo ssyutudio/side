@@ -1,8 +1,9 @@
 // Claude's small helps beyond grouping (Director 3-A): two questions for tomorrow at night, and in
-// the morning picking the one tab that matches the user's own line. What is sent: group names, tab
-// titles with temporary ids, the user's line. Never URLs, page text or excluded sites. Answers can
-// only pick from what was sent; a failure, a refusal or a late answer falls back to the rules.
-import type { SavedTab, SetAside, Step } from '@side/shared';
+// the morning picking the one tab or file that matches the user's own line (L1: across tools). What
+// is sent: group names, tab titles and file names (no folder) with temporary ids, the user's line.
+// Never URLs, paths, page text, file contents or excluded sites. Answers can only pick from what was
+// sent; a failure, a refusal or a late answer falls back to the rules.
+import type { SavedFile, SavedTab, SetAside, Step } from '@side/shared';
 import { isExcluded, newId as defaultNewId } from '@side/shared';
 import type { Clock } from './clock';
 import type { LlmTransport } from './llmGrouping';
@@ -83,31 +84,55 @@ export function parseSuggestions(text: string): string[] {
 
 // ---- morning: the tab that matches the user's own line ----
 
+/** What a temporary id stands for: a saved tab, or a saved file in a desktop app. */
+export type RecallTarget = { kind: 'tab'; tabId: number } | { kind: 'file'; workId: string };
+
 export interface RecallRequest extends LlmRequest {
-  /** Temporary id -> Chrome tab id; the only way an answer can name a tab. */
-  ids: Map<string, number>;
+  /** Temporary id -> what it names; the only way an answer can name a tab or a file. */
+  ids: Map<string, RecallTarget>;
 }
 
-export function buildRecallRequest(line: string, tabs: readonly SavedTab[], excludedDomains: readonly string[]): RecallRequest {
-  const ids = new Map<string, number>();
+/** A file name as it may be sent: no folder, no address, short. */
+export function sendableFileName(name: string): string {
+  const base = name.split(/[\\/]/).pop() ?? '';
+  return stripAddresses(base).slice(0, 80);
+}
+
+export function buildRecallRequest(
+  line: string,
+  tabs: readonly SavedTab[],
+  excludedDomains: readonly string[],
+  files: readonly SavedFile[] = [],
+): RecallRequest {
+  const ids = new Map<string, RecallTarget>();
   const rows: string[] = [];
-  for (const t of tabs) {
-    if (isExcluded(t.url, excludedDomains)) continue;
-    const title = stripAddresses(cleanTitle(t.title) || t.title).slice(0, 120) || 'Untitled';
-    const id = `T${ids.size + 1}`;
-    ids.set(id, t.tabId);
+  let t = 0;
+  for (const tab of tabs) {
+    if (isExcluded(tab.url, excludedDomains)) continue;
+    const title = stripAddresses(cleanTitle(tab.title) || tab.title).slice(0, 120) || 'Untitled';
+    const id = `T${++t}`;
+    ids.set(id, { kind: 'tab', tabId: tab.tabId });
     rows.push(`${id}: ${title}`);
+  }
+  const fileRows: string[] = [];
+  let f = 0;
+  for (const file of files) {
+    const name = sendableFileName(file.name);
+    if (!name) continue;
+    const id = `F${++f}`;
+    ids.set(id, { kind: 'file', workId: file.workId });
+    fileRows.push(`${id}: ${name} (${file.tool})`);
   }
   return {
     ids,
     system:
-      'Last night a person wrote one line about what they are curious about. Pick the ONE tab title that best matches it, ' +
-      'so it can be reopened for them. Reply with JSON only: {"id":"T1"}. Use only an id from the list.',
-    user: `Their line: ${stripAddresses(line).slice(0, 200)}\nTabs:\n${rows.join('\n')}`,
+      'Last night a person wrote one line about what they are curious about. Pick the ONE tab or file that best matches it, ' +
+      'so it can be reopened for them. Reply with JSON only: {"id":"T1"}. Use only an id from the lists.',
+    user: `Their line: ${stripAddresses(line).slice(0, 200)}\nTabs:\n${rows.join('\n')}${fileRows.length ? `\nFiles:\n${fileRows.join('\n')}` : ''}`,
   };
 }
 
-export function parseRecall(text: string, ids: ReadonlyMap<string, number>): number | null {
+export function parseRecall(text: string, ids: ReadonlyMap<string, RecallTarget>): RecallTarget | null {
   const data = jsonOf(text) as { id?: unknown } | null;
   if (!data || typeof data.id !== 'string') return null;
   return ids.get(data.id.trim()) ?? null;

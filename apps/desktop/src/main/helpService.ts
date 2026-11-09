@@ -2,11 +2,14 @@
 // - suggest(): two questions for tomorrow from the set-aside group names (cached per wrap-up);
 // - recall(): in the morning, the one tab that matches the user's own line (ids it was sent only).
 // Nothing is sent when the LLM is off or there is no key. Each send is logged by count only.
+import type { Step } from '@side/shared';
 import type { JsonStore } from './store';
 import type { AppData } from './appData';
 import type { Clock } from '../core/clock';
 import type { LlmTransport } from '../core/llmGrouping';
 import { askOnce, buildRecallRequest, buildSuggestRequest, HELP_TIMEOUT_MS, parseRecall, parseSuggestions, stepForTab } from '../core/llmHelp';
+import { appStep, enabledApps } from '../core/step';
+import type { AppsPort } from './connectors/desktopApps';
 import { buildBySideRequest, bySideCounts, bySideKey, LEARN_AFTER, parseBySide, ruleBySide } from '../core/llmHelpBySide';
 import type { SideNumbers } from '../core/stats';
 
@@ -22,16 +25,17 @@ export class HelpService {
   private bySide: { key: string; text: string } | null = null;
   private bySideAsked = new Set<string>();
 
-  constructor(private readonly deps: { store: JsonStore<AppData>; clock: Clock; llm: LlmTransport | null; timeoutMs?: number }) {}
+  constructor(private readonly deps: { store: JsonStore<AppData>; clock: Clock; llm: LlmTransport | null; timeoutMs?: number; apps?: AppsPort | null }) {}
 
   private get on(): boolean {
     return !!this.deps.llm && this.deps.store.get().settings.llmEnabled;
   }
 
-  private async log(titles: number, userLine: boolean) {
+  private async log(titles: number, userLine: boolean, files = 0) {
     const at = this.deps.clock.now();
+    const entry = files ? { at, titles, userLine, files } : { at, titles, userLine };
     await this.deps.store
-      .update((d) => ({ ...d, llmLog: [...d.llmLog, { at, titles, userLine }].slice(-50) }))
+      .update((d) => ({ ...d, llmLog: [...d.llmLog, entry].slice(-50) }))
       .catch(() => undefined);
   }
 
@@ -50,24 +54,37 @@ export class HelpService {
     return out;
   }
 
-  /** Re-picks the next step's tab from the user's line. Keeps the rule step on any doubt. */
+  /** Re-picks the next step's tab or file from the user's line. Keeps the rule step on any doubt. */
   async recall(setAsideId: string): Promise<RecallOutcome> {
     const d = this.deps.store.get();
     const sa = d.setAsides.find((s) => s.id === setAsideId);
     if (!this.on || !sa || !sa.userLine) return 'skipped';
-    const req = buildRecallRequest(sa.userLine, sa.tabs, d.settings.excludedDomains);
+    // Only files of apps still turned on, and only when the adapters are here to open them.
+    const on = enabledApps(d.settings);
+    const files = this.deps.apps ? (sa.files ?? []).filter((f) => on.includes(f.adapterId)) : [];
+    const req = buildRecallRequest(sa.userLine, sa.tabs, d.settings.excludedDomains, files);
     if (!req.ids.size) return 'skipped';
-    await this.log(req.ids.size, true);
+    const fileCount = [...req.ids.values()].filter((v) => v.kind === 'file').length;
+    await this.log(req.ids.size - fileCount, true, fileCount);
     const text = await askOnce(this.deps.llm!, req, this.deps.timeoutMs ?? HELP_TIMEOUT_MS);
-    const tabId = text ? parseRecall(text, req.ids) : null;
-    if (tabId === null) return 'kept';
+    const target = text ? parseRecall(text, req.ids) : null;
+    if (target === null) return 'kept';
 
     const now = this.deps.store.get();
     const current = now.steps.find((s) => s.fromSetAside === setAsideId);
     // A step the user has already seen stays as it is.
     if (current && now.stepEvents.some((e) => e.stepId === current.id && (e.shownAt !== null || e.clickedAt !== null))) return 'kept';
-    if (current && current.action.type === 'open_url' && current.action.url === sa.tabs.find((t) => t.tabId === tabId)?.url) return 'kept';
-    const fresh = stepForTab(sa, tabId, now.settings.excludedDomains, this.deps.clock);
+    let fresh: Step | null = null;
+    if (target.kind === 'file') {
+      if (current && current.action.type === 'app' && current.action.workId === target.workId) return 'kept';
+      const file = files.find((f) => f.workId === target.workId);
+      const pick = file ? this.deps.apps?.pick(file) : null;
+      fresh = file && pick ? { ...appStep(sa, file, pick, this.deps.clock), source: 'llm' } : null;
+    } else {
+      const tabId = target.tabId;
+      if (current && current.action.type === 'open_url' && current.action.url === sa.tabs.find((t) => t.tabId === tabId)?.url) return 'kept';
+      fresh = stepForTab(sa, tabId, now.settings.excludedDomains, this.deps.clock);
+    }
     if (!fresh) return 'kept';
     await this.deps.store.update((x) => ({ ...x, steps: [...x.steps.filter((s) => s.fromSetAside !== setAsideId), fresh] }));
     return 'replaced';

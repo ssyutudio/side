@@ -130,3 +130,40 @@ describe('HelpService By your side', () => {
     expect(off.sent).toHaveLength(0);
   });
 });
+
+describe('HelpService morning recall across tools (L1)', () => {
+  const xlsx = { workId: 'doc-a', adapterId: 'excel', path: '/Users/someone/Clients/november-orders.xlsx', key: '/Users/someone/Clients/november-orders.xlsx', name: 'november-orders.xlsx', app: 'Microsoft Excel', tool: 'Excel', touchedAt: 5 };
+  const apps = {
+    filesSince: async () => [],
+    pick: (f: { adapterId: string }) => (f.adapterId === 'excel' ? { candidateId: 'app-cell', tool: 'Excel', effect: 'runs' as const, label: 'Go to the last filled cell of november-orders in Excel' } : null),
+    run: async () => ({ ok: true, did: 'ran' as const, tool: 'Excel' }),
+  };
+
+  async function make(appsOn: string[], answer: string) {
+    const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-help-l1-')), 'd.json'), () => {
+      const d = defaultAppData();
+      return { ...d, settings: { ...d.settings, excludedDomains: ['client-bank.com'], apps: appsOn }, setAsides: [{ ...sa, userLine: 'why does row 88 not add up', files: [xlsx] }], steps: [ruleStep] };
+    });
+    await store.load();
+    const sent: string[] = [];
+    const svc = new HelpService({ store, clock: { now: () => 100 }, llm: async (req) => (sent.push(req.system + '\n' + req.user), answer), timeoutMs: 200, apps });
+    return { store, sent, svc };
+  }
+
+  it('may pick the file: the step then opens it in its app, chosen by Claude', async () => {
+    const { svc, store, sent } = await make(['excel'], '{"id":"F1"}');
+    expect(await svc.recall('sa1')).toBe('replaced');
+    const step = store.get().steps[0];
+    expect(step.source).toBe('llm');
+    expect(step.action).toMatchObject({ type: 'app', workId: 'doc-a', candidateId: 'app-cell', tool: 'Excel' });
+    expect(sent[0]).toContain('F1: november-orders.xlsx (Excel)');
+    expect(sent[0]).not.toMatch(/\/Users|Clients|https?:/);
+    expect(store.get().llmLog.at(-1)).toMatchObject({ titles: 2, userLine: true, files: 1 });
+  });
+
+  it('never sends files of an app that is turned off', async () => {
+    const { svc, sent } = await make([], '{"id":"F1"}');
+    expect(await svc.recall('sa1')).toBe('kept');
+    expect(sent[0]).not.toContain('november-orders');
+  });
+});

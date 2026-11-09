@@ -59,15 +59,41 @@ describe('morning recall', () => {
     expect(sent).toContain('T1: Exponential backoff - Wikipedia');
     expect(sent).not.toMatch(/https?:\/\//);
     expect(sent).not.toContain('Client 991');
-    expect([...req.ids.values()]).toEqual([11, 12]);
+    expect([...req.ids.values()]).toEqual([{ kind: 'tab', tabId: 11 }, { kind: 'tab', tabId: 12 }]);
   });
 
   it('accepts only an id that was sent', () => {
     const req = buildRecallRequest('jitter?', tabs, ['client-bank.com']);
-    expect(parseRecall('{"id":"T2"}', req.ids)).toBe(12);
+    expect(parseRecall('{"id":"T2"}', req.ids)).toEqual({ kind: 'tab', tabId: 12 });
     expect(parseRecall('{"id":"T3"}', req.ids)).toBeNull();
     expect(parseRecall('{"id":"T9"}', req.ids)).toBeNull();
     expect(parseRecall('T1 looks best', req.ids)).toBeNull();
+  });
+});
+
+describe('morning recall across tools (L1)', () => {
+  const files = [
+    { workId: 'doc-a', adapterId: 'excel', path: '/Users/someone/Clients/Acme/november-orders.xlsx', key: '/Users/someone/Clients/Acme/november-orders.xlsx', name: 'november-orders.xlsx', app: 'Microsoft Excel', tool: 'Excel', touchedAt: 1 },
+    { workId: 'doc-b', adapterId: 'photoshop', path: '/Users/someone/Design/cover.psd', key: '/Users/someone/Design/cover.psd', name: 'cover.psd', app: 'Adobe Photoshop', tool: 'Photoshop', touchedAt: 2 },
+  ];
+  const tabs2 = [tab(11, 'Exponential backoff - Wikipedia')];
+
+  it('lists tabs and files with temporary ids, file names only: no folder, no address', () => {
+    const req = buildRecallRequest('why does row 88 not add up', tabs2, [], files);
+    const sent = req.system + req.user;
+    expect(sent).toContain('F1: november-orders.xlsx (Excel)');
+    expect(sent).toContain('F2: cover.psd (Photoshop)');
+    expect(sent).not.toMatch(/\/Users|Clients|Acme\/|Design\//);
+    expect(sent).not.toMatch(/https?:\/\//);
+    expect(parseRecall('{"id":"F1"}', req.ids)).toEqual({ kind: 'file', workId: 'doc-a' });
+    expect(parseRecall('{"id":"F3"}', req.ids)).toBeNull();
+    expect(parseRecall('{"id":"doc-a"}', req.ids)).toBeNull();
+  });
+
+  it('never sends a folder even if a name carries one', () => {
+    const req = buildRecallRequest('x', [], [], [{ ...files[0], name: '/Users/someone/secret/plan.docx' }]);
+    expect(req.user).toContain('F1: plan.docx (Excel)');
+    expect(req.user).not.toContain('secret');
   });
 });
 
