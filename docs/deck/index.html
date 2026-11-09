@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Side: pitch deck</title>
+<link rel="stylesheet" href="deck.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="sidy-body"><rect x="5" y="5" width="90" height="90" rx="25"/></clipPath>
+    <symbol id="sidy" viewBox="0 0 100 100">
+      <g clip-path="url(#sidy-body)">
+        <rect x="5" y="5" width="90" height="90" fill="#F3F3EF"/>
+        <rect x="71.6" y="5" width="23.4" height="90" fill="#3B54E7"/>
+      </g>
+      <rect x="5" y="5" width="90" height="90" rx="25" fill="none" stroke="#1E2025" stroke-width="5"/>
+      <rect x="19.5" y="34" width="7" height="18" rx="3.5" fill="#1E2025"/>
+      <rect x="39.3" y="34" width="7" height="18" rx="3.5" fill="#1E2025"/>
+    </symbol>
+    <clipPath id="screen"><rect x="0" y="0" width="360" height="176"/></clipPath>
+  </defs>
+</svg>
+
+<main class="deck">
+
+<!-- 1. Title -->
+<section class="slide">
+  <div class="title">
+    <svg class="sidy" width="420" height="420" role="img" aria-label="sidy, Side's character"><use href="#sidy"/></svg>
+    <div>
+      <p class="name">Side</p>
+      <p class="tag">Side gets you started.</p>
+      <p class="four"><span class="beats"><b>Set aside.</b> Be beside. <b>Step inside.</b> By your side.</span><br>A desktop app and a Chrome extension for people who can't stop at night and can't start in the morning.</p>
+    </div>
+  </div>
+  <div class="foot"><span>c0mpiled-17 Seoul · AI Powered Consumer Products for a Billion People</span><span>github.com/ssyutudio/side</span></div>
+</section>
+
+<!-- 2. The problem -->
+<section class="slide">
+  <p class="kicker">The problem</p>
+  <h1>Some nights you can't stop.<br>Most mornings you can't start.</h1>
+  <p class="lead">They are the same problem. You keep going tonight because you're not sure the flow will come back tomorrow, and tomorrow the unfinished pile makes it harder to begin.</p>
+  <div class="row" style="margin-top:auto">
+    <div class="card grow">
+      <p class="quote">Every plan I didn't follow was the planner mocking me.</p>
+      <p class="small">Calm Diligence (Substack), on planners and ADHD</p>
+    </div>
+    <div class="card grow">
+      <p class="quote">Reviewing things every 10 mins destroys my attention span.</p>
+      <p class="small">Hacker News comment on working with AI coding agents</p>
+    </div>
+  </div>
+  <p class="small" style="margin:28px 0 0">Backlog shame came up in five separate places we read, and so did "TODO bankruptcy". These show that the problem exists, not how common it is.</p>
+</section>
+
+<!-- 3. The insight -->
+<section class="slide canvas">
+  <p class="kicker">The insight</p>
+  <h1>You don't need a better plan.<br>You need a <code>select 1</code>.</h1>
+  <p class="lead">Our founder's trick: when work won't start, open the tool and run <code>select 1</code>. One result appears on screen, and a few minutes later you are working. Side prepares that first step for you, and every step it offers passes four checks.</p>
+  <div class="conds">
+    <div class="card"><h3><span class="num">1</span>No judgment</h3><p class="muted" style="margin:0">Nothing to decide. It only opens what you left.</p></div>
+    <div class="card"><h3><span class="num">2</span>Can't fail</h3><p class="muted" style="margin:0">A real page that exists, never a site you excluded.</p></div>
+    <div class="card"><h3><span class="num">3</span>In the real tool</h3><p class="muted" style="margin:0">Your doc, your repo. Not a to-do list about them.</p></div>
+    <div class="card"><h3><span class="num">4</span>Instant result</h3><p class="muted" style="margin:0">You see it right away, at the paragraph where you stopped.</p></div>
+  </div>
+</section>
+
+<!-- 4. How it works -->
+<section class="slide">
+  <p class="kicker">How it works</p>
+  <h2>Four beats, one small character at the edge of your screen.</h2>
+  <div class="beatgrid">
+    <div class="beat">
+      <svg class="frame" viewBox="0 0 400 176" aria-hidden="true">
+        <rect x="0" y="0" width="360" height="176" fill="#F7F8FA"/>
+        <g font-family="Pretendard, system-ui, sans-serif" font-size="18" font-weight="700" fill="#fff">
+          <rect x="20" y="26" width="190" height="34" rx="10" fill="#3B54E7"/><text x="34" y="49">Retry research 8</text>
+          <rect x="44" y="72" width="190" height="34" rx="10" fill="#1F7A5C"/><text x="58" y="95">p-retry project 5</text>
+          <rect x="68" y="118" width="178" height="34" rx="10" fill="#5B6168"/><text x="82" y="141">Pitch reading 6</text>
+        </g>
+        <g clip-path="url(#screen)"><use href="#sidy" x="282.7" y="46" width="84" height="84"/></g>
+        <line x1="360" y1="0" x2="360" y2="176" stroke="#1E2025" stroke-width="3"/>
+      </svg>
+      <h3>Set Aside</h3>
+      <p class="moment">Night. You decide to stop.</p>
+      <p>Your real tabs fold into named Chrome groups with one confirm. One optional line: <em>What are you most curious about tomorrow?</em> Undo brings everything back.</p>
+      <p class="measure">We count: tabs set aside, lines left for tomorrow</p>
+    </div>
+    <div class="beat">
+      <svg class="frame" viewBox="0 0 400 176" aria-hidden="true">
+        <rect x="0" y="0" width="360" height="176" fill="#F7F8FA"/>
+        <g fill="#DADDE3"><rect x="28" y="30" width="240" height="12" rx="6"/><rect x="28" y="56" width="210" height="12" rx="6"/><rect x="28" y="82" width="250" height="12" rx="6"/><rect x="28" y="108" width="180" height="12" rx="6"/><rect x="28" y="134" width="226" height="12" rx="6"/></g>
+        <g clip-path="url(#screen)"><use href="#sidy" x="319.7" y="46" width="84" height="84"/></g>
+        <line x1="360" y1="0" x2="360" y2="176" stroke="#1E2025" stroke-width="3"/>
+      </svg>
+      <h3>Be Beside</h3>
+      <p class="moment">Flow, rest, three days away.</p>
+      <p>sidy waits at the screen edge, eyes only. No nagging, no backlog. "One more hour?" is never blocked: you get one fact and one check-in at a time you choose.</p>
+      <p class="measure">We count: times sidy spoke (fewer is better)</p>
+    </div>
+    <div class="beat">
+      <svg class="frame" viewBox="0 0 400 176" aria-hidden="true">
+        <rect x="0" y="0" width="360" height="176" fill="#F7F8FA"/>
+        <rect x="22" y="30" width="248" height="116" rx="16" fill="#fff" stroke="#E1E3E8" stroke-width="2"/>
+        <text x="40" y="66" font-family="Pretendard, system-ui, sans-serif" font-size="19" font-weight="600" fill="#1E2025">Your draft is where</text>
+        <text x="40" y="90" font-family="Pretendard, system-ui, sans-serif" font-size="19" font-weight="600" fill="#1E2025">you stopped.</text>
+        <rect x="40" y="104" width="128" height="32" rx="9" fill="#3B54E7"/>
+        <text x="57" y="126" font-family="Pretendard, system-ui, sans-serif" font-size="17" font-weight="700" fill="#fff">Step inside</text>
+        <g clip-path="url(#screen)"><use href="#sidy" x="282.7" y="46" width="84" height="84"/></g>
+        <line x1="360" y1="0" x2="360" y2="176" stroke="#1E2025" stroke-width="3"/>
+      </svg>
+      <h3>Step Inside</h3>
+      <p class="moment">The next day, you drift back.</p>
+      <p>One bubble, one step: the page you stopped on opens at the paragraph, marked "You stopped here". Nothing opens until you choose.</p>
+      <p class="measure">We count: steps clicked, seconds to work</p>
+    </div>
+    <div class="beat">
+      <svg class="frame" viewBox="0 0 400 176" aria-hidden="true">
+        <rect x="0" y="0" width="400" height="176" fill="#F7F8FA"/>
+        <use href="#sidy" x="40" y="44" width="88" height="88"/>
+        <g>
+          <circle cx="178" cy="88" r="13" fill="#3B54E7"/><circle cx="218" cy="88" r="13" fill="#3B54E7"/><circle cx="258" cy="88" r="13" fill="#fff" stroke="#3B54E7" stroke-width="4"/><circle cx="298" cy="88" r="13" fill="#3B54E7"/><circle cx="338" cy="88" r="13" fill="#fff" stroke="#3B54E7" stroke-width="4"/>
+        </g>
+      </svg>
+      <h3>By your side</h3>
+      <p class="moment">Days and weeks.</p>
+      <p>Side keeps a record of which steps got you going and whether you kept at it ten minutes later. The next step learns from it.</p>
+      <p class="measure">We count: still working 10 min after a step</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Demo -->
+<section class="slide canvas">
+  <p class="kicker">Demo</p>
+  <h2>90 seconds, on the real app with real Chrome tabs.</h2>
+  <p class="lead">A screen recording with no mockups and no motion graphics. The night and the next day come from Side's demo clock, which moves only Side's own clock.</p>
+  <div class="timeline">
+    <div class="t0">Problem<small>0–10 s</small></div>
+    <div class="t1">Set Aside<small>10–35 s</small></div>
+    <div class="t2">Be Beside<small>35–50 s</small></div>
+    <div class="t3">Step Inside<small>50–70 s</small></div>
+    <div class="t4">By your side<small>70–90 s</small></div>
+  </div>
+  <div class="scenes">
+    <div class="card"><h3>Set Aside</h3><p class="muted">"One more hour", then "Done". 20+ real tabs fold into named groups. One line for tomorrow.</p></div>
+    <div class="card"><h3>Be Beside</h3><p class="muted">The app is quit and relaunched the next evening. sidy sits at the edge and says nothing.</p></div>
+    <div class="card"><h3>Step Inside</h3><p class="muted">While a video plays, one bubble appears. Click it, and last night's paragraph opens.</p></div>
+    <div class="card"><h3>By your side</h3><p class="muted">Main shows the real counts from that use, and the next step.</p></div>
+  </div>
+</section>
+
+<!-- 6. What Side won't do -->
+<section class="slide">
+  <p class="kicker">What Side won't do</p>
+  <h2>Trust is the product.</h2>
+  <div class="row" style="margin-top:44px; flex:1">
+    <div class="card grow" style="flex:1.15">
+      <h3>Never</h3>
+      <ul class="never">
+        <li>Finish your work for you</li>
+        <li>Shut things off or block you when time's up</li>
+        <li>Show backlogs or failure-streak counts</li>
+        <li>Encourage all-nighters</li>
+        <li>Promise what sleep will do for you</li>
+        <li>Counsel your mood or diagnose you</li>
+        <li>Compare you with other people</li>
+        <li>Let an employer watch employees</li>
+        <li>Capture your screen</li>
+      </ul>
+    </div>
+    <div class="grow" style="display:flex; flex-direction:column; gap:28px">
+      <div class="card blue data">
+        <h3>Your data</h3>
+        <ul class="plain">
+          <li>Addresses and page text never leave your computer.</li>
+          <li>Tab titles go to Claude only to name your groups. One switch turns it off.</li>
+          <li>Sites you exclude are never read, saved or sent.</li>
+          <li><b>What Side saw</b> lists every tab Side read, skipped and sent.</li>
+        </ul>
+      </div>
+      <div class="card notyet">
+        <h3>Not in this build</h3>
+        <p style="margin:0; font-size:25px" class="muted">Login · uploading tab contents · conversational planning · calendar and mail integration · payment · learning your type · Windows and mobile · a Korean interface</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Why not -->
+<section class="slide">
+  <p class="kicker">Why not a planner, a chatbot, or a tab manager</p>
+  <h2>They help you decide. Side helps you start.</h2>
+  <table class="cmp">
+    <thead><tr><th>What people use</th><th>What it does</th><th>Side's difference (hypothesis)</th></tr></thead>
+    <tbody>
+      <tr><td>Sunsama<small>$17–22 a month</small></td><td>Decides what to do today: daily planning, Autoplan, break reminders</td><td>Shortens the distance to starting, follows what you were already doing, and nothing piles up after days off</td></tr>
+      <tr><td>Chatbots<small>free to paid</small></td><td>Plan and break down work when you ask</td><td>You have to open a chatbot, and when you're avoiding work you don't. sidy is already on screen.</td></tr>
+      <tr><td>Tab managers<small>Toby, Workona</small></td><td>Save and organize tabs</td><td>Tabs are only the raw material for the next step</td></tr>
+      <tr><td>Desktop pets<small>Comnyang, $3.90 once</small></td><td>Live on screen and react to typing and AI tools</td><td>Side doesn't react. It prepares the step that gets you back in.</td></tr>
+    </tbody>
+  </table>
+  <p class="small" style="margin-top:auto">Free habits such as turning the phone off or working next to someone help some people, but someone avoiding work can't prepare their own first step. Sources: public product pages and reviews, read on Nov 8, 2026.</p>
+</section>
+
+<!-- 8. Traction -->
+<section class="slide canvas">
+  <p class="kicker">Traction, measured live</p>
+  <h2>Counted by Side itself, on our own machine.</h2>
+  <div class="row" style="margin-top:44px; flex:1; align-items:flex-start">
+    <div class="grow">
+      <div class="stats" id="stats" hidden>
+        <div class="stat"><div class="v" data-n="tabsSetAside">–</div><div class="l">tabs set aside</div><div class="n" data-sub="wrapUps"></div></div>
+        <div class="stat"><div class="v" data-n="linesSetAside">–</div><div class="l">lines left for tomorrow</div><div class="n">optional, never required</div></div>
+        <div class="stat"><div class="v" data-n="sidySpoke">–</div><div class="l">times sidy spoke first</div><div class="n">fewer is better</div></div>
+        <div class="stat"><div class="v" data-rate="clickRate">–</div><div class="l">of offered steps clicked</div><div class="n" data-rate-n="clickRate"></div></div>
+        <div class="stat"><div class="v" data-rate="stillWorkingRate">–</div><div class="l">still working 10 min later</div><div class="n" data-rate-n="stillWorkingRate"></div></div>
+        <div class="stat"><div class="v" data-n="waitlistCount">–</div><div class="l">waitlist sign-ups</div><div class="n" data-sub="waitlistAt"></div></div>
+      </div>
+      <div class="card" id="nodata">
+        <p class="nodata" style="margin:0"><b>Live numbers come from our own use of Side during the event.</b> They appear here from Side's local records, with the sample size, once there are records to count. No numbers are estimated or made up.</p>
+        <p class="small" id="waitlist-only" hidden style="margin:20px 0 0"></p>
+      </div>
+      <p class="small" id="sample" style="margin:26px 0 0">n = 1 user (our team), during the event. A small sample: it shows the loop works end to end, not that it scales.</p>
+    </div>
+    <div class="qrbox" style="width:380px">
+      <img class="qr" src="../assets/waitlist-qr.svg" width="320" height="320" alt="QR code for the Side waitlist">
+      <span class="url" data-url></span>
+      <span class="small">Join the waitlist</span>
+    </div>
+  </div>
+</section>
+
+<!-- 9. Business model -->
+<section class="slide">
+  <p class="kicker">Business model</p>
+  <h2>Free builds the habit. Pro pays for what Side prepares.</h2>
+  <table class="bm">
+    <thead><tr><th></th><th>Free</th><th class="pro">Pro (subscription)</th></tr></thead>
+    <tbody>
+      <tr><td>For</td><td>Anyone trying Side</td><td class="pro">People who stop and restart every day</td></tr>
+      <tr><td>Includes</td><td>sidy · Set Aside with Undo · one step that opens where you stopped · excluded sites · What Side saw · group names from Claude</td><td class="pro">Claude prepares your step and today's line · reopens your recent files where you were · results prepared in advance · By your side learning · connected tools</td></tr>
+      <tr><td>Price</td><td>Free</td><td class="pro"><b>To be tested</b>, somewhere between a one-time desktop pet ($3.90) and a planner ($17–22 a month)</td></tr>
+      <tr><td>Unit cost</td><td colspan="2">LLM cost per active user per month = requests a day × tokens per request × model price × 30. Example: <b>about $1.00</b>, assuming 3 requests a day, 1,460 input and 264 output tokens per request (an earlier prototype's measured average, n = 3), and Claude Opus 5.5 list prices of $4 / $20 per million tokens. This is a hypothesis to be measured in the beta.</td></tr>
+      <tr><td>Why they stay</td><td colspan="2">Productivity apps have a 23% median first-year renewal rate (RevenueCat), tied for lowest of any category. Side's answer: nothing piles up while you're away, so coming back is easy. And every step you take teaches the next one, which is hard to leave behind.</td></tr>
+    </tbody>
+  </table>
+  <p class="small" style="margin-top:auto">Beta metrics: share of prepared steps clicked · share still working 10 minutes after clicking · 4-week retention · Free to Pro conversion.</p>
+</section>
+
+<!-- 10. Roadmap -->
+<section class="slide canvas">
+  <p class="kicker">Roadmap: from a hackathon build to a subscription</p>
+  <h2>Toward a personal agent: a focus buddy while you work, a lifestyle consultant around it.</h2>
+  <p class="small" style="margin:18px 0 0">This build is its first slice: stopping and starting again. Chrome is the first connected tool. Each step sends only what that feature needs.</p>
+  <div class="road">
+    <div class="stage now">
+      <h3>Now</h3><p class="who">Hackathon build</p>
+      <ul>
+        <li>Desktop app + Chrome extension</li>
+        <li>All four beats run on real tabs</li>
+        <li>Install from the README alone</li>
+        <li>Waitlist open, step-by-step public commits</li>
+      </ul>
+      <p class="money">First sign-ups from the QR</p>
+    </div>
+    <div class="stage">
+      <h3>Beta</h3><p class="who">Invites from the waitlist</p>
+      <ul>
+        <li>Signed desktop app, Chrome Web Store</li>
+        <li>Login</li>
+        <li>Test whether a step someone else prepared still works, with 5 people first</li>
+        <li>Pricing test, no charge</li>
+      </ul>
+      <p class="money">4-week retention · willingness to pay</p>
+    </div>
+    <div class="stage">
+      <h3>Pro</h3><p class="who">The subscription</p>
+      <ul>
+        <li>Steps Claude prepares, results prepared in advance</li>
+        <li>Conversational planning and schedule adjustment</li>
+        <li>Learning your type: By your side</li>
+        <li>Voice input, detailed stats</li>
+        <li>Make sidy yours: gentle rewards, never streak shame</li>
+      </ul>
+      <p class="money">Payment and subscription start</p>
+    </div>
+    <div class="stage">
+      <h3>Everywhere</h3><p class="who">More tools, more people</p>
+      <ul>
+        <li>Connected tools: calendar, mail, IDE, Claude Code, Microsoft Office, DBMS, desktop music and video apps</li>
+        <li>Windows and mobile</li>
+        <li>More languages, Korean first</li>
+      </ul>
+      <p class="money">More people, higher tiers</p>
+    </div>
+  </div>
+</section>
+
+<!-- 11. Ask -->
+<section class="slide">
+  <div class="ask">
+    <div class="qrbox">
+      <img class="qr" src="../assets/waitlist-qr.svg" width="520" height="520" alt="QR code for the Side waitlist">
+      <span class="url" data-url></span>
+    </div>
+    <div>
+      <p class="kicker">Ask</p>
+      <h1>Join the beta.</h1>
+      <p class="lead">Scan to join the waitlist: one email field, nothing else. In the beta we will measure two numbers.</p>
+      <div class="row" style="margin-top:40px">
+        <div class="card grow"><h3>Steps clicked</h3><p class="muted" style="margin:0">How many of the steps sidy prepares people actually click.</p></div>
+        <div class="card grow"><h3>Still working</h3><p class="muted" style="margin:0">How many keep going 10 minutes after clicking.</p></div>
+      </div>
+      <p class="four beats" style="font-size:34px; margin-top:48px"><b>Set aside.</b> Be beside. <b>Step inside.</b> By your side.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+<script src="numbers.js"></script>
+<script src="deck.js"></script>
+</body>
+</html>

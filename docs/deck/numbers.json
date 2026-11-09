@@ -1,0 +1,23 @@
+{
+  "users": 1,
+  "wrapUps": 0,
+  "tabsSetAside": 0,
+  "linesSetAside": 0,
+  "broughtBackWithUndo": 0,
+  "sidySpoke": 0,
+  "stepsShown": 0,
+  "stepsClicked": 0,
+  "clickRate": {
+    "value": null,
+    "n": 0
+  },
+  "stillWorking10m": 0,
+  "stillWorkingRate": {
+    "value": null,
+    "n": 0
+  },
+  "hasData": false,
+  "generatedAt": "2026-11-09T02:05:28.238Z",
+  "waitlistUrl": "https://side-waitlist.vercel.app",
+  "waitlistCount": 0
+}

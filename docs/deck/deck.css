@@ -1,0 +1,151 @@
+/* Side pitch deck. 1920x1080 slides, print-ready (one slide per page). Tokens follow docs/mockups/direction-1109.md. */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+:root {
+  --ink: #1E2025;
+  --ink2: #5B6168;
+  --paper: #FFFFFF;
+  --canvas: #F2F3F5;
+  --line: #E1E3E8;
+  --blue: #3B54E7;
+  --blue-soft: #EEF1FD;
+  --blue-ink: #3A47C9;
+  --ok: #1F7A5C;
+  --font: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@page { size: 1920px 1080px; margin: 0; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { font-family: var(--font); color: var(--ink); -webkit-font-smoothing: antialiased; background: #C9CED6; }
+.deck { zoom: var(--fit, 1); }
+.slide {
+  position: relative; width: 1920px; height: 1080px; overflow: hidden;
+  background: var(--paper); padding: 104px 128px 96px;
+  display: flex; flex-direction: column;
+  margin: 0 auto 40px; break-after: page; page-break-after: always;
+}
+.slide:last-child { margin-bottom: 0; }
+.slide.canvas { background: var(--canvas); }
+@media print {
+  body { background: none; }
+  .deck { zoom: 1; }
+  .slide { margin: 0; }
+}
+
+/* type */
+.kicker { font-size: 26px; font-weight: 700; color: var(--blue-ink); letter-spacing: .02em; margin: 0 0 22px; }
+h1 { font-size: 88px; line-height: 1.06; letter-spacing: -.02em; font-weight: 800; margin: 0; }
+h2 { font-size: 64px; line-height: 1.1; letter-spacing: -.015em; font-weight: 800; margin: 0; }
+h3 { font-size: 36px; line-height: 1.2; font-weight: 800; margin: 0 0 12px; }
+.lead { font-size: 36px; line-height: 1.4; color: var(--ink2); margin: 28px 0 0; max-width: 1400px; }
+p, li { font-size: 28px; line-height: 1.45; }
+.muted { color: var(--ink2); }
+.small { font-size: 22px; line-height: 1.45; color: var(--ink2); }
+code { font-family: var(--mono); font-size: .92em; background: var(--blue-soft); color: var(--blue-ink); padding: 2px 12px; border-radius: 10px; }
+.foot { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 22px; color: var(--ink2); }
+.beats { font-weight: 700; color: var(--ink); }
+.beats b { color: var(--blue); font-weight: 800; }
+
+/* layout helpers */
+.row { display: flex; gap: 40px; }
+.grow { flex: 1; }
+.card { background: var(--canvas); border-radius: 28px; padding: 40px 44px; }
+.slide.canvas .card { background: var(--paper); }
+.card.blue { background: var(--blue-soft); }
+.num { font-size: 30px; font-weight: 800; color: var(--blue); margin-right: 14px; }
+
+/* sidy */
+.sidy { display: block; }
+
+/* slide 1 */
+.title { flex: 1; display: flex; align-items: center; gap: 96px; }
+.title .name { font-size: 160px; font-weight: 800; letter-spacing: -.04em; line-height: 1; margin: 0; }
+.title .tag { font-size: 52px; font-weight: 700; margin: 24px 0 0; }
+.title .four { font-size: 34px; color: var(--ink2); margin: 40px 0 0; line-height: 1.5; }
+
+/* slide 2 */
+.quote { font-size: 34px; line-height: 1.4; font-weight: 600; margin: 0 0 18px; }
+.quote::before { content: "\201C"; color: var(--blue); }
+.quote::after { content: "\201D"; color: var(--blue); }
+
+/* slide 3 */
+.conds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; margin-top: auto; }
+.conds .card { padding: 36px; }
+.conds h3 { font-size: 34px; }
+
+/* slide 4 */
+.beatgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; margin-top: 52px; flex: 1; }
+.beat { background: var(--canvas); border-radius: 28px; padding: 32px 32px 30px; display: flex; flex-direction: column; }
+.beat .frame { display: block; width: 100%; height: auto; aspect-ratio: 400 / 176; background: var(--paper); border-radius: 18px; margin-bottom: 24px; overflow: hidden; }
+.beat h3 { font-size: 40px; margin-bottom: 6px; }
+.beat .moment { font-size: 24px; font-weight: 700; color: var(--blue-ink); margin: 0 0 14px; }
+.beat p { font-size: 25px; margin: 0; }
+.beat .measure { margin-top: auto; padding-top: 18px; font-size: 22px; color: var(--ink2); border-top: 2px solid var(--line); }
+
+/* slide 5 */
+.timeline { display: flex; height: 132px; border-radius: 24px; overflow: hidden; margin-top: 64px; }
+.timeline div { display: flex; flex-direction: column; justify-content: center; padding: 0 26px; color: #fff; font-size: 26px; font-weight: 800; border-right: 3px solid #fff; }
+.timeline div:last-child { border-right: 0; }
+.timeline small { font-size: 22px; font-weight: 600; opacity: .95; }
+.timeline .t0 { background: #5B6168; flex: 10; }
+.timeline .t1 { background: var(--blue); flex: 25; }
+.timeline .t2 { background: #2F45C8; flex: 15; }
+.timeline .t3 { background: #3A47C9; flex: 20; }
+.timeline .t4 { background: var(--ink); flex: 20; }
+.scenes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; margin-top: 44px; }
+.scenes p { font-size: 25px; margin: 0; }
+
+/* slide 6 */
+.never { columns: 1; margin: 0; padding: 0; list-style: none; }
+.never li { font-size: 27px; padding: 9px 0 9px 44px; position: relative; }
+.never li::before { content: ""; position: absolute; left: 4px; top: 25px; width: 22px; height: 4px; background: var(--blue); border-radius: 2px; }
+.data li, .notyet li { font-size: 25px; }
+ul.plain { margin: 0; padding-left: 30px; }
+ul.plain li { margin-bottom: 8px; }
+
+/* slide 7 */
+table.cmp { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 48px; font-size: 26px; }
+table.cmp th { text-align: left; font-size: 22px; color: var(--ink2); font-weight: 700; padding: 0 28px 16px; }
+table.cmp td { padding: 26px 28px; vertical-align: top; line-height: 1.4; border-top: 2px solid var(--line); }
+table.cmp td:first-child { font-weight: 800; width: 380px; }
+table.cmp td:first-child small { display: block; font-weight: 500; color: var(--ink2); font-size: 22px; margin-top: 4px; }
+table.cmp td:last-child { color: var(--ink); font-weight: 600; }
+
+/* slide 8 */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 48px; }
+.stat { background: var(--canvas); border-radius: 28px; padding: 34px 40px; }
+.stat .v { font-size: 92px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.stat .l { font-size: 26px; margin-top: 12px; font-weight: 700; }
+.stat .n { font-size: 22px; color: var(--ink2); margin-top: 6px; }
+.nodata { font-size: 30px; line-height: 1.45; }
+.qrbox { background: var(--paper); border: 2px solid var(--line); border-radius: 28px; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.qrbox img { display: block; }
+.qrbox .missing { display: flex; align-items: center; justify-content: center; text-align: center; border: 3px dashed var(--line); border-radius: 18px; color: var(--ink2); font-size: 22px; padding: 20px; }
+.url { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--blue-ink); white-space: nowrap; }
+.ask .url { font-size: 28px; }
+
+/* slide 9 */
+table.bm { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 40px; }
+table.bm th { text-align: left; padding: 0 30px 14px; font-size: 32px; }
+table.bm th.pro { color: var(--blue); }
+table.bm td { padding: 18px 30px; font-size: 25px; line-height: 1.4; vertical-align: top; border-top: 2px solid var(--line); }
+table.bm td:first-child { width: 220px; font-weight: 800; color: var(--ink2); font-size: 22px; }
+table.bm td.pro { background: var(--blue-soft); }
+
+/* slide 10 */
+.road { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-top: 40px; flex: 1; }
+.stage { background: var(--canvas); border-radius: 28px; padding: 30px 30px 26px; display: flex; flex-direction: column; }
+.slide.canvas .stage { background: var(--paper); }
+.slide.canvas .stage.now, .stage.now { background: var(--blue-soft); }
+.stage h3 { font-size: 36px; margin-bottom: 4px; }
+.stage .who { font-size: 22px; font-weight: 700; color: var(--blue-ink); margin: 0 0 14px; }
+.stage ul { margin: 0; padding-left: 26px; }
+.stage li { font-size: 23px; line-height: 1.38; margin-bottom: 7px; }
+.stage .money { margin-top: auto; padding-top: 14px; border-top: 2px solid var(--line); font-size: 22px; font-weight: 700; }
+
+/* slide 11 */
+.ask { flex: 1; display: flex; align-items: center; gap: 96px; }
+.ask .qrbox { padding: 36px; }
