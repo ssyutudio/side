@@ -1,0 +1,4 @@
+**/*.test.ts
+lib/testing.ts
+scripts/
+sql/
