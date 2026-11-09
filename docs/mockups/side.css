@@ -295,4 +295,7 @@ kbd{font-family:var(--font);font-size:14px;border:1.5px solid var(--line);border
 .ask .row input{height:44px}
 .reply>p.note{font-size:13px}
 .reply .copy code{font-family:var(--font);font-size:15px}
-.compact .sec{margin-bottom:20px}.compact .tbl td{padding:10px 12px}.compact .sec h2{margin-bottom:8px}
+.compact .sec{margin-bottom:16px}.compact .tbl td{padding:10px 12px}.compact .sec h2{margin-bottom:8px}
+.nw{white-space:nowrap}
+.sheetwin .fx{flex:none}
+.reply p,.ask .note{text-wrap:pretty}

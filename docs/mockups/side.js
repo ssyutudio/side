@@ -379,7 +379,7 @@ S['wrap-files'] = () => ({ bg: chrome({}), edge: 'quiet', ov: panel(`${head(OK, 
 
 /* Return with a file in a desktop app, or a spot in the editor. One action, same bubble as return. */
 S['return-file'] = () => ({ bg: chrome({ tabs: 'after', page: 'vid' }), edge: 'out', ov: bubble(`${X('day-quiet', 'Not now')}
-  <p style="text-wrap:pretty">“why does row 88 not add up” — november-orders is ready to open in Excel.</p>
+  <p style="text-wrap:pretty">“why does row 88 not add up” — <span class="nw">november-orders</span> is ready to open in Excel.</p>
   <span class="meta">Last wrap-up · Yesterday</span>
   <div class="row"><button class="btn fill grow" onclick="go('return-file-done')">Step inside</button><button class="btn grow" onclick="go('rest')">Rest today</button></div>`, { w: 360, h: 196 }) });
 S['return-editor'] = () => ({ bg: chrome({ tabs: 'after', page: 'vid' }), edge: 'out', ov: bubble(`${X('day-quiet', 'Not now')}
@@ -399,13 +399,13 @@ function sheetBg() {
    <table class="xl"><thead><tr><th></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 S['return-file-done'] = () => { auto('file-quiet', 4000); return { bg: sheetBg(), edge: 'out',
-  ov: bubble(`${X('file-quiet')}<p style="margin-bottom:0;text-wrap:pretty">Go to the last filled cell of november-orders in Excel — done.</p>`, { w: 360, h: 72 }) }; };
+  ov: bubble(`${X('file-quiet')}<p style="margin-bottom:0;text-wrap:pretty">Go to the last filled cell of <span class="nw">november-orders</span> in Excel — done.</p>`, { w: 360, h: 72 }) }; };
 S['file-quiet'] = () => ({ bg: sheetBg(), edge: 'quiet' });
 
 /* What Side saw, with files and editor spots. */
 S['saw-files'] = M('saw', `<div class="compact"><h1>What Side saw</h1><p class="lead">From your last wrap-up, Mon, Nov 9.</p>
   <div class="counts" style="margin:0 0 6px"><span><b>37</b>tabs read</span><span><b>1</b>skipped</span><span><b>36</b>titles sent to Claude</span></div>
-  <div class="counts" style="margin:0 0 24px"><span><b>3</b>files read</span><span><b>1</b>skipped (excluded folder)</span><span><b>1</b>editor spot</span></div>
+  <div class="counts" style="margin:0 0 18px"><span><b>3</b>files read</span><span><b>1</b>skipped (excluded folder)</span><span><b>1</b>editor spot</span></div>
   <section class="sec"><h2>Read</h2><p class="note" style="margin:-4px 0 10px">Title, address and where you stopped on the page. Never the page text.</p>
   <table class="tbl"><thead><tr><th>Tab</th><th>Site</th><th>Where you stopped</th></tr></thead><tbody>
    <tr><td>Pricing page — draft</td><td>docs.google.com</td><td>“Annual plans save 20%…”</td></tr>
@@ -418,7 +418,7 @@ S['saw-files'] = M('saw', `<div class="compact"><h1>What Side saw</h1><p class="
    <tr><td>q4-plan.docx</td><td>Word</td><td>Name · last used yesterday</td></tr>
    <tr><td>retry.test.ts</td><td>VS Code</td><td>Name · line 88 (editor spot)</td></tr></tbody></table></section>
   <section class="sec"><h2>Skipped</h2><div class="quiet"><ul style="margin:0;padding-left:18px"><li>1 tab from client-portal.acme.com — excluded site, not read.</li><li>1 file in an excluded folder — not read.</li></ul></div></section>
-  <section class="sec"><h2>Sent off this computer</h2><p class="quiet">36 tab titles and your one line, to Claude (Anthropic), to name 3 groups and suggest tomorrow's question. No addresses, no page text, no file names, nothing from excluded sites. Anonymous counts: off. <button class="link" onclick="go('main-settings')">Settings</button></p></section></div>`);
+  <section class="sec"><h2>Sent off this computer</h2><p class="quiet">36 tab titles, 2 file names (no folders) and your one line, to Claude (Anthropic), to name 3 groups and pick your next step. No addresses, no page text, no file contents, nothing from excluded sites or folders. Anonymous counts: off. <button class="link" onclick="go('main-settings')">Settings</button></p></section></div>`);
 
 /* Ask sidy in Mini: one line becomes at most one fixed action. Wording from core/askSidy.ts askCopy. */
 const ASK_ACTS = [['Set aside today', 'wrap-preview'], ['Open the next step', 'opened'], ['One more hour', 'omh'], ['Quiet for 1 hour', 'quiet-night'],
