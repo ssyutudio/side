@@ -46,6 +46,11 @@ export interface ChromeApi {
       get(keys: string | string[]): Promise<Record<string, unknown>>;
       set(items: Record<string, unknown>): Promise<void>;
     };
+    /** Survives the service worker sleeping, cleared when the browser closes. */
+    session: {
+      get(keys: string | string[]): Promise<Record<string, unknown>>;
+      set(items: Record<string, unknown>): Promise<void>;
+    };
   };
   permissions: {
     contains(p: { origins: string[] }): Promise<boolean>;

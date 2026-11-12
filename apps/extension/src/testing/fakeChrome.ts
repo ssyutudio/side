@@ -78,6 +78,7 @@ export function createFakeChrome(initialTabs: FakeTab[] = []) {
   const tabs = new Map<number, FakeTab>();
   const groups = new Map<number, FakeGroup>();
   const store: Record<string, unknown> = {};
+  const sessionStore: Record<string, unknown> = {};
   let nextTabId = 1000;
   let nextGroupId = 500;
   const calls: string[] = [];
@@ -115,6 +116,10 @@ export function createFakeChrome(initialTabs: FakeTab[] = []) {
     onRemoved: new FakeEvent(),
     onUpdated: new FakeEvent(),
     onActivated: new FakeEvent(),
+    onMoved: new FakeEvent(),
+    onAttached: new FakeEvent(),
+    onDetached: new FakeEvent(),
+    onReplaced: new FakeEvent(),
   };
 
   const chrome = {
@@ -238,6 +243,18 @@ export function createFakeChrome(initialTabs: FakeTab[] = []) {
           for (const k of Array.isArray(keys) ? keys : [keys]) delete store[k];
         },
       },
+      session: {
+        async get(keys: string | string[]) {
+          call('storage.session.get');
+          const out: Record<string, unknown> = {};
+          for (const k of Array.isArray(keys) ? keys : [keys]) if (k in sessionStore) out[k] = JSON.parse(JSON.stringify(sessionStore[k]));
+          return out;
+        },
+        async set(items: Record<string, unknown>) {
+          call('storage.session.set');
+          for (const [k, v] of Object.entries(items)) sessionStore[k] = JSON.parse(JSON.stringify(v));
+        },
+      },
     },
     permissions: {
       async contains(p: { origins?: string[] }) {
@@ -260,6 +277,7 @@ export function createFakeChrome(initialTabs: FakeTab[] = []) {
     tabs,
     groups,
     store,
+    sessionStore,
     calls,
     events,
     /** Make the nth call (1-based, counted from now) of `name` throw. */

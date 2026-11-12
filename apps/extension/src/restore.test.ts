@@ -57,10 +57,29 @@ describe('openStep', () => {
   it('falls back to a text link to the saved sentence when the offset cannot be reached', async () => {
     const f = createFakeChrome([makeTab(2, DOC)]);
     f.permit('https://docs.google.com/*');
-    f.onScript(() => 'none');
+    f.onScript((_t, _a, fn) => (fn === 'quoteInViewInPage' ? true : 'none'));
     const r = await run(f, { stepId: 's1', url: DOC, position: pos });
     expect(r.restored).toBe('text');
     expect(f.tabs.get(2)!.url).toBe(textFragmentUrl(DOC, pos.quote!));
+  });
+
+  it('says top when Chrome did not find the sentence after the text link', async () => {
+    const f = createFakeChrome([makeTab(2, DOC)]);
+    f.permit('https://docs.google.com/*');
+    f.onScript((_t, _a, fn) => (fn === 'quoteInViewInPage' ? false : 'none'));
+    const r = await run(f, { stepId: 's1', url: DOC, position: pos });
+    expect(r).toEqual({ tabId: 2, restored: 'top' });
+  });
+
+  it('keeps hash routes apart when looking for an open tab, and keeps the route in the text link', async () => {
+    const APP = 'https://app.example.com/';
+    const f = createFakeChrome([makeTab(2, APP + '#/doc/6')]);
+    f.permit('https://app.example.com/*');
+    f.onScript((_t, _a, fn) => (fn === 'quoteInViewInPage' ? true : 'none'));
+    const r = await run(f, { stepId: 's1', url: APP + '#/doc/5', position: pos });
+    expect(r.tabId).not.toBe(2);
+    expect(f.tabs.get(r.tabId)!.url).toBe(`${APP}#/doc/5:~:text=${encodeURIComponent(pos.quote!).replace(/-/g, '%2D')}`);
+    expect(f.tabs.get(2)!.url).toBe(APP + '#/doc/6');
   });
 
   it('says top when it has no permission and no sentence, without injecting anything', async () => {
@@ -99,6 +118,7 @@ describe('openStep: the "You stopped here" marker', () => {
   function track(f: FakeChrome, restore: unknown, marker: () => unknown = () => true) {
     const marks: unknown[][] = [];
     f.onScript((_t, args, fn) => {
+      if (fn === 'quoteInViewInPage') return true;
       if (fn === 'showStoppedMarkerInPage') {
         marks.push(args);
         return marker();
@@ -139,7 +159,7 @@ describe('openStep: the "You stopped here" marker', () => {
     const f = createFakeChrome([makeTab(2, 'https://example.com/a')]);
     const marks = track(f, 'exact');
     const r = await run(f, { stepId: 's1', url: 'https://example.com/a', position: pos });
-    expect(r.restored).toBe('text');
+    expect(r.restored).toBe('top');
     expect(marks).toEqual([]);
   });
 
@@ -155,7 +175,13 @@ describe('openStep: the "You stopped here" marker', () => {
 });
 
 describe('textFragmentUrl', () => {
-  it('drops any old hash and escapes the characters text fragments reserve', () => {
-    expect(textFragmentUrl('https://a.com/p#old', 'a-b, c & d')).toBe('https://a.com/p#:~:text=a%2Db%2C%20c%20%26%20d');
+  it('escapes the characters text fragments reserve', () => {
+    expect(textFragmentUrl('https://a.com/p', 'a-b, c & d')).toBe('https://a.com/p#:~:text=a%2Db%2C%20c%20%26%20d');
+  });
+
+  it('keeps the route, and replaces only an old text directive', () => {
+    expect(textFragmentUrl('https://a.com/#/doc/5', 'hi')).toBe('https://a.com/#/doc/5:~:text=hi');
+    expect(textFragmentUrl('https://a.com/#/doc/5:~:text=old', 'hi')).toBe('https://a.com/#/doc/5:~:text=hi');
+    expect(textFragmentUrl('https://a.com/p#:~:text=old', 'hi')).toBe('https://a.com/p#:~:text=hi');
   });
 });

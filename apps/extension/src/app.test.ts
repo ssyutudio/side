@@ -96,6 +96,45 @@ describe('startExtension', () => {
     expect(t1.position).toEqual(pos);
   });
 
+  it('still captures the tab the user left after the worker slept and forgot its memory', async () => {
+    const { ext, f, sockets } = boot();
+    await ext.ready;
+    f.tabs.get(1)!.active = false;
+    f.tabs.get(2)!.active = true;
+    f.events.onActivated.fire({ tabId: 2, windowId: 1 });
+    await vi.advanceTimersByTimeAsync(600);
+
+    // The worker restarts: new in-memory state, same Chrome (session storage survives).
+    for (const e of Object.values(f.events)) e.listeners = [];
+    f.tabs.get(2)!.active = false;
+    f.tabs.get(3)!.active = true;
+    const woken = startExtension({
+      api: f.chrome as unknown as ChromeApi,
+      tabEvents: f.chrome.tabs,
+      createSocket: (url) => {
+        const s = new FakeSocket(url);
+        sockets.push(s);
+        return s;
+      },
+      version: '0.1.0',
+    });
+    f.events.onActivated.fire({ tabId: 3, windowId: 1 });
+    await vi.advanceTimersByTimeAsync(600);
+    await woken.ready;
+    expect(woken.tracker.positions.get(2)).toEqual(pos);
+  });
+
+  it.each(['onMoved', 'onAttached', 'onDetached', 'onReplaced'] as const)('sends a fresh report after %s', async (name) => {
+    const { ext, sock, reports, f } = boot();
+    await ext.ready;
+    sock().open();
+    await vi.advanceTimersByTimeAsync(600);
+    const before = reports().length;
+    f.events[name].fire(2, {});
+    await vi.advanceTimersByTimeAsync(600);
+    expect(reports().length).toBe(before + 1);
+  });
+
   it('captures the active tabs before answering tabs.request', async () => {
     const { ext, sock, reports } = boot();
     await ext.ready;

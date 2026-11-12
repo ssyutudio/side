@@ -172,10 +172,12 @@ export async function applyWrapup(
 
   // Name and fold each group that still has tabs.
   const stillLive = new Set((await chromeCall(() => api.tabGroups.query({}))).map((g) => g.id));
+  // Folding a group that holds the tab the user is looking at makes Chrome switch them to another tab.
+  const holdsActive = new Set((await chromeCall(() => api.tabs.query({ active: true }))).map((t) => t.groupId));
   for (const [slot, gid] of Object.entries(j.groupIds)) {
     if (!stillLive.has(gid)) continue;
     const name = j.groups.find((x) => slot.startsWith(x.key + '@'))?.name ?? '';
-    await chromeCall(() => api.tabGroups.update(gid, { title: name, collapsed: true }));
+    await chromeCall(() => api.tabGroups.update(gid, holdsActive.has(gid) ? { title: name } : { title: name, collapsed: true }));
   }
   await save();
   return resultOf(j);

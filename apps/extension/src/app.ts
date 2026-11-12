@@ -20,6 +20,10 @@ export interface ExtensionEnv {
     onRemoved: EventLike<(tabId: number, info: unknown) => void>;
     onUpdated: EventLike<(tabId: number, change: Record<string, unknown>, tab?: TabLike) => void>;
     onActivated: EventLike<(info: { tabId: number; windowId: number }) => void>;
+    onMoved: EventLike<(tabId: number, info: unknown) => void>;
+    onAttached: EventLike<(tabId: number, info: unknown) => void>;
+    onDetached: EventLike<(tabId: number, info: unknown) => void>;
+    onReplaced: EventLike<(addedTabId: number, removedTabId: number) => void>;
   };
   groupEvents?: {
     onUpdated: EventLike<(group: unknown) => void>;
@@ -37,13 +41,16 @@ export interface ExtensionEnv {
 export const KEEPALIVE_ALARM = 'side-keepalive';
 const REPORT_DEBOUNCE_MS = 500;
 const CAPTURE_TIMEOUT_MS = 1500;
+const LAST_ACTIVE_KEY = 'side.lastActive';
 const REPORT_ON: readonly string[] = ['status', 'title', 'url', 'groupId', 'pinned', 'audible'];
 
 export function startExtension(env: ExtensionEnv) {
   const { api } = env;
   const now = env.now ?? (() => Date.now());
   const tracker = new PositionTracker(api, { timeoutMs: CAPTURE_TIMEOUT_MS });
+  // Window -> the tab the user is on. Mirrored to session storage because a sleeping worker forgets memory.
   const lastActive = new Map<number, number>();
+  const saveLastActive = () => api.storage.session.set({ [LAST_ACTIVE_KEY]: Object.fromEntries(lastActive) }).catch(() => undefined);
   const runCommand = createCommandRunner({
     api,
     getExclusions: () => loadExclusions(api),
@@ -107,13 +114,39 @@ export function startExtension(env: ExtensionEnv) {
   env.tabEvents.onUpdated.addListener((_id, change) => {
     if (REPORT_ON.some((k) => k in change)) scheduleReport();
   });
+  // Positions and last-active tabs are read back before any activation is handled, one at a time.
+  let activations: Promise<unknown> = (async () => {
+    await tracker.load().catch(() => undefined);
+    try {
+      const saved = (await api.storage.session.get(LAST_ACTIVE_KEY))[LAST_ACTIVE_KEY];
+      if (saved && typeof saved === 'object') {
+        for (const [w, t] of Object.entries(saved)) if (typeof t === 'number') lastActive.set(Number(w), t);
+      }
+    } catch {
+      // Without it the first activation just has nothing to capture.
+    }
+    const active = await api.tabs.query({ active: true }).catch(() => [] as TabLike[]);
+    for (const t of active) if (t.id !== undefined && !lastActive.has(t.windowId)) lastActive.set(t.windowId, t.id);
+    await saveLastActive();
+  })();
   env.tabEvents.onActivated.addListener(({ tabId, windowId }) => {
-    const left = lastActive.get(windowId);
-    lastActive.set(windowId, tabId);
-    const capture = left !== undefined && left !== tabId
-      ? api.tabs.get(left).then((t) => tracker.capture(t)).catch(() => null)
-      : Promise.resolve(null);
-    void capture.then(() => scheduleReport());
+    activations = activations
+      .then(async () => {
+        const left = lastActive.get(windowId);
+        lastActive.set(windowId, tabId);
+        await saveLastActive();
+        if (left !== undefined && left !== tabId) await api.tabs.get(left).then((t) => tracker.capture(t)).catch(() => null);
+      })
+      .catch(() => undefined)
+      .then(() => scheduleReport());
+  });
+  // Dragging a tab between windows or positions changes its index and window.
+  env.tabEvents.onMoved.addListener(() => scheduleReport());
+  env.tabEvents.onAttached.addListener(() => scheduleReport());
+  env.tabEvents.onDetached.addListener(() => scheduleReport());
+  env.tabEvents.onReplaced.addListener((_added, removed) => {
+    void tracker.forget(removed).catch(() => undefined);
+    scheduleReport();
   });
   env.groupEvents?.onUpdated.addListener(() => scheduleReport());
   env.groupEvents?.onRemoved?.addListener(() => scheduleReport());
@@ -124,9 +157,7 @@ export function startExtension(env: ExtensionEnv) {
   });
 
   const ready = (async () => {
-    await tracker.load().catch(() => undefined);
-    const active = await api.tabs.query({ active: true }).catch(() => [] as TabLike[]);
-    for (const t of active) if (t.id !== undefined) lastActive.set(t.windowId, t.id);
+    await activations;
     bridge.connect();
   })();
 

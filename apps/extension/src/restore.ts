@@ -4,7 +4,7 @@ import type { PagePosition, StepOpenPayload, StepOpenResult } from '@side/shared
 import { isWebUrl, urlOf } from './api';
 import type { ChromeApi, TabLike } from './api';
 import { RejectedError, chromeCall } from './journal';
-import { restorePositionInPage, withTimeout } from './position';
+import { pageKey, quoteInViewInPage, restorePositionInPage, withTimeout } from './position';
 import { showStoppedMarkerInPage } from './marker';
 import { COPY } from './copy';
 
@@ -13,12 +13,13 @@ export interface OpenOptions {
   restoreWaitMs: number;
 }
 
-const pageKey = (url: string) => url.split('#')[0];
-
-/** URL that asks Chrome to scroll to and highlight `quote` (Text Fragments). */
+/** URL that asks Chrome to scroll to and highlight `quote` (Text Fragments). Keeps the page and any #route. */
 export function textFragmentUrl(url: string, quote: string): string {
   const enc = encodeURIComponent(quote).replace(/-/g, '%2D');
-  return `${pageKey(url)}#:~:text=${enc}`;
+  const hash = url.indexOf('#');
+  const base = hash < 0 ? url : url.slice(0, hash);
+  const frag = hash < 0 ? '' : url.slice(hash + 1).split(':~:')[0];
+  return `${base}#${frag}:~:text=${enc}`;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -58,6 +59,19 @@ async function markSpot(api: ChromeApi, tabId: number, url: string, pos: PagePos
     );
   } catch {
     // The page refused or went away; the spot is still restored.
+  }
+}
+
+async function quoteOnScreen(api: ChromeApi, tabId: number, url: string, quote: string, waitMs: number): Promise<boolean> {
+  try {
+    if (!(await canInject(api, url))) return false;
+    const res = await withTimeout(
+      api.scripting.executeScript({ target: { tabId }, func: quoteInViewInPage, args: [quote, Math.min(waitMs, 2000)] }),
+      Math.min(waitMs, 2000) + 2000,
+    );
+    return res?.[0]?.result === true;
+  } catch {
+    return false;
   }
 }
 
@@ -101,8 +115,12 @@ export async function openStep(api: ChromeApi, p: StepOpenPayload, opts: OpenOpt
   }
   if (pos.quote) {
     await chromeCall(() => api.tabs.update(tabId, { url: textFragmentUrl(parsed.href, pos.quote as string) }));
-    if (await waitForLoad(api, tabId, opts.loadTimeoutMs)) await markSpot(api, tabId, parsed.href, pos, 'center');
-    return { tabId, restored: 'text' };
+    // Chrome ignores a text link it cannot match, so only claim the spot after seeing the sentence on screen.
+    if ((await waitForLoad(api, tabId, opts.loadTimeoutMs)) && (await quoteOnScreen(api, tabId, parsed.href, pos.quote, opts.restoreWaitMs))) {
+      await markSpot(api, tabId, parsed.href, pos, 'center');
+      return { tabId, restored: 'text' };
+    }
+    return { tabId, restored: 'top' };
   }
   return { tabId, restored: 'top' };
 }

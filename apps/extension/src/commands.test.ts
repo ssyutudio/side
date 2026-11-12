@@ -56,6 +56,16 @@ describe('command runner', () => {
     expect(payloadOf(none).error!.kind).toBe('rejected');
   });
 
+  it('keeps an error message within the 1000 characters the app accepts', async () => {
+    const b = setup();
+    b.f.chrome.tabs.group = async () => {
+      throw new Error('boom '.repeat(1000));
+    };
+    const m = payloadOf(await b.run(apply())).error!.message;
+    expect(m.length).toBeLessThanOrEqual(1000);
+    expect(m).toContain('boom');
+  });
+
   it('runs commands one at a time, so an Undo sent right after Apply sees the finished wrap up', async () => {
     const { f, run } = setup();
     const [r1, r2] = await Promise.all([run(apply([2, 3])), run(makeMessage('cmd.wrapup.undo', { setAsideId: 'sa' }))]);

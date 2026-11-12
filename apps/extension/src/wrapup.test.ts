@@ -89,6 +89,18 @@ describe('applyWrapup', () => {
     expect([2, 3, 7].map((id) => f.tabs.get(id)!.groupId)).toEqual([retryGroups[0].id, retryGroups[0].id, retryGroups[0].id]);
   });
 
+  it('names but does not fold a reused group that holds the tab the user is on', async () => {
+    const f = world();
+    await applyWrapup(api(f), payload({ groups: [{ key: 'g-retry', name: 'Retry tests', tabIds: [2] }] }), [], 1);
+    f.tabs.get(1)!.active = false;
+    f.tabs.get(2)!.active = true;
+    const gid = f.tabs.get(2)!.groupId;
+    f.groups.get(gid)!.collapsed = false;
+    await applyWrapup(api(f), payload({ setAsideId: 'sa-2', groups: [{ key: 'g-retry', name: 'Retry tests', tabIds: [3] }] }), [], 2);
+    expect(f.tabs.get(3)!.groupId).toBe(gid);
+    expect(f.groups.get(gid)).toMatchObject({ title: 'Retry tests', collapsed: false });
+  });
+
   it('does not add to a group the user made, even with the same name', async () => {
     const f = world();
     f.groups.get(90)!.title = 'Retry tests';

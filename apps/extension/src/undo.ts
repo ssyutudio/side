@@ -22,6 +22,18 @@ export async function undoWrapup(api: ChromeApi, setAsideId: string): Promise<Un
 
   const sideGroups = new Set(Object.values(j.groupIds));
   const all = await chromeCall(() => api.tabs.query({}));
+
+  // A tab left 'closing' (the worker died or the next save failed) is either gone, so reopen it,
+  // or still here, so treat it as grouped and release it.
+  const liveIds = new Set(all.map((t) => t.id));
+  let resolved = false;
+  for (const [id, jt] of Object.entries(j.tabs)) {
+    if (jt.state !== 'closing') continue;
+    jt.state = liveIds.has(Number(id)) ? 'grouped' : 'closed';
+    resolved = true;
+  }
+  if (resolved) await saveJournal(api, j);
+
   const toUngroup = all
     .filter((t) => t.id !== undefined && sideGroups.has(t.groupId) && j.tabs[t.id]?.state === 'grouped')
     .map((t) => t.id as number);

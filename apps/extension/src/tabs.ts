@@ -7,6 +7,21 @@ import type { ChromeApi, TabLike } from './api';
 
 const EXCLUSIONS_KEY = 'side.exclusions';
 
+// The app drops a whole report if one field is over these limits (see packages/shared messages.ts).
+const MAX_TABS = 2000;
+const MAX_URL = 8192;
+const MAX_TITLE = 2000;
+const MAX_GROUP_TITLE = 500;
+const MAX_SELECTOR = 500;
+const MAX_QUOTE = 300;
+
+/** A position the app will accept: one with an over-long selector is useless, an over-long quote is just left out. */
+function fitPosition(p: PagePosition | undefined): PagePosition | null {
+  if (!p) return null;
+  if (p.selector !== null && p.selector.length > MAX_SELECTOR) return null;
+  return p.quote !== null && p.quote.length > MAX_QUOTE ? { ...p, quote: null } : p;
+}
+
 export function buildReport(
   tabs: TabLike[],
   exclusions: readonly string[],
@@ -36,20 +51,26 @@ export function buildReport(
       report.skipped.excludedByDomain[hit] = (report.skipped.excludedByDomain[hit] ?? 0) + 1;
       continue;
     }
+    if (url.length > MAX_URL) {
+      report.skipped.internal++;
+      continue;
+    }
+    if (report.tabs.length >= MAX_TABS) continue;
+    const groupTitle = tab.groupId !== NO_GROUP ? groupTitles.get(tab.groupId) ?? null : null;
     const snap: TabSnapshot = {
       tabId: tab.id,
       windowId: tab.windowId,
       index: tab.index,
       url,
-      title: tab.title ?? '',
+      title: (tab.title ?? '').slice(0, MAX_TITLE),
       lastAccessed: tab.lastAccessed ?? null,
       active: tab.active,
       pinned: tab.pinned,
       audible: tab.audible ?? false,
       incognito: false,
       groupId: tab.groupId ?? NO_GROUP,
-      groupTitle: tab.groupId !== NO_GROUP ? groupTitles.get(tab.groupId) ?? null : null,
-      position: positions.get(tab.id) ?? null,
+      groupTitle: groupTitle === null ? null : groupTitle.slice(0, MAX_GROUP_TITLE),
+      position: fitPosition(positions.get(tab.id)),
     };
     report.tabs.push(snap);
   }

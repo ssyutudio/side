@@ -1,4 +1,4 @@
-import { capturePositionInPage, restorePositionInPage, PositionTracker } from './position';
+import { capturePositionInPage, restorePositionInPage, quoteInViewInPage, pageKey, PositionTracker } from './position';
 import { el, fakeWindow } from './testing/fakeDom';
 import { createFakeChrome, makeTab } from './testing/fakeChrome';
 import type { ChromeApi } from './api';
@@ -50,6 +50,59 @@ describe('capturePositionInPage', () => {
     expect(q.length).toBeLessThanOrEqual(120);
     expect(long.startsWith(q)).toBe(true);
     expect(q.endsWith(' ')).toBe(false);
+  });
+});
+
+describe('pageKey', () => {
+  it('drops plain fragments and text directives but keeps hash routes', () => {
+    expect(pageKey('https://a.com/p#install')).toBe('https://a.com/p');
+    expect(pageKey('https://a.com/p#:~:text=x')).toBe('https://a.com/p');
+    expect(pageKey('https://a.com/#/doc/5')).toBe('https://a.com/#/doc/5');
+    expect(pageKey('https://a.com/#/doc/5:~:text=x')).toBe('https://a.com/#/doc/5');
+    expect(pageKey('https://a.com/#!/x')).toBe('https://a.com/#!/x');
+    expect(pageKey('https://a.com/#/doc/5')).not.toBe(pageKey('https://a.com/#/doc/6'));
+  });
+
+  it('keeps hash-routed pages apart in the position tracker', async () => {
+    const pos: PagePosition = { scroller: 'window', selector: null, top: 10, ratio: 0.1, quote: null, capturedAt: 1 };
+    const fake = createFakeChrome([makeTab(1, 'https://github.com/app#/doc/5')]);
+    fake.permit('https://github.com/*');
+    fake.onScript(() => pos);
+    const t = new PositionTracker(fake.chrome as unknown as ChromeApi, { timeoutMs: 50 });
+    await t.capture(fake.tabs.get(1)!);
+    expect(t.matching([makeTab(1, 'https://github.com/app#/doc/5')]).size).toBe(1);
+    expect(t.matching([makeTab(1, 'https://github.com/app#/doc/6')]).size).toBe(0);
+  });
+});
+
+describe('quoteInViewInPage', () => {
+  // A page of text nodes; each node lists its on-screen box.
+  function page(nodes: { data: string; top: number; bottom: number }[]) {
+    const text = nodes.map((n) => ({ data: n.data, box: n }));
+    let i = 0;
+    const doc = {
+      body: {},
+      createTreeWalker: () => ({ nextNode: () => text[i++] ?? null }),
+      createRange: () => {
+        const r: any = {
+          setStart: (n: any) => (r.a = n),
+          setEnd: (n: any) => (r.b = n),
+          getBoundingClientRect: () => ({ top: r.a.box.top, bottom: r.b.box.bottom }),
+        };
+        return r;
+      },
+    };
+    return { document: doc, innerHeight: 800 };
+  }
+
+  it('finds a sentence across nodes and odd whitespace when it is on screen', async () => {
+    const w = page([{ data: 'Intro. Retries  back', top: 100, bottom: 120 }, { data: ' off\n- then give up.', top: 120, bottom: 140 }]);
+    expect(await quoteInViewInPage('retries back off - then give up', 0, w)).toBe(true);
+  });
+
+  it('says no when the sentence is missing or off screen', async () => {
+    expect(await quoteInViewInPage('not here', 0, page([{ data: 'Something else', top: 10, bottom: 20 }]))).toBe(false);
+    expect(await quoteInViewInPage('far away', 0, page([{ data: 'far away', top: 5000, bottom: 5020 }]))).toBe(false);
   });
 });
 

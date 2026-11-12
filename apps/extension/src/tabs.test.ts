@@ -63,6 +63,41 @@ describe('exclusions storage', () => {
   });
 });
 
+describe('buildReport limits', () => {
+  const big = (n: number) => 'x'.repeat(n);
+
+  it('skips a tab with a URL over 8192 characters and counts it as internal', () => {
+    const r = buildReport([makeTab(1, 'https://a.com/' + big(8200)), makeTab(2, 'https://a.com/ok')], [], new Map(), new Map(), 1);
+    expect(r.tabs.map((t) => t.tabId)).toEqual([2]);
+    expect(r.skipped.internal).toBe(1);
+  });
+
+  it('shortens titles and group titles to what the app accepts', () => {
+    const r = buildReport([makeTab(1, 'https://a.com/', { title: big(3000), groupId: 5 })], [], new Map(), new Map([[5, big(900)]]), 1);
+    expect(r.tabs[0].title).toHaveLength(2000);
+    expect(r.tabs[0].groupTitle).toHaveLength(500);
+  });
+
+  it('drops a position with a too-long selector, and only the quote when the quote is too long', () => {
+    const bad: PagePosition = { ...pos, scroller: 'element', selector: big(501) };
+    const longQuote: PagePosition = { ...pos, quote: big(301) };
+    const r = buildReport(
+      [makeTab(1, 'https://a.com/1'), makeTab(2, 'https://a.com/2')],
+      [],
+      new Map([[1, bad], [2, longQuote]]),
+      new Map(),
+      1,
+    );
+    expect(r.tabs[0].position).toBeNull();
+    expect(r.tabs[1].position).toEqual({ ...pos, quote: null });
+  });
+
+  it('reports at most 2000 tabs', () => {
+    const tabs = Array.from({ length: 2005 }, (_, i) => makeTab(i + 1, `https://a.com/${i}`));
+    expect(buildReport(tabs, [], new Map(), new Map(), 1).tabs).toHaveLength(2000);
+  });
+});
+
 describe('createDebouncer', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());

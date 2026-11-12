@@ -103,6 +103,21 @@ describe('undoWrapup', () => {
     expect(closedUrls.filter((u) => u !== U(3)).map((u) => countUrl(f, u))).toEqual([1, 1, 1]);
   });
 
+  it("resolves tabs left 'closing': a gone one is reopened, a present one is released", async () => {
+    const f = await wrapped();
+    const key = 'side.journal.sa-1';
+    const j = f.store[key] as any;
+    j.tabs['2'].state = 'closing'; // closed in Chrome, but the journal never learned
+    j.tabs['4'].state = 'closing'; // still open and grouped
+    expect(f.tabs.has(2)).toBe(false);
+    expect(f.tabs.get(4)!.groupId).not.toBe(-1);
+    const r = await undoWrapup(api(f), 'sa-1');
+    expect(countUrl(f, U(2))).toBe(1);
+    expect(f.tabs.get(4)!.groupId).toBe(-1);
+    expect(r.reopened).toBe(4);
+    expect(r.ungrouped).toContain(4);
+  });
+
   it('rejects an unknown set-aside', async () => {
     const f = createFakeChrome();
     await expect(undoWrapup(api(f), 'nope')).rejects.toBeInstanceOf(RejectedError);

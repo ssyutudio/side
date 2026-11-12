@@ -18,12 +18,19 @@ export interface CommandDeps {
   openOptions: OpenOptions;
 }
 
+// The app drops a cmd.result whose error message is over 1000 characters.
+const MAX_MESSAGE = 1000;
+
 function failure(e: unknown): CmdResultPayload {
-  const detail = e instanceof Error ? e.message : String(e);
-  if (e instanceof StorageError) return { ok: false, error: { kind: 'storage', message: COPY.storageFailed(detail) } };
-  if (e instanceof RejectedError) return { ok: false, error: { kind: 'rejected', message: detail } };
-  if (e instanceof ChromeError) return { ok: false, error: { kind: 'chrome', message: COPY.chromeFailed(detail) } };
-  return { ok: false, error: { kind: 'chrome', message: COPY.unexpected(detail) } };
+  const detail = (e instanceof Error ? e.message : String(e)).slice(0, 600);
+  const fail = (kind: 'storage' | 'chrome' | 'rejected', message: string): CmdResultPayload => ({
+    ok: false,
+    error: { kind, message: message.slice(0, MAX_MESSAGE) },
+  });
+  if (e instanceof StorageError) return fail('storage', COPY.storageFailed(detail));
+  if (e instanceof RejectedError) return fail('rejected', detail);
+  if (e instanceof ChromeError) return fail('chrome', COPY.chromeFailed(detail));
+  return fail('chrome', COPY.unexpected(detail));
 }
 
 async function execute(msg: Message, deps: CommandDeps): Promise<CmdResultPayload | null> {
