@@ -87,6 +87,12 @@ describe('Korean dictionary', () => {
     expect(Object.keys(KO).filter((key) => !used.has(key))).toEqual([]);
   });
 
+  it('keeps the side wordplay names in English on Korean screens (Director: they are the fun part)', () => {
+    for (const name of ['Set aside', 'Set aside today', 'Set today aside', 'Step inside', 'Stepped inside', 'By your side', 'Set up Side', 'Open Side', 'What Side saw']) {
+      expect(KO[name]).toBe(name);
+    }
+  });
+
   it('gives a key shared by two parts the same Korean', () => {
     const seen = new Map<string, string>();
     const clashes: string[] = [];

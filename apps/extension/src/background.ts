@@ -1,6 +1,7 @@
 // MV3 service worker entry. Hands the real Chrome APIs and WebSocket to startExtension.
 import type { ChromeApi } from './api';
 import { startExtension } from './app';
+import { httpProbe } from './bridge';
 import type { ExtensionEnv } from './app';
 import type { SocketLike } from './bridge';
 
@@ -10,6 +11,7 @@ const ext = startExtension({
   groupEvents: chrome.tabGroups as unknown as ExtensionEnv['groupEvents'],
   alarms: chrome.alarms as unknown as ExtensionEnv['alarms'],
   createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
+  probe: httpProbe(fetch.bind(globalThis)),
   version: chrome.runtime.getManifest().version,
 });
 

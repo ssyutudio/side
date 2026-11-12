@@ -35,6 +35,8 @@ export interface ExtensionEnv {
     onAlarm: EventLike<(alarm: { name: string }) => void>;
   };
   createSocket: SocketFactory;
+  /** Asks quietly whether the app is there before each socket (see Bridge). */
+  probe?: () => Promise<boolean>;
   version: string;
   now?: () => number;
 }
@@ -109,6 +111,7 @@ export function startExtension(env: ExtensionEnv) {
 
   const bridge = new Bridge({
     createSocket: env.createSocket,
+    probe: env.probe,
     extVersion: env.version,
     onMessage,
     onStatus: (connected) => {

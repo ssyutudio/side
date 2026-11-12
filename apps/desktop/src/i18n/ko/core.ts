@@ -23,7 +23,7 @@ export const CORE: Record<string, string> = {
   '{n} minutes': '{n}분',
   'When do you want to stop?': '언제 멈출까요?',
   'This is the time you picked.': '정한 시간이 됐어요.',
-  'Set aside': '정리하기',
+  'Set aside': 'Set aside',
   'Keep going': '계속하기',
   'Not today': '오늘은 안 할래요',
   '{time} AM': '오전 {time}',
@@ -64,8 +64,8 @@ export const CORE: Record<string, string> = {
 
   // Today so far, and what Side saw
   'sidy offered one step: {work}': 'sidy가 한 걸음을 알려 줬어요: {work}',
-  'You stepped inside': '이어서 하기를 눌렀어요',
-  'You stepped inside — page ready in {secs} s': '이어서 하기를 눌렀어요 — {secs}초 만에 열렸어요',
+  'You stepped inside': 'Step inside를 눌렀어요',
+  'You stepped inside — page ready in {secs} s': 'Step inside를 눌렀어요 — {secs}초 만에 열렸어요',
   'Still on {work} 10 minutes later': '10분 뒤에도 {work} 작업 중이었어요',
   'Moved on within 10 minutes': '10분 안에 다른 일로 넘어갔어요',
   'Not captured': '저장 안 됨',
@@ -84,12 +84,12 @@ export const CORE: Record<string, string> = {
   '{n} steps': '걸음 {n}개',
 
   // Ask sidy
-  'Set aside today': '오늘 정리하기',
+  'Set aside today': 'Set aside today',
   'Open the next step': '다음 한 걸음 열기',
   'One more hour': '한 시간만 더',
   'Quiet for 1 hour': '1시간 조용히',
   'Hide sidy': 'sidy 숨기기',
-  'Open Side': 'Side 열기',
+  'Open Side': 'Open Side',
   'Exclude this site': '이 사이트 제외하기',
   'I can do these:': '이런 걸 할 수 있어요:',
   "That's outside what I do. I help you get back into your own work. I can do these:":

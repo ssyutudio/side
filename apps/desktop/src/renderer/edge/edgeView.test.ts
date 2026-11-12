@@ -90,7 +90,8 @@ describe('Korean', () => {
     expect(h).toContain(`>${ko('Step inside')}</button>`);
     expect(h).toContain(`>${ko('Rest today')}</button>`);
     expect(h).toContain(`aria-label="${ko('Not now')}"`);
-    expect(h).not.toContain('Step inside');
+    // The side wordplay stays English on Korean screens.
+    expect(h).toContain('>Step inside</button>');
   });
 
   it('counts tabs the Korean way in the first-run and check-in bubbles', () => {

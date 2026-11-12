@@ -10,6 +10,14 @@ Side의 한국어 화면에서 쓰는 용어와 말투. 모든 번역은 이 표
 - 문장 끝 마침표는 원문에 있으면 유지. 영어 따옴표 “ ”는 그대로 쓴다.
 - 숫자 + 단위: "탭 3개", "그룹 2개", "30분", "1시간". 영어의 단수/복수 구분은 한국어에서 같은 형태.
 
+## 영어 그대로 두는 말 (side 말장난)
+
+side가 들어간 화면 이름(버튼, 제목, 항목 이름, 창 제목)은 한국어 화면에서도 영어 그대로 둔다. 재미있으니까.
+Set aside, Set aside today, Set today aside, Step inside, Stepped inside, By your side, Be beside,
+Set up Side, Open Side, What Side saw.
+한국어 문장에서 이 이름을 가리킬 때도 영어 이름을 쓴다 ("Step inside를 다시 눌러 보세요").
+다만 문장 속 동사로 쓰인 set aside는 한국어로 풀어 쓴다 ("탭 3개를 그룹 1개로 정리했어요").
+
 ## 고유명사 (번역하지 않음)
 
 Side, sidy, Chrome, Claude, Anthropic, Excel, Word, PowerPoint, Photoshop, Cursor, VS Code, Google Docs, Notion, Figma, GitHub, Dock, macOS
@@ -18,8 +26,7 @@ Side, sidy, Chrome, Claude, Anthropic, Excel, Word, PowerPoint, Photoshop, Curso
 
 | English | 한국어 |
 |---|---|
-| Set aside (today) | (오늘) 정리하기 / 정리해 두기 |
-| Set today aside (제목) | 오늘 정리하기 |
+| set aside (문장 속 동사) | 정리하다 |
 | set-aside, wrap-up (기록) | 정리 |
 | Wrap up | 마무리 |
 | Fold | 접기 |
@@ -27,7 +34,6 @@ Side, sidy, Chrome, Claude, Anthropic, Excel, Word, PowerPoint, Photoshop, Curso
 | Undo | 되돌리기 |
 | group | 그룹 |
 | tab | 탭 |
-| Step inside | 이어서 하기 |
 | next step / step | 다음 한 걸음 / 한 걸음 |
 | Rest today | 오늘은 쉬기 |
 | Not now | 나중에 |
@@ -39,7 +45,6 @@ Side, sidy, Chrome, Claude, Anthropic, Excel, Word, PowerPoint, Photoshop, Curso
 | Quiet hours | 조용한 시간 |
 | Wake-up time | 일어나는 시간 |
 | Excluded sites | 제외한 사이트 |
-| What Side saw | Side가 본 것 |
 | History | 기록 |
 | Today | 오늘 |
 | Settings | 설정 |
@@ -47,7 +52,6 @@ Side, sidy, Chrome, Claude, Anthropic, Excel, Word, PowerPoint, Photoshop, Curso
 | Desktop apps | 데스크톱 앱 |
 | Calendar | 캘린더 |
 | Ask sidy | sidy에게 묻기 |
-| Open Side | Side 열기 |
 | Chrome connected | Chrome 연결됨 |
 | Chrome not connected | Chrome 연결 안 됨 |
 | Breaks | 쉬는 탭 |

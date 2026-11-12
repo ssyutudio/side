@@ -1,11 +1,11 @@
 // Korean for the edge strings. Keys are the exact English passed to t(), tn() or k().
 export const EDGE: Record<string, string> = {
-  'sidy — open Side': 'sidy — Side 열기',
+  'sidy — open Side': 'sidy — Open Side',
   'Not now': '나중에',
   'Close': '닫기',
   'Welcome back.': '다시 오셨네요.',
   'Last wrap-up': '마지막 정리',
-  'Step inside': '이어서 하기',
+  'Step inside': 'Step inside',
   'Rest today': '오늘은 쉬기',
   'one kind of work': '한 가지 일',
   'about {n} kinds of work': '약 {n}가지 일',
@@ -15,8 +15,8 @@ export const EDGE: Record<string, string> = {
   'Show me': '보기',
   'The hour you asked for is up.': '부탁하신 1시간이 지났어요.',
   'The {minutes} minutes you asked for are up.': '부탁하신 {minutes}분이 지났어요.',
-  'Set today aside?': '오늘 정리할까요?',
-  'Set aside': '정리하기',
+  'Set today aside?': 'Set today aside?',
+  'Set aside': 'Set aside',
   'Keep going': '계속하기',
   'Not today': '오늘은 안 할래요',
   'sidy is hidden. Press {keys} or click Side in the Dock.': 'sidy를 숨겼어요. {keys}를 누르거나 Dock에서 Side를 눌러 주세요.',
@@ -24,7 +24,7 @@ export const EDGE: Record<string, string> = {
   'Opening it in Chrome…': 'Chrome에서 여는 중이에요…',
   "Okay. Rest today — I'll stay quiet until tomorrow.": '알겠어요. 오늘은 쉴게요 — 내일까지 조용히 있을게요.',
   'Okay. Your tabs stay as they are. Good night.': '알겠어요. 탭은 그대로 둘게요. 안녕히 주무세요.',
-  'Set up Side': 'Side 시작하기',
+  'Set up Side': 'Set up Side',
   "That file isn't known any more.": '그 파일은 더 이상 찾을 수 없어요.',
   "Couldn't open it in {tool}.": '{tool}에서 열 수 없었어요.',
 };

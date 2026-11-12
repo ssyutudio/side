@@ -30,7 +30,7 @@ export const ONBOARDING: Record<string, string> = {
   'Nothing changes until you choose.': '고르기 전에는 아무것도 바뀌지 않아요.',
   'Meet sidy': 'sidy 만나기',
   'Reading your open tabs…': '열려 있는 탭을 읽는 중…',
-  'Set up Side': 'Side 시작하기',
+  'Set up Side': 'Set up Side',
   'Side is connected': 'Side가 연결됐어요',
   'Two minutes.': '2분이면 돼요.',
   'Side is running': 'Side가 실행 중이에요',

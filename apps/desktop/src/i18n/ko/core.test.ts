@@ -56,12 +56,12 @@ describe('Korean copy', () => {
     expect(r.fact).toBe('지금 자면 오전 7:00 전까지 7시간 동안 잘 수 있어요.');
     expect(r.respect).toBe(moreCopy.respect);
     expect(moreCopy.minutes(30)).toBe('30분');
-    expect(moreCopy.actions.setAside).toBe('정리하기');
+    expect(moreCopy.actions.setAside).toBe('Set aside');
   });
 
   it('answers Ask sidy with fixed Korean wording and takes Korean lines', () => {
     setLanguage('ko');
-    expect(askCopy.actions.set_aside).toBe('오늘 정리하기');
+    expect(askCopy.actions.set_aside).toBe('Set aside today');
     expect(askCopy.howTo('x')).toContain('x');
     expect(decideByWords('오늘 끝')).toMatchObject({ kind: 'action', action: 'set_aside' });
     expect(decideByWords('한 시간만 더 할래')).toMatchObject({ action: 'set_session_check', minutes: 60 });

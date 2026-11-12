@@ -204,7 +204,8 @@ describe('Korean', () => {
     for (const w of ['Step inside', 'Why sidy stayed quiet', 'already spoke within the hour', 'Today so far', 'tabs in Chrome']) expect(h).toContain(ko(w));
     expect(h).toContain(t('You asked: “{asked}”', { asked: 'Will annual pricing beat monthly?' }));
     expect(h).toContain(t('Next step · from {when}', { when: 'yesterday' }));
-    expect(h).not.toContain('Step inside');
+    // The side wordplay stays English on Korean screens.
+    expect(h).toContain('Step inside');
     expect(s(todayView(FIXTURES['first-day']))).toContain(ko('Set today aside when you stop'));
   });
   it('History', () => {

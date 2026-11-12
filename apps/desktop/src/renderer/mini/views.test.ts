@@ -6,6 +6,7 @@ import { oneMoreView, untilWake } from './oneMoreView';
 import { clock } from './parts';
 import { stepOpenedText } from '../shared/stepText';
 import { setLanguage, t, tn } from '../../i18n';
+import { KO } from '../../i18n/ko';
 import type { SetAside } from '@side/shared';
 
 const s = (x: unknown) => String(x);
@@ -302,6 +303,8 @@ describe('Mini in Korean', () => {
   /** The screen has the Korean for an English key, and not the English. */
   const says = (h: string, en: string, vars?: Record<string, string | number>) => {
     const ko = t(en, vars);
+    // The side wordplay names stay English on Korean screens.
+    if (KO[en] === en) return void expect(h).toContain(en);
     expect(ko).not.toBe(en.replace(/\{(\w+)\}/g, (m, k) => String(vars?.[k] ?? m)));
     expect(h).toContain(ko);
     expect(h).not.toContain(en);

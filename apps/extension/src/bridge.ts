@@ -1,6 +1,8 @@
 // WebSocket client from the extension service worker to the Side app on this Mac.
 // Reconnects on its own with backoff, pings so the MV3 worker stays awake while connected,
-// and drops any frame that fails parseMessage.
+// and drops any frame that fails parseMessage. Before each socket it can ask quietly whether the
+// app is there at all: Chrome lists every refused WebSocket under the extension's Errors, so
+// without the probe a closed app fills that page while the extension keeps retrying.
 import {
   BRIDGE_HOST,
   BRIDGE_PORT,
@@ -31,7 +33,24 @@ export interface BridgeOptions {
   onMessage: (msg: Message) => void;
   onStatus?: (connected: boolean) => void;
   url?: string;
+  /** Is the app listening? Asked before each socket; false means wait and ask again later. */
+  probe?: () => Promise<boolean>;
 }
+
+/**
+ * A probe that never shows up as an error: the app answers any plain HTTP request (426), and a
+ * refused fetch rejects quietly. Opaque (no-cors) is enough, nothing is read.
+ */
+export function httpProbe(fetchFn: typeof fetch, url = `http://${BRIDGE_HOST}:${BRIDGE_PORT}/`, timeoutMs = 2000): () => Promise<boolean> {
+  return () =>
+    fetchFn(url, { mode: 'no-cors', cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) }).then(
+      () => true,
+      () => false,
+    );
+}
+
+/** After this many "not there" answers in a row the socket is tried anyway, so a probe that can't get through never keeps the extension from connecting. */
+export const PROBE_TRUST_LIMIT = 8;
 
 const OPEN = 1;
 
@@ -42,6 +61,8 @@ export class Bridge {
   private nextDelay = RECONNECT_MIN_MS;
   private open = false;
   private stopped = false;
+  private probing = false;
+  private notThere = 0;
   private readonly url: string;
 
   constructor(private readonly opts: BridgeOptions) {
@@ -55,11 +76,27 @@ export class Bridge {
   /** Opens a socket unless one is already open or connecting. Safe to call often (alarms, wake-ups). */
   connect(): void {
     this.stopped = false;
-    if (this.socket) return;
+    if (this.socket || this.probing) return;
     if (this.retryTimer) {
       clearTimeout(this.retryTimer);
       this.retryTimer = null;
     }
+    const probe = this.opts.probe;
+    if (!probe || this.notThere + 1 >= PROBE_TRUST_LIMIT) return this.openSocket();
+    this.probing = true;
+    void probe()
+      .catch(() => false)
+      .then((there) => {
+        this.probing = false;
+        if (this.stopped || this.socket) return;
+        if (there) return this.openSocket();
+        this.notThere++;
+        this.scheduleReconnect();
+      });
+  }
+
+  private openSocket(): void {
+    this.notThere = 0;
     let socket: SocketLike;
     try {
       socket = this.opts.createSocket(this.url);
