@@ -3,6 +3,8 @@
 import type { ViewState } from '../../main/viewState';
 import { normalizeDomain } from '@side/shared/src/domain';
 import { getApi } from '../shared/api';
+import { applyLanguage } from '../shared/lang';
+import { t } from '../../i18n';
 import { SECTIONS, errorView, loadingView, shellView, type Section } from './shell';
 import { todayView } from './today';
 import { historyView } from './history';
@@ -49,13 +51,14 @@ function focusKey(el: HTMLElement | null): string | null {
   if (el.id) return `#${CSS.escape(el.id)}`;
   const a = el.dataset.act;
   if (!a) return null;
-  const extra = ['key', 'app', 'size', 'cmd', 'domain'].map((k) => (el.dataset[k] ? `[data-${k}="${CSS.escape(el.dataset[k]!)}"]` : '')).join('');
+  const extra = ['key', 'app', 'size', 'lang', 'cmd', 'domain'].map((k) => (el.dataset[k] ? `[data-${k}="${CSS.escape(el.dataset[k]!)}"]` : '')).join('');
   return `[data-act="${CSS.escape(a)}"]${extra}`;
 }
 
 let drawnSection: string | null = null;
 
 function render() {
+  applyLanguage(api, state);
   const focus = focusKey(document.activeElement as HTMLElement | null);
   // A redraw in the same section (a switch flipped, a state update) keeps the scroll position.
   const scroll = drawnSection === section ? (document.getElementById('content')?.scrollTop ?? 0) : 0;
@@ -118,6 +121,9 @@ root.addEventListener('click', (e) => {
     case 'size':
       setSettings({ sidySize: el.dataset.size });
       break;
+    case 'lang':
+      setSettings({ language: el.dataset.lang === 'ko' ? 'ko' : 'en' });
+      break;
     case 'toggle':
       if (state && (el.dataset.key === 'llmEnabled' || el.dataset.key === 'uploadEnabled')) {
         setSettings({ [el.dataset.key]: !state.settings[el.dataset.key] });
@@ -178,8 +184,8 @@ root.addEventListener('submit', (e) => {
   e.preventDefault();
   if (!state) return;
   const d = normalizeDomain(local.exInput);
-  if (!d) local.exError = "That doesn't look like a site address. Try something like mybank.com.";
-  else if (state.settings.excludedDomains.includes(d)) local.exError = `${d} is already excluded.`;
+  if (!d) local.exError = t("That doesn't look like a site address. Try something like mybank.com.");
+  else if (state.settings.excludedDomains.includes(d)) local.exError = t('{d} is already excluded.', { d });
   else {
     local.exError = null;
     local.exInput = '';
@@ -208,7 +214,7 @@ root.addEventListener('focusout', (e) => {
   // pull the button out from under the click.
   const next = (e as FocusEvent).relatedTarget as HTMLElement | null;
   if (next && el.form?.contains(next)) return;
-  const msg = normalizeDomain(local.exInput) ? null : "That doesn't look like a site address. Try something like mybank.com.";
+  const msg = normalizeDomain(local.exInput) ? null : t("That doesn't look like a site address. Try something like mybank.com.");
   if (msg !== local.exError) {
     local.exError = msg;
     render();

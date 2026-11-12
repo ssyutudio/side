@@ -5,9 +5,11 @@ import { hostOf, type KeepReason, type QuietReason, type SetAside, type SetAside
 import type { AppData } from './appData';
 import type { BridgeStatus } from './bridge';
 import type { Bubble } from './speakService';
-import { currentStep, enabledApps, latestSetAside } from '../core/step';
+import { currentStep, enabledApps, latestSetAside, stepLabelFor } from '../core/step';
+import { displayGroupName } from '../core/grouping';
+import { t } from '../i18n';
 import { sideNumbers, type SideNumbers } from '../core/stats';
-import { dayLabel } from '../core/dateLabel';
+import { dayKind, dayLabel } from '../core/dateLabel';
 import { todayDone, workDayOf, workName } from '../core/todayDone';
 import { done } from '../core/copy';
 import { STILL_WORKING_AFTER_MS, type PagePosition } from '@side/shared';
@@ -21,7 +23,7 @@ export interface ViewState {
   /** Side's clock (demo clock included), so screens can show times. */
   now: number;
   connection: BridgeStatus;
-  step: { id: string; label: string; when: string; host: string | null; hasPosition: boolean } | null;
+  step: { id: string; label: string; when: string; whenKind: 'today' | 'yesterday' | 'earlier'; host: string | null; hasPosition: boolean } | null;
   bubble: Bubble | null;
   numbers: SideNumbers;
   todayLines: string[];
@@ -31,6 +33,8 @@ export interface ViewState {
     id: string;
     status: SetAsideStatus;
     when: string;
+    /** Which day `when` names, for code that decides by it (the label itself is translated). */
+    whenKind: 'today' | 'yesterday' | 'earlier';
     groups: { key: string; name: string; count: number }[];
     kept: { title: string; reason: KeepReason }[];
     closed: number;
@@ -81,10 +85,10 @@ export interface ViewInput {
 
 /** Where the user was on a page, in words. */
 function whereOf(p: PagePosition | null): string {
-  if (!p) return 'Not captured';
+  if (!p) return t('Not captured');
   if (p.quote) return `“${p.quote}”`;
-  if (p.ratio > 0) return `${Math.round(p.ratio * 100)}% down the page`;
-  return 'Top of page';
+  if (p.ratio > 0) return t('{percent}% down the page', { percent: Math.round(p.ratio * 100) });
+  return t('Top of page');
 }
 
 function buildTimeline(data: AppData, now: number): ViewState['timeline'] {
@@ -101,13 +105,13 @@ function buildTimeline(data: AppData, now: number): ViewState['timeline'] {
     const step = data.steps.find((s) => s.id === ev.stepId);
     if (!step) continue;
     const work = workName(step);
-    if (isToday(ev.shownAt)) items.push({ at: ev.shownAt, text: `sidy offered one step: ${work}`, strong: true });
+    if (isToday(ev.shownAt)) items.push({ at: ev.shownAt, text: t('sidy offered one step: {work}', { work }), strong: true });
     if (isToday(ev.clickedAt)) {
       const secs = secondsToWork(ev);
-      items.push({ at: ev.clickedAt, text: secs === null ? 'You stepped inside' : `You stepped inside — page ready in ${secs.toFixed(1)} s`, strong: true });
+      items.push({ at: ev.clickedAt, text: secs === null ? t('You stepped inside') : t('You stepped inside — page ready in {secs} s', { secs: secs.toFixed(1) }), strong: true });
       const at = ev.clickedAt + STILL_WORKING_AFTER_MS;
-      if (ev.stillWorkingAt10m === true) items.push({ at, text: `Still on ${work} 10 minutes later`, strong: false });
-      if (ev.stillWorkingAt10m === false) items.push({ at, text: 'Moved on within 10 minutes', strong: false });
+      if (ev.stillWorkingAt10m === true) items.push({ at, text: t('Still on {work} 10 minutes later', { work }), strong: false });
+      if (ev.stillWorkingAt10m === false) items.push({ at, text: t('Moved on within 10 minutes'), strong: false });
     }
   }
   return items.sort((a, b) => a.at - b.at);
@@ -156,8 +160,9 @@ export function buildViewState(input: ViewInput): ViewState {
     step: step
       ? {
           id: step.id,
-          label: step.label,
+          label: stepLabelFor(step, stepSa),
           when: dayLabel(stepSa?.endedAt ?? step.createdAt, now),
+          whenKind: dayKind(stepSa?.endedAt ?? step.createdAt, now),
           host: step.action.type === 'open_url' ? hostOf(step.action.url) : null,
           hasPosition: step.action.type === 'open_url' && step.action.position !== null,
         }
@@ -171,7 +176,8 @@ export function buildViewState(input: ViewInput): ViewState {
           id: latest.id,
           status: latest.status,
           when: dayLabel(latest.endedAt, now),
-          groups: latest.groups.map((g) => ({ key: g.key, name: g.name, count: g.tabIds.length })),
+          whenKind: dayKind(latest.endedAt, now),
+          groups: latest.groups.map((g) => ({ key: g.key, name: displayGroupName(g.key, g.name), count: g.tabIds.length })),
           kept: latest.kept.map((k) => ({ title: k.title, reason: k.reason })),
           closed: latest.result?.closed.length ?? 0,
           userLine: latest.userLine,
@@ -188,12 +194,12 @@ export function buildViewState(input: ViewInput): ViewState {
           id: sa.id,
           when: dayLabel(sa.endedAt, now),
           tabs: sa.tabs.length,
-          groups: sa.groups.map((g) => g.name),
+          groups: sa.groups.map((g) => displayGroupName(g.key, g.name)),
           userLine: sa.userLine,
           status: sa.status,
           step: st
             ? {
-                label: st.label,
+                label: stepLabelFor(st, sa),
                 shown: !!ev?.shownAt,
                 clicked: !!ev?.clickedAt,
                 stillWorking: ev?.stillWorkingAt10m ?? null,
@@ -231,7 +237,7 @@ function sawFrom(sa: SetAside | null, report: TabsReport | null, now: number) {
       hosts: [...hosts.entries()].map(([host, count]) => ({ host, count })),
       tabs: [
         ...sa.tabs.map((t) => ({ title: t.title, host: hostOf(t.url), where: whereOf(t.position) })),
-        ...sa.kept.map((k) => ({ title: k.title, host: null, where: 'Left open' })),
+        ...sa.kept.map((k) => ({ title: k.title, host: null, where: t('Left open') })),
       ],
       skipped: sa.skipped ?? EMPTY_SKIPPED,
     };

@@ -4,6 +4,8 @@ import type { ViewState } from '../../main/viewState';
 import type { PreviewView } from '../../main/controller';
 import type { SetAside } from '@side/shared';
 import { getApi } from '../shared/api';
+import { applyLanguage } from '../shared/lang';
+import { t } from '../../i18n';
 import { FIXTURE_PREVIEW, FIXTURE_PREVIEW_FILES, FIXTURE_PREVIEW_LONG, FIXTURES } from '../shared/fixtures';
 import { homeView, type HomeLocal } from './homeView';
 import { checkingView, doneView, failedView, loadingView, previewView, type Failure, type WrapLocal } from './wrapView';
@@ -40,6 +42,7 @@ let drawnScreen: string | null = null;
 
 function render() {
   if (!state) return;
+  applyLanguage(api, state);
   let h;
   switch (view.name) {
     case 'home': h = homeView(state, home); break;
@@ -185,10 +188,10 @@ async function askNow() {
 async function askDo(id: AskActionId) {
   home = { ...home, ask: { line: '', state: 'idle' } };
   if (id === 'open_step' && !state?.step) {
-    home = { ...home, notice: "There's no next step yet. It's made after you set today aside." };
+    home = { ...home, notice: t("There's no next step yet. It's made after you set today aside.") };
     return render();
   }
-  if (id === 'quiet_hour') home = { ...home, notice: 'Quiet for 1 hour. No bubbles until then.' };
+  if (id === 'quiet_hour') home = { ...home, notice: t('Quiet for 1 hour. No bubbles until then.') };
   const el = document.createElement('button');
   el.dataset.act = actFor(id);
   if (state?.step) el.dataset.step = state.step.id;
@@ -209,7 +212,7 @@ async function act(el: HTMLElement) {
     case 'ask-do': return void askDo(el.dataset.action as AskActionId);
     case 'ask-copy':
       await navigator.clipboard.writeText(el.dataset.text ?? '').catch(() => undefined);
-      el.textContent = 'Copied';
+      el.textContent = t('Copied');
       return;
     case 'open-main': await api.invoke('side:open.main'); return void api.invoke('side:mini.close');
     case 'home': home = {}; return go({ name: 'home' });
@@ -239,28 +242,28 @@ async function act(el: HTMLElement) {
     case 'undo': {
       const id = el.dataset.id ?? state?.lastWrapup?.id;
       if (!id) return;
-      home = { notice: 'Checking with Chrome…' };
+      home = { notice: t('Checking with Chrome…') };
       go({ name: 'home' });
       const r = await api.invoke<{ kind: string; reopened?: number; message?: string }>('side:wrapup.undo', { id });
       home = {
         notice:
-          r.kind === 'undone' ? `Brought your tabs back${r.reopened ? `, including ${r.reopened} that were closed` : ''}.`
-          : r.kind === 'failed' ? `Chrome couldn't undo it: ${r.message ?? ''}`
-          : r.kind === 'not_latest' ? 'Only the last wrap-up can be undone.'
-          : "Chrome didn't answer. Look at the tab bar, or try again.",
+          r.kind === 'undone' ? (r.reopened ? t('Brought your tabs back, including {n} that were closed.', { n: r.reopened }) : t('Brought your tabs back.'))
+          : r.kind === 'failed' ? t("Chrome couldn't undo it: {message}", { message: r.message ?? '' })
+          : r.kind === 'not_latest' ? t('Only the last wrap-up can be undone.')
+          : t("Chrome didn't answer. Look at the tab bar, or try again."),
       };
       return render();
     }
     case 'save-line':
       await api.invoke('side:wrapup.tomorrow', { id: el.dataset.id, line: line.trim() || null });
-      return toastAndClose(line.trim() ? 'Saved your question. See you tomorrow.' : 'Set aside. See you tomorrow.');
+      return toastAndClose(line.trim() ? t('Saved your question. See you tomorrow.') : t('Set aside. See you tomorrow.'));
     case 'chip':
       // Picking again replaces the line: only the last value is kept.
       line = el.dataset.text ?? '';
       return render();
     case 'skip':
       await api.invoke('side:wrapup.tomorrow', { id: el.dataset.id, line: null });
-      return toastAndClose('Set aside. See you tomorrow.');
+      return toastAndClose(t('Set aside. See you tomorrow.'));
     case 'step-open': {
       const r = await api.invoke<StepOpenReply>('side:step.open', { stepId: el.dataset.step });
       return toastAndClose(stepOpenedText(r));
@@ -281,7 +284,7 @@ async function act(el: HTMLElement) {
     case 'promise': {
       const minutes = el.dataset.min === '30' ? 30 : 60;
       await api.invoke('side:onemore.choose', { minutes });
-      return toastAndClose(`Okay. I'll check in once, at ${clock((state?.now ?? Date.now()) + minutes * 60_000)}.`);
+      return toastAndClose(t("Okay. I'll check in once, at {time}.", { time: clock((state?.now ?? Date.now()) + minutes * 60_000) }));
     }
   }
 }

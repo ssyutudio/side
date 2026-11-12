@@ -60,13 +60,14 @@ describe('Bridge', () => {
     await ctx?.bridge.stop();
   });
 
-  it('pins the first extension origin and answers hello with welcome, exclusions and a tab request', async () => {
+  it('pins the first extension origin and answers hello with welcome, exclusions, the language and a tab request', async () => {
     ctx = setup();
     const port = await ctx.bridge.start();
     const { ws, inbox } = await connect(port, EXT_A);
     ws.send(encodeMessage(makeMessage('hello', { extVersion: '0.1.0' })));
-    await until(() => inbox.length >= 3);
-    expect(inbox.map((m) => m.type)).toEqual(['welcome', 'exclusions.set', 'tabs.request']);
+    await until(() => inbox.length >= 4);
+    expect(inbox.map((m) => m.type)).toEqual(['welcome', 'exclusions.set', 'lang.set', 'tabs.request']);
+    expect(inbox[2].payload).toEqual({ lang: 'en' });
     const excl = inbox[1];
     expect(excl.type === 'exclusions.set' && (excl.payload as { domains: string[] }).domains).toEqual(['client-bank.com']);
     expect(ctx.pinnedNow()).toBe(EXT_A);

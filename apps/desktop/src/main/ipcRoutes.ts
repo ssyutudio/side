@@ -1,7 +1,7 @@
 // Every request a screen can make, validated before it reaches the controller.
 // Anything malformed is answered with an error and calls nothing.
 import { z } from 'zod';
-import { PROMISE_CHOICES_MIN, SIDY_SIZES } from '@side/shared';
+import { LANGUAGES, PROMISE_CHOICES_MIN, SIDY_SIZES } from '@side/shared';
 import type { SideController } from './controller';
 import { DEMO_COMMANDS } from './demoClock';
 
@@ -11,6 +11,7 @@ const empty = z.unknown();
 const settingsPatch = z
   .object({
     sidySize: z.enum(SIDY_SIZES),
+    language: z.enum(LANGUAGES),
     shortcut: z.string().min(1).max(60),
     quietHours: z.object({ start: z.number().int().min(0).max(1439), end: z.number().int().min(0).max(1439) }).nullable(),
     wakeMinutes: z.number().int().min(0).max(1439),

@@ -14,6 +14,7 @@ import { AskService } from './askService';
 import { ConnectionsService } from './connectionsService';
 import type { CalendarPort } from './connectors/calendar';
 import { buildViewState, type ViewState } from './viewState';
+import { setLanguage } from '../i18n';
 import { demoOffset, type DemoCommand } from './demoClock';
 import { todayDone } from '../core/todayDone';
 import type { WrapupPreview } from '../core/wrapupPreview';
@@ -304,6 +305,11 @@ export class SideController {
       return { ...d, settings: next };
     });
     if (next.sidySize !== before.sidySize) this.deps.edge?.resize(next.sidySize);
+    if ((next.language ?? 'en') !== (before.language ?? 'en')) {
+      // Words drawn from now on (bubbles, toasts, step lines) follow; the extension's too.
+      setLanguage(next.language);
+      this.deps.bridge.send('lang.set', { lang: next.language ?? 'en' });
+    }
     if (next.excludedDomains.join('\n') !== before.excludedDomains.join('\n')) {
       this.deps.bridge.send('exclusions.set', { domains: next.excludedDomains });
       this.deps.bridge.send('tabs.request', {});

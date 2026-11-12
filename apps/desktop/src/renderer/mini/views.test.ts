@@ -3,6 +3,9 @@ import { homeView } from './homeView';
 import { askBlock, actFor } from './askView';
 import { previewView, checkingView, doneView, failedView, primaryLabel } from './wrapView';
 import { oneMoreView, untilWake } from './oneMoreView';
+import { clock } from './parts';
+import { stepOpenedText } from '../shared/stepText';
+import { setLanguage, t, tn } from '../../i18n';
 import type { SetAside } from '@side/shared';
 
 const s = (x: unknown) => String(x);
@@ -289,5 +292,73 @@ describe('Wrap up preview: new group and rename', () => {
     expect(h).toMatch(/<form class="rn" data-key="g2">[\s\S]*value="Stripe webhooks"[\s\S]*>Save<\/button><\/form>/);
     expect(h).not.toContain('data-drag-group="g2"');
     expect(h).toContain('data-drag-group="g1"');
+  });
+});
+
+describe('Mini in Korean', () => {
+  beforeEach(() => setLanguage('ko'));
+  afterEach(() => setLanguage('en'));
+
+  /** The screen has the Korean for an English key, and not the English. */
+  const says = (h: string, en: string, vars?: Record<string, string | number>) => {
+    const ko = t(en, vars);
+    expect(ko).not.toBe(en.replace(/\{(\w+)\}/g, (m, k) => String(vars?.[k] ?? m)));
+    expect(h).toContain(ko);
+    expect(h).not.toContain(en);
+  };
+
+  it('home: night, day, wrapped and offline', () => {
+    const night = s(homeView(FIXTURES.night, {}));
+    says(night, 'Stopping for today?');
+    says(night, 'Fold your {n} open tabs into groups', { n: 38 });
+    says(night, 'Ask sidy');
+    says(night, 'Open Side');
+    expect(night).toContain(`<span>${t('Tabs in Chrome')}</span><b>38</b>`);
+    expect(night).toContain(t('Chrome connected'));
+    const day = s(homeView(FIXTURES.day, {}));
+    says(day, 'Step inside');
+    expect(day).toContain(`<b>${t('{tabs} in {groups}', { tabs: 31, groups: tn(3, '{n} group', '{n} groups') })}</b>`);
+    const wrapped = s(homeView(FIXTURES.wrapped, {}));
+    says(wrapped, '{tabs} tabs set aside in {groups}.', { tabs: 31, groups: tn(3, '{n} group', '{n} groups') });
+    says(wrapped, "Bring back today's tabs");
+    const offline = s(homeView(FIXTURES.offline, {}));
+    says(offline, "Chrome isn't connected.");
+    says(offline, 'Check again');
+  });
+
+  it('preview, checking, done, failed', () => {
+    const local = { close: [], open: [] };
+    const preview = s(previewView(FIXTURE_PREVIEW, local));
+    for (const en of ['Set today aside', 'Fold', 'Rename', 'Drop a tab here to start a new group', 'Cancel']) says(preview, en);
+    says(s(checkingView(FIXTURE_PREVIEW, local)), 'Saved on this computer.');
+    const done = s(doneView(FIXTURES.wrapped, confirmed(), { line: '' }));
+    says(done, 'Chrome confirmed.');
+    says(done, 'What are you most curious about tomorrow?');
+    says(done, 'Skip');
+    expect(done).toContain(t('Today: {text}', { text: '' }));
+    says(s(failedView({ kind: 'unconfirmed' })), "Chrome didn't answer.");
+    says(s(failedView({ kind: 'storage_failed', message: 'ENOSPC' })), "Couldn't save on this computer.");
+  });
+
+  it('one more hour and the clock', () => {
+    const h = s(oneMoreView(FIXTURES.night.now, 450, 60, FIXTURES.night));
+    says(h, 'Done — set aside now');
+    says(h, 'Check in with me in');
+    // 11:40 PM reads as "PM 11:40": the part of day first.
+    expect(clock(new Date(2026, 10, 12, 23, 40).getTime())).toBe('\uC624\uD6C4 11:40');
+    expect(clock(new Date(2026, 10, 12, 0, 5).getTime())).toBe('\uC624\uC804 12:05');
+  });
+
+  it('ask: the note, and a reply', () => {
+    says(s(askBlock({ line: '', state: 'idle' })), 'Tell sidy in a few words. Only this line goes to Claude, to pick one action. Set aside only opens the preview.');
+    const how = s(askBlock({ line: 'x', state: 'reply', reply: { kind: 'how_to', search: 'Excel VLOOKUP tutorial', by: 'claude' } }));
+    says(how, "I don't give guides. Search for:");
+    says(how, 'Copy');
+    expect(how).toContain('<code>Excel VLOOKUP tutorial</code>');
+  });
+
+  it('step text', () => {
+    expect(stepOpenedText({ kind: 'opened', restored: 'top' })).toBe(t("Opened the page. sidy couldn't find the exact spot."));
+    expect(stepOpenedText({ kind: 'opened', restored: 'top' })).not.toContain('Opened');
   });
 });

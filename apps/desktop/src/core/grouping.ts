@@ -11,6 +11,8 @@
 //   6. Anything left goes to one "Not sorted yet" group.
 import type { TabSnapshot, WorkGroup } from '@side/shared';
 import { hostOf } from '@side/shared';
+import { KO } from '../i18n/ko';
+import { t } from '../i18n';
 import { groupNames } from './copy';
 
 export const BREAKS_KEY = 'breaks';
@@ -44,6 +46,33 @@ export function cleanTitle(title: string): string {
   let t = title.trim();
   for (let i = 0; i < 2; i++) t = t.replace(SUFFIX, '').trim();
   return t;
+}
+
+/** True when `name` is the fixed English `en` or its Korean, whichever language made it. */
+function isFixed(name: string, en: string): boolean {
+  return name === en || name === KO[en];
+}
+
+/** A group name the model gave for Breaks, in English or Korean (any case). */
+export function isBreaksName(name: string): boolean {
+  const n = name.trim().toLowerCase();
+  return n === 'breaks' || n === (KO['Breaks'] ?? 'breaks').toLowerCase();
+}
+
+/**
+ * A saved group's name for the screen. Names the rules made (Breaks, Not sorted yet, Local dev,
+ * a doc without a title, a new group) show in the current language; everything else is the person's
+ * or the model's own words and stays. The name already sent to Chrome is never touched.
+ */
+export function displayGroupName(key: string, name: string): string {
+  if (key === BREAKS_KEY && isFixed(name, 'Breaks')) return t('Breaks');
+  if (key === UNSORTED_KEY && isFixed(name, 'Not sorted yet')) return t('Not sorted yet');
+  if (key === 'host:localhost' && isFixed(name, 'Local dev')) return t('Local dev');
+  if (key.startsWith('doc:') && isFixed(name, 'Google Doc')) return t('Google Doc');
+  if (key.startsWith('figma:') && isFixed(name, 'Figma file')) return t('Figma file');
+  if (key.startsWith('notion:') && isFixed(name, 'Notion page')) return t('Notion page');
+  if (/^u\d+$/.test(key) && isFixed(name, 'New group')) return t('New group');
+  return name;
 }
 
 export function shortName(name: string): string {

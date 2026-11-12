@@ -2,6 +2,7 @@
 // One filled button per state; tabs in Chrome and tabs set aside are separate facts.
 import type { ViewState } from '../../main/viewState';
 import { html, type SafeHtml } from '../shared/html';
+import { k, t, tn } from '../../i18n';
 import { cap, chip, clock, facts, footer, head, panel, quick, setAsideText, type QuickAction } from './parts';
 import { askBlock, type AskLocal } from './askView';
 
@@ -15,19 +16,20 @@ export interface HomeLocal {
 
 const IDLE: AskLocal = { line: '', state: 'idle' };
 
-const HIDE: QuickAction = { icon: '🙈', title: 'Hide sidy', act: 'hide', key: '⌃⌥S' };
-const ONE_MORE: QuickAction = { icon: '⏳', title: 'One more hour', sub: 'Keep going, with one check-in', act: 'one-more' };
+// Titles are drawn through t() in quick(); the tables only mark them for translation.
+const HIDE: QuickAction = { icon: '🙈', title: k('Hide sidy'), act: 'hide', key: '⌃⌥S' };
+const ONE_MORE: QuickAction = { icon: '⏳', title: k('One more hour'), sub: k('Keep going, with one check-in'), act: 'one-more' };
 
 function focusAction(s: ViewState): QuickAction {
   return s.focusUntil && s.focusUntil > s.now
-    ? { icon: '🎧', title: 'End focus', sub: `sidy stays quiet until ${clock(s.focusUntil)}`, act: 'focus-end' }
-    : { icon: '🎧', title: 'Focus for an hour', sub: 'sidy stays quiet, no bubbles', act: 'focus' };
+    ? { icon: '🎧', title: t('End focus'), sub: t('sidy stays quiet until {time}', { time: clock(s.focusUntil) }), act: 'focus-end' }
+    : { icon: '🎧', title: t('Focus for an hour'), sub: t('sidy stays quiet, no bubbles'), act: 'focus' };
 }
 
 /** The desktop apps turned on in Connections, so Mini shows what sidy is connected to besides Chrome. */
 function appsFact(s: ViewState): [string, string][] {
   const on = (s.connections?.apps ?? []).filter((a) => a.on).map((a) => a.tool);
-  return on.length ? [['Desktop apps', on.join(', ')]] : [];
+  return on.length ? [[t('Desktop apps'), on.join(', ')]] : [];
 }
 
 const live = (s: ViewState) => !!s.lastWrapup && (s.lastWrapup.status === 'applied' || s.lastWrapup.status === 'partial');
@@ -38,71 +40,71 @@ export function homeView(s: ViewState, local: HomeLocal): SafeHtml {
     return panel([
       head(chip(s)),
       html`<div class="pb">${notice}
-<div class="alert"><b>Chrome isn't connected.</b>Side reconnects on its own when Chrome is open. Still off? Make sure the Side extension is switched on in chrome://extensions.</div>
-<button class="btn fill" data-act="check"${local.checking ? ' aria-disabled="true"' : ''}>${local.checking ? 'Checking…' : 'Check again'}</button>
+<div class="alert"><b>${t("Chrome isn't connected.")}</b>${t('Side reconnects on its own when Chrome is open. Still off? Make sure the Side extension is switched on in chrome://extensions.')}</div>
+<button class="btn fill" data-act="check"${local.checking ? ' aria-disabled="true"' : ''}>${local.checking ? t('Checking…') : t('Check again')}</button>
 ${facts([
-  ['Tabs in Chrome', 'Unknown until connected'],
+  [t('Tabs in Chrome'), t('Unknown until connected')],
   ...appsFact(s),
-  ['Set aside', setAsideText(s)],
-  ['Next step', s.step ? 'Ready — opens once Chrome is back' : 'Waiting for Chrome'],
+  [t('Set aside'), setAsideText(s)],
+  [t('Next step'), s.step ? t('Ready — opens once Chrome is back') : t('Waiting for Chrome')],
 ])}
 ${quick([
-  { icon: '🌙', title: 'Set aside today', sub: 'Needs Chrome — connect first.', act: 'wrap', off: true },
-  { icon: '↩️', title: 'Bring back the last tabs', sub: 'Needs Chrome — connect first.', act: 'undo', off: true },
+  { icon: '🌙', title: k('Set aside today'), sub: k('Needs Chrome — connect first.'), act: 'wrap', off: true },
+  { icon: '↩️', title: k('Bring back the last tabs'), sub: k('Needs Chrome — connect first.'), act: 'undo', off: true },
   HIDE,
 ])}
 ${askBlock(local.ask ?? IDLE)}</div>`,
-      footer,
+      footer(),
     ]);
   }
 
   const tabs = String(s.numbers.tabsInChrome ?? '—');
   const w = s.lastWrapup;
-  if (w && live(s) && w.when === 'today') {
+  if (w && live(s) && w.whenKind === 'today') {
     const set = w.groups.reduce((n, g) => n + g.count, 0);
     return panel([
       head(chip(s)),
       html`<div class="pb">${notice}
-<div class="done-line"><b>${set} tabs set aside in ${w.groups.length} ${w.groups.length === 1 ? 'group' : 'groups'}.</b> ${s.numbers.tabsOpen ?? 0} still open.</div>
+<div class="done-line"><b>${t('{tabs} tabs set aside in {groups}.', { tabs: set, groups: tn(w.groups.length, '{n} group', '{n} groups') })}</b> ${t('{n} still open.', { n: s.numbers.tabsOpen ?? 0 })}</div>
 ${facts([
-  ['Tabs in Chrome', tabs],
+  [t('Tabs in Chrome'), tabs],
   ...appsFact(s),
-  ['Set aside', setAsideText(s)],
-  ["Tomorrow's step", s.step ? 'Ready' : 'Made when you come back'],
+  [t('Set aside'), setAsideText(s)],
+  [t("Tomorrow's step"), s.step ? t('Ready') : t('Made when you come back')],
 ])}
 ${quick([
-  { icon: '↩️', title: "Bring back today's tabs", sub: `Unfolds the ${w.groups.length} ${w.groups.length === 1 ? 'group' : 'groups'}`, act: 'undo' },
+  { icon: '↩️', title: k("Bring back today's tabs"), sub: tn(w.groups.length, 'Unfolds the {n} group', 'Unfolds the {n} groups'), act: 'undo' },
   ONE_MORE,
   HIDE,
 ])}
 ${askBlock(local.ask ?? IDLE)}</div>`,
-      footer,
+      footer(),
     ]);
   }
 
   if (s.step && s.numbers.stepReady) {
     const when = s.step.when;
     const repeat = !!w?.userLine && !s.step.label.includes(w.userLine);
-    const asked = repeat ? html`<div class="w">You asked: ${w!.userLine}</div>` : html`<div class="w">${s.step.host ?? ''}</div>`;
+    const asked = repeat ? html`<div class="w">${t('You asked:')} ${w!.userLine}</div>` : html`<div class="w">${s.step.host ?? ''}</div>`;
     return panel([
       head(chip(s)),
       html`<div class="pb">${notice}
-<div class="step"><div class="lbl">Next step · from ${when}</div><div class="t">${s.step.label}</div>${asked}
-<button class="btn fill" style="width:100%" data-act="step-open" data-step="${s.step.id}">Step inside</button></div>
+<div class="step"><div class="lbl">${t('Next step · from {when}', { when })}</div><div class="t">${s.step.label}</div>${asked}
+<button class="btn fill" style="width:100%" data-act="step-open" data-step="${s.step.id}">${t('Step inside')}</button></div>
 ${facts([
-  ['Tabs in Chrome', tabs],
+  [t('Tabs in Chrome'), tabs],
   ...appsFact(s),
-  ['Set aside', setAsideText(s)],
-  ['Last wrap-up', w ? cap(w.when) : '—'],
+  [t('Set aside'), setAsideText(s)],
+  [t('Last wrap-up'), w ? cap(w.when) : '—'],
 ])}
 ${quick([
-  { icon: '🌙', title: 'Set aside today', sub: 'Fold open tabs into groups', act: 'wrap' },
-  ...(w && w.canUndo ? [{ icon: '↩️', title: `Bring back ${w.when === 'yesterday' ? "yesterday's" : 'the last'} tabs`, act: 'undo' }] : []),
+  { icon: '🌙', title: k('Set aside today'), sub: k('Fold open tabs into groups'), act: 'wrap' },
+  ...(w && w.canUndo ? [{ icon: '↩️', title: w.whenKind === 'yesterday' ? k("Bring back yesterday's tabs") : k('Bring back the last tabs'), act: 'undo' }] : []),
   focusAction(s),
   HIDE,
 ])}
 ${askBlock(local.ask ?? IDLE)}</div>`,
-      footer,
+      footer(),
     ]);
   }
 
@@ -110,16 +112,16 @@ ${askBlock(local.ask ?? IDLE)}</div>`,
   return panel([
     head(chip(s)),
     html`<div class="pb">${notice}
-<div class="step"><div class="lbl">Stopping for today?</div><div class="t">Fold your ${open} open tabs into groups</div><div class="w">Nothing closes. Undo any time tonight.</div>
-<button class="btn fill" style="width:100%" data-act="wrap">Set aside today</button></div>
+<div class="step"><div class="lbl">${t('Stopping for today?')}</div><div class="t">${t('Fold your {n} open tabs into groups', { n: open })}</div><div class="w">${t('Nothing closes. Undo any time tonight.')}</div>
+<button class="btn fill" style="width:100%" data-act="wrap">${t('Set aside today')}</button></div>
 ${facts([
-  ['Tabs in Chrome', tabs],
+  [t('Tabs in Chrome'), tabs],
   ...appsFact(s),
-  ['Set aside', setAsideText(s)],
-  ['Next step', 'Ready after you set aside'],
+  [t('Set aside'), setAsideText(s)],
+  [t('Next step'), t('Ready after you set aside')],
 ])}
 ${quick([ONE_MORE, focusAction(s), HIDE])}
 ${askBlock(local.ask ?? IDLE)}</div>`,
-    footer,
+    footer(),
   ]);
 }

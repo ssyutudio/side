@@ -5,7 +5,8 @@ import { isWebUrl, urlOf } from './api';
 import type { ChromeApi, TabLike } from './api';
 import { RejectedError, chromeCall } from './journal';
 import { pageKey, quoteInViewInPage, restorePositionInPage, withTimeout } from './position';
-import { showStoppedMarkerInPage } from './marker';
+import { language, say } from './lang';
+import { MARKER_TEXT, showStoppedMarkerInPage } from './marker';
 import { COPY } from './copy';
 
 export interface OpenOptions {
@@ -54,7 +55,7 @@ async function markSpot(api: ChromeApi, tabId: number, url: string, pos: PagePos
   try {
     if (!(await canInject(api, url))) return;
     await withTimeout(
-      api.scripting.executeScript({ target: { tabId }, func: showStoppedMarkerInPage, args: [pos, { ms: MARKER_MS, anchor }] }),
+      api.scripting.executeScript({ target: { tabId }, func: showStoppedMarkerInPage, args: [pos, { ms: MARKER_MS, anchor, ...(language() === 'en' ? {} : { text: say(MARKER_TEXT) }) }] }),
       3000,
     );
   } catch {

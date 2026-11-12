@@ -1,4 +1,6 @@
 import { FIXTURES } from '../shared/fixtures';
+import { setLanguage } from '../../i18n';
+import { KO } from '../../i18n/ko';
 import { bubbleClass, bubbleView, edgeView, toastView } from './edgeView';
 
 const day = FIXTURES.day;
@@ -73,5 +75,39 @@ describe('toastView', () => {
     const h = s(toastView({ text: 'x', ms: 6000, kind: 'hidden' }));
     expect(h).toContain('sidy is hidden.');
     expect(h).toContain('data-act="bring-back"');
+  });
+});
+
+describe('Korean', () => {
+  // The words come from the dictionary (Hangul stays out of tests); these check where they land.
+  const ko = (en: string) => KO[en];
+  beforeEach(() => setLanguage('ko'));
+  afterEach(() => setLanguage('en'));
+
+  it('draws the step bubble in Korean and keeps the step text as it is', () => {
+    const h = s(bubbleView({ kind: 'step', stepId: 'st1', trigger: 'app_start' }, day));
+    expect(h).toContain('Pricing page is ready where you stopped.');
+    expect(h).toContain(`>${ko('Step inside')}</button>`);
+    expect(h).toContain(`>${ko('Rest today')}</button>`);
+    expect(h).toContain(`aria-label="${ko('Not now')}"`);
+    expect(h).not.toContain('Step inside');
+  });
+
+  it('counts tabs the Korean way in the first-run and check-in bubbles', () => {
+    const many = s(bubbleView({ kind: 'first_run', tabs: 38, groups: 3 }, day));
+    expect(many).toContain(ko("Hi, I'm sidy. I can see {n} tabs — {kinds}.").replace('{n}', '38').replace('{kinds}', ko('about {n} kinds of work').replace('{n}', '3')).replace(/'/g, '&#39;'));
+    expect(many).not.toContain('I can see');
+    expect(s(bubbleView({ kind: 'first_run', tabs: 1, groups: 1 }, day))).toContain(ko('one kind of work'));
+    const h = s(bubbleView({ kind: 'promise', promiseId: 'p1', minutes: 30 }, day));
+    expect(h).toContain(`${ko('The {minutes} minutes you asked for are up.').replace('{minutes}', '30')} ${ko('Set today aside?')}`);
+    expect(h).toContain(`>${ko('Keep going')}</button>`);
+  });
+
+  it('draws the hidden note with the shortcut in place, and the sidy label', () => {
+    const h = s(toastView({ text: '', ms: 6000, kind: 'hidden' }));
+    const [before, after] = ko('sidy is hidden. Press {keys} or click Side in the Dock.').split('{keys}');
+    expect(h).toContain(`${before}<kbd style="color:var(--ink)">⌃⌥S</kbd>${after}`);
+    expect(h).toContain(`>${ko('Bring back')}</button>`);
+    expect(s(edgeView({ mode: 'quiet', size: 40, hitY: 0, hitSize: 48 }))).toContain(`aria-label="${ko('sidy — open Side')}"`);
   });
 });

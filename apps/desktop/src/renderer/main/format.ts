@@ -1,14 +1,17 @@
 // Small formatting helpers for the Main screen. Times use Side's own clock values.
 import type { QuietReason } from '@side/shared';
+import { k, language, t } from '../../i18n';
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = [k('Sunday'), k('Monday'), k('Tuesday'), k('Wednesday'), k('Thursday'), k('Friday'), k('Saturday')];
+const MONTHS = [k('Jan'), k('Feb'), k('Mar'), k('Apr'), k('May'), k('Jun'), k('Jul'), k('Aug'), k('Sep'), k('Oct'), k('Nov'), k('Dec')];
 
 export function minutesToClock(min: number): string {
   const h = Math.floor(min / 60) % 24;
   const m = min % 60;
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+  const mm = String(m).padStart(2, '0');
+  if (language() === 'ko') return `${h < 12 ? t('AM') : t('PM')} ${h12}:${mm}`;
+  return `${h12}:${mm} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
 export function clock(ms: number): string {
@@ -19,7 +22,7 @@ export function clock(ms: number): string {
 /** "Tuesday, Nov 10" */
 export function longDate(ms: number): string {
   const d = new Date(ms);
-  return `${DAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  return t('{weekday}, {month} {day}', { weekday: t(DAYS[d.getDay()]), month: t(MONTHS[d.getMonth()]), day: d.getDate() });
 }
 
 const KEY: Record<string, string> = {
@@ -28,11 +31,7 @@ const KEY: Record<string, string> = {
 
 /** "Control+Alt+S" -> "⌃⌥S" */
 export function shortcutKeys(accel: string): string {
-  return accel.split('+').map((k) => KEY[k] ?? k.toUpperCase()).join('');
-}
-
-export function plural(n: number, one: string, many = `${one}s`): string {
-  return `${n} ${n === 1 ? one : many}`;
+  return accel.split('+').map((part) => KEY[part] ?? part.toUpperCase()).join('');
 }
 
 /** Core step labels look like "“question” — work is ready…"; split the question out once. */
@@ -42,10 +41,10 @@ export function splitStepLabel(label: string): { asked: string | null; title: st
 }
 
 export const QUIET_TEXT: Record<QuietReason, string> = {
-  quiet_hours: 'quiet hours',
-  focus: 'you were in focus',
-  spoke_recently: 'already spoke within the hour',
-  hidden: 'sidy was hidden',
-  rested_today: 'you chose Rest today',
-  nothing_to_say: 'nothing to offer yet',
+  quiet_hours: k('quiet hours'),
+  focus: k('you were in focus'),
+  spoke_recently: k('already spoke within the hour'),
+  hidden: k('sidy was hidden'),
+  rested_today: k('you chose Rest today'),
+  nothing_to_say: k('nothing to offer yet'),
 };

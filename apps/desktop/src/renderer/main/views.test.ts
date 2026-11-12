@@ -1,4 +1,6 @@
 import { FIXTURES } from '../shared/fixtures';
+import { setLanguage, t, tn } from '../../i18n';
+import { KO } from '../../i18n/ko';
 import { shellView, loadingView, errorView } from './shell';
 import { todayView } from './today';
 import { historyView } from './history';
@@ -172,5 +174,67 @@ describe('Settings', () => {
     const h = s(settingsView(FIXTURES.offline));
     expect(h).toContain('Not connected');
     expect(h).toContain('data-act="check"');
+  });
+});
+
+// Korean is looked up through the dictionary, so no Hangul sits in this file (a repo guard).
+describe('Korean', () => {
+  const ko = (en: string): string => {
+    expect(KO[en], en).toBeTruthy();
+    return KO[en];
+  };
+  beforeEach(() => setLanguage('ko'));
+  afterEach(() => setLanguage('en'));
+
+  it('puts AM/PM first in Korean clock labels and leaves English alone', () => {
+    expect(minutesToClock(7 * 60)).toBe(`${ko('AM')} 7:00`);
+    expect(minutesToClock(0)).toBe(`${ko('AM')} 12:00`);
+    expect(minutesToClock(22 * 60 + 30)).toBe(`${ko('PM')} 10:30`);
+    setLanguage('en');
+    expect(minutesToClock(7 * 60)).toBe('7:00 AM');
+  });
+  it('shell, loading and error', () => {
+    const h = s(shellView('history', FIXTURES.offline, s(historyView(FIXTURES.offline))));
+    for (const w of ['Today', 'History', 'Excluded sites', 'What Side saw', 'Settings', 'Chrome not connected']) expect(h).toContain(ko(w));
+    expect(s(loadingView())).toContain(ko('Loading your history…'));
+    expect(s(errorView())).toContain(ko('Try again'));
+  });
+  it('Today', () => {
+    const h = s(todayView(FIXTURES.day));
+    for (const w of ['Step inside', 'Why sidy stayed quiet', 'already spoke within the hour', 'Today so far', 'tabs in Chrome']) expect(h).toContain(ko(w));
+    expect(h).toContain(t('You asked: “{asked}”', { asked: 'Will annual pricing beat monthly?' }));
+    expect(h).toContain(t('Next step · from {when}', { when: 'yesterday' }));
+    expect(h).not.toContain('Step inside');
+    expect(s(todayView(FIXTURES['first-day']))).toContain(ko('Set today aside when you stop'));
+  });
+  it('History', () => {
+    const h = s(historyView(FIXTURES.day));
+    expect(h).toContain(tn(31, 'Set aside {n} tab · {groups}', 'Set aside {n} tabs · {groups}', { groups: tn(3, '{n} group', '{n} groups') }));
+    expect(h).toContain(ko('(skipped)'));
+    expect(s(historyView(FIXTURES['first-day']))).toContain(ko('No days yet. Your first wrap-up shows up here.'));
+  });
+  it('Excluded sites', () => {
+    const h = s(excludedView(FIXTURES.day, { input: '', error: null }));
+    for (const w of ['Excluded sites', 'Add a site', 'Remove']) expect(h).toContain(ko(w));
+    expect(h).toContain(tn(1, '{n} tab', '{n} tabs'));
+    expect(s(excludedView(FIXTURES['first-day'], { input: '', error: null }))).toContain(ko('No sites excluded. Add one above — its tabs are never saved or sent.'));
+  });
+  it('What Side saw', () => {
+    const h = s(sawView(FIXTURES.day, { showAll: false }));
+    expect(h).toContain(`<b>37</b>${ko('tabs read')}`);
+    expect(h).toContain(`<b>36</b>${ko('titles sent to Claude')}`);
+    expect(h).toContain(t('Show all {n}', { n: 37 }));
+    expect(h).toContain(t('Anonymous counts: {state}.', { state: ko('off') }));
+    expect(h).toContain(t('{titles} and your one line, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.', { titles: tn(36, '{n} tab title', '{n} tab titles') }));
+    expect(h).toContain(tn(1, '{n} tab from {d} — excluded site, not read.', '{n} tabs from {d} — excluded site, not read.', { d: 'client-portal.acme.com' }));
+    expect(s(sawView(FIXTURES['first-day'], { showAll: false }))).toContain(ko("After your first wrap-up you'll see every tab Side read and skipped."));
+  });
+  it('Settings and Connections', () => {
+    const h = s(settingsView(FIXTURES.day));
+    for (const w of ['Settings', 'sidy size', 'Small', 'Quiet hours', 'AI drafting', 'Connections', 'Desktop apps', 'Demo clock', 'Real time']) expect(h).toContain(ko(w));
+    expect(h).toContain(ko('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic) to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.'));
+    expect(h).toContain(`${ko('PM')} 10:30`);
+    expect(h).toContain(`${ko('AM')} 7:30`);
+    expect(s(settingsView(FIXTURES.offline))).toContain(ko('Not connected'));
   });
 });

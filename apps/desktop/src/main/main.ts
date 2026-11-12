@@ -20,6 +20,7 @@ import { DemoClock } from '../core/clock';
 import { buildUsagePayload, uploadUsage, USAGE_ENDPOINT } from './usageUpload';
 import { mayReact, newlyAudible, type ReactionKind } from '../core/reactions';
 import { Windows } from './windows';
+import { setLanguage } from '../i18n';
 import { routeWindow, WINDOW_CHANNELS } from './windowRoutes';
 
 // Native controls and menus stay in English whatever the system language is.
@@ -137,6 +138,7 @@ async function start() {
   if (store.loadState === 'recovered') console.warn('[side] data file was unreadable JSON and was moved aside:', store.movedAside);
   if (store.loadState === 'unreadable') console.warn('[side] data file could not be read; Side will not overwrite it this session.');
   clock.setOffset(store.get().demoOffsetMs);
+  setLanguage(store.get().settings.language);
 
   const llmEnabled = store.get().settings.llmEnabled;
   console.log(`[side] llm key ${config.anthropicKey ? 'present' : 'absent'}, llm ${llmEnabled ? 'on' : 'off'}`);
@@ -150,6 +152,7 @@ async function start() {
     getPinnedOrigin: () => store.get().pairedOrigin,
     pinOrigin: (origin) => store.update((d) => ({ ...d, pairedOrigin: origin })).then(() => undefined),
     getExclusions: () => store.get().settings.excludedDomains,
+    getLanguage: () => store.get().settings.language ?? 'en',
     onReport: (report) => {
       logReport(report);
       const started = newlyAudible(prevReport, report);

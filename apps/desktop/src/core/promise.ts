@@ -4,6 +4,7 @@
 // active, the last choice wins, and it fires exactly once with three answers.
 import type { StopPromise } from '@side/shared';
 import { PROMISE_CHOICES_MIN } from '@side/shared';
+import { t } from '../i18n';
 import { localMinutes } from './clock';
 import { oneMoreHour as copy } from './copy';
 import { restUntil } from './speakPolicy';
@@ -27,7 +28,8 @@ export function formatClock(minutes: number): string {
   const h = Math.floor(minutes / 60) % 24;
   const m = minutes % 60;
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+  const time = `${h12}:${String(m).padStart(2, '0')}`;
+  return h < 12 ? t('{time} AM', { time }) : t('{time} PM', { time });
 }
 
 export function oneMoreHour(now: number, wakeMinutes: number): { respect: string; fact: string | null } {

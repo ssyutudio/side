@@ -287,3 +287,6 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
   .hist summary{grid-template-columns:110px minmax(0,1fr) auto}
   .hist .d{padding-left:18px;grid-template-columns:minmax(100px,180px) minmax(0,1fr)}
 }
+
+/* Korean: break lines between words, not inside them. */
+html:lang(ko) body{word-break:keep-all;overflow-wrap:anywhere}

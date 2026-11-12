@@ -10,6 +10,8 @@ import { stripAddresses } from './addresses';
 import type { LlmTransport } from './llmGrouping';
 import { BREAKS_KEY, cleanTitle, shortName } from './grouping';
 import { checkStep } from './step';
+import { language, t } from '../i18n';
+import { KO_ADVICE } from '../i18n/ko/core';
 import { step as stepCopy } from './copy';
 
 export const HELP_TIMEOUT_MS = 6000;
@@ -54,7 +56,8 @@ export function buildSuggestRequest(groupNames: readonly string[]): LlmRequest {
   return {
     system:
       'A person is stopping work for the night. From the names of the work groups they set aside, write two short questions ' +
-      'they might be curious about tomorrow. Plain English, each under 70 characters, each ending with "?". ' +
+      'they might be curious about tomorrow. ' +
+      t('Plain English, each under 70 characters, each ending with "?". ') +
       'No advice, no instructions, nothing about sleep or health. Reply with JSON only: {"suggestions":["...","..."]}.',
     user: `Work groups:\n${names.map((n) => `- ${n}`).join('\n')}`,
   };
@@ -67,8 +70,8 @@ export function parseSuggestions(text: string): string[] {
   for (const raw of data.suggestions) {
     if (typeof raw !== 'string') continue;
     const s = raw.trim().replace(/\s+/g, ' ');
-    if (s.length < 8 || s.length > MAX_SUGGESTION || !s.endsWith('?')) continue;
-    if (stripAddresses(s) !== s || ADVICE.test(s)) continue;
+    if (s.length < (language() === 'ko' ? 4 : 8) || s.length > MAX_SUGGESTION || !s.endsWith('?')) continue;
+    if (stripAddresses(s) !== s || ADVICE.test(s) || (language() === 'ko' && KO_ADVICE.test(s))) continue;
     if (!out.includes(s)) out.push(s);
     if (out.length === 2) break;
   }

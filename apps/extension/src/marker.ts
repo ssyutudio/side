@@ -9,6 +9,8 @@ export interface MarkerOptions {
   ms: number;
   /** 'top': the saved offset is back at the top of the view. 'center': Chrome scrolled to the saved sentence. */
   anchor: 'top' | 'center';
+  /** The words on the marker; English when absent. Passed in because this function runs in the page. */
+  text?: string;
 }
 
 /**
@@ -39,6 +41,9 @@ export function showStoppedMarkerInPage(pos: PagePosition, opts: MarkerOptions, 
   host.setAttribute('data-side-marker', '');
   host.style.cssText = 'all:initial;position:fixed;inset:0;pointer-events:none;z-index:2147483647;' + fade;
   const root: any = host.attachShadow({ mode: 'open' });
+  const label = String(opts.text || 'You stopped here')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;');
   root.innerHTML =
     '<style>' +
     ':host{all:initial}' +
@@ -48,7 +53,7 @@ export function showStoppedMarkerInPage(pos: PagePosition, opts: MarkerOptions, 
     '.pill::after{content:"";position:absolute;right:-6px;top:50%;margin-top:-5px;border:5px solid transparent;border-left-color:#3B54E7;border-right:0}' +
     '</style>' +
     `<div class="band" style="top:${y}px;left:${Math.round(rect.left)}px;width:${Math.round(rect.width)}px"></div>` +
-    `<div class="pill" style="top:${y}px;left:${Math.round(rect.left) + 8}px">You stopped here</div>`;
+    `<div class="pill" style="top:${y}px;left:${Math.round(rect.left) + 8}px">${label}</div>`;
   doc.documentElement.appendChild(host);
 
   const later = (fn: () => void, ms: number) => (w.setTimeout ? w.setTimeout(fn, ms) : setTimeout(fn, ms));

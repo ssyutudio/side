@@ -98,4 +98,13 @@ describe('showStoppedMarkerInPage', () => {
   it('does nothing when the page has no document', () => {
     expect(showStoppedMarkerInPage(win, { ms: 8000, anchor: 'top' }, {})).toBe(false);
   });
+
+  it('draws the text it is given, escaped, and English when none is given', () => {
+    const p = fakePage();
+    showStoppedMarkerInPage(win, { ms: 8000, anchor: 'top', text: 'Here <b>' }, p.env);
+    expect(p.attached[0].shadow.innerHTML).toContain('>Here &lt;b></div>');
+    const q = fakePage();
+    showStoppedMarkerInPage(win, { ms: 8000, anchor: 'top' }, q.env);
+    expect(q.attached[0].shadow.innerHTML).toContain('>You stopped here<');
+  });
 });

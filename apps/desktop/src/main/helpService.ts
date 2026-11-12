@@ -12,6 +12,7 @@ import { appStep, enabledApps } from '../core/step';
 import type { AppsPort } from './connectors/desktopApps';
 import { buildBySideRequest, bySideCounts, bySideKey, LEARN_AFTER, parseBySide, ruleBySide } from '../core/llmHelpBySide';
 import type { SideNumbers } from '../core/stats';
+import { language } from '../i18n';
 
 export type RecallOutcome = 'replaced' | 'kept' | 'skipped';
 
@@ -41,7 +42,9 @@ export class HelpService {
 
   /** Two short questions for tomorrow, or none (never invented by rule). */
   async suggest(setAsideId: string): Promise<string[]> {
-    const cached = this.suggestions.get(setAsideId);
+    // Claude writes these in the screen language, so a cached pair is only good for that language.
+    const cacheKey = `${language()}:${setAsideId}`;
+    const cached = this.suggestions.get(cacheKey);
     if (cached) return cached;
     if (!this.on) return [];
     const sa = this.deps.store.get().setAsides.find((s) => s.id === setAsideId);
@@ -50,7 +53,7 @@ export class HelpService {
     await this.log(0, false);
     const text = await askOnce(this.deps.llm!, req, this.deps.timeoutMs ?? HELP_TIMEOUT_MS);
     const out = text ? parseSuggestions(text) : [];
-    if (out.length) this.suggestions.set(setAsideId, out);
+    if (out.length) this.suggestions.set(cacheKey, out);
     return out;
   }
 
@@ -97,7 +100,7 @@ export class HelpService {
    */
   bySideFor(n: SideNumbers, onUpdate?: () => void): BySide {
     const c = bySideCounts(n);
-    const key = bySideKey(c);
+    const key = `${language()}:${bySideKey(c)}`;
     if (c.opened < LEARN_AFTER || !this.on) return { text: ruleBySide(n), byClaude: false };
     if (this.bySide?.key === key) return { text: this.bySide.text, byClaude: true };
     if (!this.bySideAsked.has(key)) {

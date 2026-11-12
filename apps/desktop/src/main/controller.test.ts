@@ -7,6 +7,7 @@ import { defaultAppData, type AppData } from './appData';
 import { SideController, type BridgePort } from './controller';
 import type { BridgeStatus, CommandOutcome } from './bridge';
 import { DemoClock, fixedClock } from '../core/clock';
+import { language, setLanguage } from '../i18n';
 
 const REAL = new Date(2026, 10, 9, 15, 0).getTime();
 
@@ -57,6 +58,22 @@ async function setup() {
   bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
   return { store, bridge, ctl, resized, shortcuts, bubbles, clock };
 }
+
+describe('SideController language', () => {
+  afterEach(() => setLanguage('en'));
+
+  it('tells Chrome and switches the words when the language changes, and only then', async () => {
+    const { ctl, bridge } = await setup();
+    await ctl.updateSettings({ language: 'ko' });
+    expect(bridge.sent.filter((m) => m.type === 'lang.set')).toEqual([{ type: 'lang.set', payload: { lang: 'ko' } }]);
+    expect(language()).toBe('ko');
+    await ctl.updateSettings({ language: 'ko' });
+    expect(bridge.sent.filter((m) => m.type === 'lang.set')).toHaveLength(1);
+    await ctl.updateSettings({ language: 'en' });
+    expect(bridge.sent.filter((m) => m.type === 'lang.set').pop()).toEqual({ type: 'lang.set', payload: { lang: 'en' } });
+    expect(language()).toBe('en');
+  });
+});
 
 describe('SideController', () => {
   it('asks Chrome for a fresh report before building the Wrap up preview', async () => {

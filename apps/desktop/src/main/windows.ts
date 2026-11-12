@@ -3,6 +3,7 @@
 import { BrowserWindow, screen } from 'electron';
 import { join } from 'node:path';
 import type { EdgeLayout } from './edgeLayout';
+import { t } from '../i18n';
 
 const MINI_WIDTH = 444; // panel 388 + 28px room on each side for its shadow
 const MAIN_W = 1180;
@@ -126,7 +127,7 @@ export class Windows {
     this.setup = new BrowserWindow({
       width: 700,
       height: 820,
-      title: 'Set up Side',
+      title: t('Set up Side'),
       backgroundColor: '#F2F3F5',
       resizable: true,
       show: false,

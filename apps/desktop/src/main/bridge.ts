@@ -14,6 +14,7 @@ import {
   type MessageType,
   type PayloadOf,
   type TabsReport,
+  type Language,
 } from '@side/shared';
 
 export type BridgeStatus = 'waiting' | 'connected' | 'disconnected';
@@ -31,6 +32,8 @@ export interface BridgeOptions {
   getPinnedOrigin: () => string | null;
   pinOrigin: (origin: string) => void | Promise<void>;
   getExclusions: () => string[];
+  /** The screen language, sent on every hello. */
+  getLanguage?: () => Language;
   onReport: (report: TabsReport) => void;
   onStatus: (status: BridgeStatus) => void;
   /** A result that arrived after its command already timed out. Never applied automatically. */
@@ -150,6 +153,7 @@ export class Bridge {
       case 'hello':
         this.send('welcome', { appVersion: this.opts.appVersion });
         this.send('exclusions.set', { domains: this.opts.getExclusions() });
+        this.send('lang.set', { lang: this.opts.getLanguage?.() ?? 'en' });
         this.send('tabs.request', {});
         break;
       case 'ping':

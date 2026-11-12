@@ -11,7 +11,7 @@ import type { SavedFile, SavedTab, SetAside, Step, StepChecks } from '@side/shar
 import { isExcluded, newId as defaultNewId } from '@side/shared';
 import type { Clock } from './clock';
 import { step as stepCopy } from './copy';
-import { BREAKS_KEY, UNSORTED_KEY, cleanTitle, isBreakUrl, shortName } from './grouping';
+import { BREAKS_KEY, UNSORTED_KEY, cleanTitle, displayGroupName, isBreakUrl, shortName } from './grouping';
 
 /** The most recent set-aside that still describes tabs to come back to. */
 export function latestSetAside(setAsides: readonly SetAside[]): SetAside | null {
@@ -78,6 +78,23 @@ function pickTab(sa: SetAside, excludedDomains: readonly string[]): SavedTab | n
 function workNameFor(sa: SetAside, t: SavedTab): string {
   const group = sa.groups.find((g) => g.key === t.groupKey);
   return shortName(group?.name || cleanTitle(t.title) || t.title);
+}
+
+/**
+ * A step's sentence in the current language. The label stored with the step was written in the
+ * language of the day it was made, so the screens rebuild it from the stored facts (work name, the
+ * person's line, whether a position is known). If those facts can't be found, the stored label stays.
+ */
+export function stepLabelFor(step: Step, sa: SetAside | undefined): string {
+  if (!sa) return step.label;
+  const a = step.action;
+  if (a.type === 'app') return stepCopy.appLabel(fileWorkName(a.name), a.tool, sa.userLine);
+  if (a.type !== 'open_url') return step.label;
+  const tab = sa.tabs.find((x) => x.url === a.url && x.title === a.title) ?? sa.tabs.find((x) => x.url === a.url);
+  if (!tab) return step.label;
+  const group = sa.groups.find((g) => g.key === tab.groupKey);
+  const work = shortName((group ? displayGroupName(group.key, group.name) : '') || cleanTitle(tab.title) || tab.title);
+  return stepCopy.label(work, sa.userLine, a.position !== null);
 }
 
 /** The newest saved file whose app is still on and can do something with it. */

@@ -6,6 +6,7 @@ import type { ChromeApi, TabLike } from './api';
 import { Bridge } from './bridge';
 import type { SocketFactory } from './bridge';
 import { createCommandRunner } from './commands';
+import { loadLanguage, saveLanguage, setLanguage } from './lang';
 import { PositionTracker } from './position';
 import { createDebouncer, loadExclusions, saveExclusions, snapshotTabs } from './tabs';
 
@@ -58,6 +59,9 @@ export function startExtension(env: ExtensionEnv) {
     openOptions: { loadTimeoutMs: 15_000, restoreWaitMs: 6_000 },
   });
 
+  // The stored language is read before the first command runs, so its errors and marker use it.
+  const langReady = loadLanguage(api);
+
   const sendReport = async (): Promise<void> => {
     if (!bridge.isOpen()) return;
     const tabs = await api.tabs.query({});
@@ -87,9 +91,15 @@ export function startExtension(env: ExtensionEnv) {
           .then(() => sendReport())
           .catch(() => undefined);
         return;
+      case 'lang.set': {
+        const lang = (msg as Message<'lang.set'>).payload.lang;
+        setLanguage(lang);
+        void saveLanguage(api, lang).catch(() => undefined);
+        return;
+      }
       default:
         if (msg.type.startsWith('cmd.') && msg.type !== 'cmd.result') {
-          void runCommand(msg).then((reply) => {
+          void langReady.then(() => runCommand(msg)).then((reply) => {
             if (reply) bridge.send(reply);
             scheduleReport();
           });
@@ -158,6 +168,7 @@ export function startExtension(env: ExtensionEnv) {
 
   const ready = (async () => {
     await activations;
+    await langReady;
     bridge.connect();
   })();
 

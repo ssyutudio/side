@@ -5,6 +5,7 @@ import type { Bubble } from '../../main/speakService';
 import type { Toast } from '../shared/api';
 import { html, raw, type SafeHtml } from '../shared/html';
 import { sidySvg } from '../shared/sidy';
+import { t, tn } from '../../i18n';
 
 export type EdgeMode = 'quiet' | 'out' | 'hidden';
 
@@ -17,7 +18,7 @@ export function edgeView(o: { mode: EdgeMode; size: number; hitY: number; hitSiz
   const out = Math.round(o.size * 0.08);
   const cls = o.mode === 'quiet' ? 'tucked' : 'out';
   return html`<div class="edge ${cls}" style="top:${o.hitY}px;height:${o.hitSize}px;--q:${q}px;--o:${out}px">
-<button class="hit" data-act="sidy" style="height:${o.hitSize}px;min-width:${o.hitSize}px" aria-label="sidy — open Side"><span class="body">${raw(sidySvg(o.size))}</span></button></div>`;
+<button class="hit" data-act="sidy" style="height:${o.hitSize}px;min-width:${o.hitSize}px" aria-label="${t('sidy — open Side')}"><span class="body">${raw(sidySvg(o.size))}</span></button></div>`;
 }
 
 const close = (label: string) => html`<button class="x" data-act="bubble-x" aria-label="${label}">×</button>`;
@@ -31,28 +32,30 @@ export function bubbleView(b: Bubble, s: ViewState): SafeHtml | null {
   if (b.kind === 'step') {
     const step = s.step;
     if (!step || step.id !== b.stepId) return null;
-    const away = step.when !== 'today' && step.when !== 'yesterday';
-    return html`${close('Not now')}
-<p>${away ? 'Welcome back. ' : ''}${step.label}</p>
-<span class="meta">Last wrap-up · ${cap(step.when)}</span>
-<div class="row"><button class="btn fill grow" data-act="step-open" data-step="${step.id}">Step inside</button><button class="btn grow" data-act="rest-today" data-step="${step.id}">Rest today</button></div>`;
+    const away = step.whenKind === 'earlier';
+    return html`${close(t('Not now'))}
+<p>${away ? `${t('Welcome back.')} ` : ''}${step.label}</p>
+<span class="meta">${t('Last wrap-up')} · ${cap(step.when)}</span>
+<div class="row"><button class="btn fill grow" data-act="step-open" data-step="${step.id}">${t('Step inside')}</button><button class="btn grow" data-act="rest-today" data-step="${step.id}">${t('Rest today')}</button></div>`;
   }
   if (b.kind === 'first_run') {
-    const kinds = b.groups === 1 ? 'one kind of work' : `about ${b.groups} kinds of work`;
-    return html`${close('Not now')}
-<p>Hi, I'm sidy. I can see ${b.tabs} tabs — ${kinds}.</p>
-<span class="meta">When you stop for the day, I'll fold them into groups.</span>
-<div class="row"><button class="btn fill grow" data-act="show-me">Show me</button></div>`;
+    const kinds = b.groups === 1 ? t('one kind of work') : t('about {n} kinds of work', { n: b.groups });
+    return html`${close(t('Not now'))}
+<p>${tn(b.tabs, "Hi, I'm sidy. I can see {n} tab — {kinds}.", "Hi, I'm sidy. I can see {n} tabs — {kinds}.", { kinds })}</p>
+<span class="meta">${t("When you stop for the day, I'll fold them into groups.")}</span>
+<div class="row"><button class="btn fill grow" data-act="show-me">${t('Show me')}</button></div>`;
   }
-  const time = b.minutes === 60 ? 'The hour you asked for is up.' : `The ${b.minutes} minutes you asked for are up.`;
-  return html`${close('Close')}
-<p>${time} Set today aside?</p>
-<div class="row"><button class="btn fill grow" data-act="answer" data-answer="set_aside">Set aside</button><button class="btn grow" data-act="answer" data-answer="keep_going">Keep going</button><button class="btn grow" data-act="answer" data-answer="not_today">Not today</button></div>`;
+  const time = b.minutes === 60 ? t('The hour you asked for is up.') : t('The {minutes} minutes you asked for are up.', { minutes: b.minutes });
+  return html`${close(t('Close'))}
+<p>${time} ${t('Set today aside?')}</p>
+<div class="row"><button class="btn fill grow" data-act="answer" data-answer="set_aside">${t('Set aside')}</button><button class="btn grow" data-act="answer" data-answer="keep_going">${t('Keep going')}</button><button class="btn grow" data-act="answer" data-answer="not_today">${t('Not today')}</button></div>`;
 }
 
-export function toastView(t: Toast): SafeHtml {
-  if (t.kind === 'hidden') {
-    return html`<div class="toast" role="status">sidy is hidden. Press <kbd style="color:var(--ink)">⌃⌥S</kbd> or click Side in the Dock.<button class="btn sm" data-act="bring-back">Bring back</button></div>`;
+export function toastView(toast: Toast): SafeHtml {
+  if (toast.kind === 'hidden') {
+    // The key shows {keys}; the shortcut is drawn in its place.
+    const [before, after = ''] = t('sidy is hidden. Press {keys} or click Side in the Dock.').split('{keys}');
+    return html`<div class="toast" role="status">${before}<kbd style="color:var(--ink)">⌃⌥S</kbd>${after}<button class="btn sm" data-act="bring-back">${t('Bring back')}</button></div>`;
   }
-  return html`<div class="bubble short" role="status">${close('Close')}<p style="margin-bottom:0">${t.text}</p></div>`;
+  return html`<div class="bubble short" role="status">${close(t('Close'))}<p style="margin-bottom:0">${toast.text}</p></div>`;
 }

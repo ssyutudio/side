@@ -4,6 +4,8 @@
 import type { ViewState } from '../../main/viewState';
 import type { Bubble } from '../../main/speakService';
 import { getApi, type Toast } from '../shared/api';
+import { applyLanguage } from '../shared/lang';
+import { t } from '../../i18n';
 import { bubbleClass, bubbleView, edgeView, toastView } from './edgeView';
 import { stepOpenedText, type StepOpenReply } from '../shared/stepText';
 
@@ -37,6 +39,7 @@ function render() {
     deferred = true;
     return;
   }
+  applyLanguage(api, state);
   const hiddenToast = toast?.kind === 'hidden';
   const mode = state?.hidden || hiddenToast ? 'hidden' : bubble || toast || drag?.moved ? 'out' : 'quiet';
   let overlay = '';
@@ -69,13 +72,13 @@ function render() {
   }
 }
 
-function showToast(t: Toast) {
-  toast = t;
+function showToast(next: Toast) {
+  toast = next;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast = null;
     render();
-  }, t.ms);
+  }, next.ms);
   render();
 }
 
@@ -96,7 +99,7 @@ async function act(el: HTMLElement) {
   }
   if (a === 'step-open' && el.dataset.step) {
     bubble = null;
-    showToast({ text: 'Opening it in Chrome…', ms: 15000 });
+    showToast({ text: t('Opening it in Chrome…'), ms: 15000 });
     void api.invoke('side:bubble.close');
     const r = await api.invoke<StepOpenReply>('side:step.open', { stepId: el.dataset.step });
     return showToast({ text: stepOpenedText(r), ms: 4000 });
@@ -105,7 +108,7 @@ async function act(el: HTMLElement) {
     bubble = null;
     void api.invoke('side:step.dismiss', { stepId: el.dataset.step, kind: 'rest_today' });
     void api.invoke('side:bubble.close');
-    return showToast({ text: "Okay. Rest today — I'll stay quiet until tomorrow.", ms: 3500 });
+    return showToast({ text: t("Okay. Rest today — I'll stay quiet until tomorrow."), ms: 3500 });
   }
   if (a === 'show-me') {
     bubble = null;
@@ -119,7 +122,7 @@ async function act(el: HTMLElement) {
     render();
     const r = await api.invoke<{ goToWrapup?: boolean }>('side:promise.answer', { answer });
     if (r?.goToWrapup) return void api.invoke('side:mini.open', { view: 'wrap' });
-    if (answer === 'not_today') showToast({ text: 'Okay. Your tabs stay as they are. Good night.', ms: 3500 });
+    if (answer === 'not_today') showToast({ text: t('Okay. Your tabs stay as they are. Good night.'), ms: 3500 });
   }
 }
 
@@ -217,7 +220,7 @@ api.onBubble((b) => {
   if (b) toast = null;
   render();
 });
-api.onToast((t) => showToast(t));
+api.onToast((next) => showToast(next));
 
 // Once, about two seconds, then still. Never with Reduce Motion, never over a bubble.
 let reactTimer: ReturnType<typeof setTimeout> | undefined;

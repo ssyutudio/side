@@ -1,6 +1,7 @@
 // Wire format between the desktop app and the extension: {id, type, payload, replyTo?}.
 // Every incoming message goes through parseMessage; anything that does not match is dropped.
 import { z } from 'zod';
+import { LANGUAGES } from './constants';
 
 const str = (max: number) => z.string().max(max);
 const id = z.string().min(1).max(100);
@@ -53,6 +54,8 @@ export const payloadSchemas = {
   // app -> extension
   welcome: z.object({ appVersion: str(50) }),
   'exclusions.set': z.object({ domains: z.array(str(253)).max(500) }),
+  /** The screen language, so the extension's few words (the page marker, errors) match the app. */
+  'lang.set': z.object({ lang: z.enum(LANGUAGES) }),
   'tabs.request': z.object({}),
   'cmd.wrapup.apply': z.object({
     setAsideId: id,

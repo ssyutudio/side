@@ -37,7 +37,7 @@ const base = (o: Partial<ViewState> = {}): ViewState => withBySide(o, {
   step: {
     id: 'st1',
     label: '“Will annual pricing beat monthly?” — Pricing page is ready where you stopped.',
-    when: 'yesterday',
+    when: 'yesterday', whenKind: 'yesterday',
     host: 'docs.google.com',
     hasPosition: true,
   },
@@ -52,7 +52,7 @@ const base = (o: Partial<ViewState> = {}): ViewState => withBySide(o, {
   lastWrapup: {
     id: 'sa1',
     status: 'applied',
-    when: 'yesterday',
+    when: 'yesterday', whenKind: 'yesterday',
     groups: [
       { key: 'g1', name: 'Pricing page', count: 12 },
       { key: 'g2', name: 'Stripe webhooks', count: 11 },
@@ -140,13 +140,13 @@ export const FIXTURES: Record<string, ViewState> = {
     timeline: [],
   }),
   wrapped: base({
-    lastWrapup: { ...base().lastWrapup!, when: 'today', userLine: null },
+    lastWrapup: { ...base().lastWrapup!, when: 'today', whenKind: 'today', userLine: null },
     todayLines: ['Set aside 31 tabs in 3 groups.'],
     numbers: numbers({ todayLine: 'Set aside 31 tabs in 3 groups.' }),
   }),
   offline: base({ connection: 'disconnected', numbers: numbers({ connected: false, tabsInChrome: null, tabsOpen: null, tabsSetAside: null }) }),
   waiting: base({ connection: 'waiting', step: null, lastWrapup: null, numbers: numbers({ connected: false, tabsInChrome: null, tabsOpen: null, tabsSetAside: null, stepReady: false }) }),
-  'three-days': base({ step: { ...base().step!, when: 'Mon, Nov 9' }, lastWrapup: { ...base().lastWrapup!, when: 'Mon, Nov 9' } }),
+  'three-days': base({ step: { ...base().step!, when: 'Mon, Nov 9', whenKind: 'earlier' }, lastWrapup: { ...base().lastWrapup!, when: 'Mon, Nov 9', whenKind: 'earlier' } }),
   'first-day': base({
     step: null,
     lastWrapup: null,
@@ -203,7 +203,7 @@ FIXTURES.long = base({
   step: {
     id: 'st1',
     label: `“${LONG_LINE}” — Stripe webhook signature verification and idempotency notes is ready where you stopped.`,
-    when: 'yesterday',
+    when: 'yesterday', whenKind: 'yesterday',
     host: 'docs.google.com',
     hasPosition: true,
   },

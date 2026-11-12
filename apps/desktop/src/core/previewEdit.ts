@@ -1,6 +1,7 @@
 // Hand edits to the Wrap up draft before it is confirmed: move one tab to another group, merge
 // two groups, take a tab out into a new group, or rename a group (the name Chrome's group gets). Every tab stays in exactly one group; empty groups disappear; the URLs Chrome must
 // still match are untouched.
+import { t } from '../i18n';
 import type { WrapupPreview } from './wrapupPreview';
 
 export function moveTab(p: WrapupPreview, tabId: number, toKey: string): WrapupPreview {
@@ -25,8 +26,9 @@ export function mergeGroups(p: WrapupPreview, fromKey: string, intoKey: string):
   return { ...p, fold };
 }
 
-/** The name a new group gets until the person types one. */
+/** The name a new group gets until the person types one (English; `newGroupName()` is in the screen language). */
 export const NEW_GROUP_NAME = 'New group';
+export const newGroupName = (): string => t('New group');
 export const GROUP_NAME_MAX = 40;
 
 /** A group name as it may be used: one line, trimmed, at most 40 characters. Empty means "no name". */
@@ -35,7 +37,7 @@ export function cleanGroupName(raw: string): string {
 }
 
 /** Takes one tab out into a new group of its own (placed last). Returns the new group's key. */
-export function newGroup(p: WrapupPreview, tabId: number, name = NEW_GROUP_NAME): { preview: WrapupPreview; key: string | null } {
+export function newGroup(p: WrapupPreview, tabId: number, name = newGroupName()): { preview: WrapupPreview; key: string | null } {
   const from = p.fold.find((g) => g.tabIds.includes(tabId));
   if (!from) return { preview: p, key: null };
   // A tab that is already alone in its group stays where it is.
@@ -46,7 +48,7 @@ export function newGroup(p: WrapupPreview, tabId: number, name = NEW_GROUP_NAME)
   const key = `u${n}`;
   const fold = [
     ...p.fold.map((g) => (g.key === from.key ? { ...g, tabIds: g.tabIds.filter((id) => id !== tabId) } : g)),
-    { key, name: cleanGroupName(name) || NEW_GROUP_NAME, tabIds: [tabId], source: 'rule' as const },
+    { key, name: cleanGroupName(name) || newGroupName(), tabIds: [tabId], source: 'rule' as const },
   ];
   return { preview: { ...p, fold }, key };
 }

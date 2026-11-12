@@ -1,4 +1,5 @@
-// Repository guards: product sources stay English-only and secrets never get tracked.
+// Repository guards: product sources stay English-only (Korean lives only in the Korean
+// dictionaries, i18n/ko) and secrets never get tracked.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { execSync } from 'node:child_process';
@@ -6,6 +7,8 @@ import { execSync } from 'node:child_process';
 const ROOT = join(__dirname, '..');
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'out', '.git', '.war-room-state', '.claude', '.vercel']);
 const EXTENSIONS = ['.ts', '.tsx', '.html', '.css', '.json', '.md', '.mjs', '.sql'];
+/** The only place Hangul may appear: the Korean dictionaries (a folder or file named i18n/ko). */
+const KOREAN_DICTIONARY = /(^|\/)i18n\/ko(\/|\.)/;
 
 function walk(dir: string, found: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -34,9 +37,18 @@ describe('repo guards', () => {
     expect(countHangul(String.fromCodePoint(0xac00, 0xd7a3) + 'x')).toBe(2);
   });
 
-  it('has zero Hangul characters in product sources', () => {
+  it('lets Hangul in only under i18n/ko', () => {
+    expect(KOREAN_DICTIONARY.test('apps/desktop/src/i18n/ko/mini.ts')).toBe(true);
+    expect(KOREAN_DICTIONARY.test('apps/extension/src/i18n/ko.ts')).toBe(true);
+    expect(KOREAN_DICTIONARY.test('apps/desktop/src/i18n/index.ts')).toBe(false);
+    expect(KOREAN_DICTIONARY.test('apps/desktop/src/renderer/mini/ko.ts')).toBe(false);
+  });
+
+  it('has zero Hangul characters in product sources outside the Korean dictionaries', () => {
     const offenders = walk(ROOT)
-      .map((f) => ({ f: relative(ROOT, f), n: countHangul(readFileSync(f, 'utf8')) }))
+      .map((f) => relative(ROOT, f))
+      .filter((f) => !KOREAN_DICTIONARY.test(f))
+      .map((f) => ({ f, n: countHangul(readFileSync(join(ROOT, f), 'utf8')) }))
       .filter((x) => x.n > 0);
     expect(offenders).toEqual([]);
   });

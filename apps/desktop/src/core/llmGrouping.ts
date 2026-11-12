@@ -8,7 +8,8 @@ import { isExcluded, newId } from '@side/shared';
 import { stripAddresses } from './addresses';
 import type { Clock } from './clock';
 import { groupNames } from './copy';
-import { BREAKS_KEY, cleanTitle, groupTabs, shortName } from './grouping';
+import { t } from '../i18n';
+import { BREAKS_KEY, cleanTitle, groupTabs, isBreaksName, shortName } from './grouping';
 
 export const DEFAULT_LLM_TIMEOUT_MS = 8000;
 const MAX_TITLE = 120;
@@ -34,11 +35,17 @@ export interface GroupingOutcome {
 
 export type LlmTransport = (req: { system: string; user: string }) => Promise<string>;
 
-const SYSTEM =
-  'You sort browser tabs into a few works so a person can set them aside for the night. ' +
-  'You only see tab titles with ids. Reply with JSON only: {"groups":[{"name":"short work name","ids":["T1"]}]}. ' +
-  'Use each id at most once. Names are plain English, at most 40 characters, no emoji. ' +
-  'Put videos and social feeds in a group named "Breaks". Leave out ids you are unsure about.';
+/** The grouping instructions. In Korean only the two sentences about names change; the reply format does not. */
+function systemPrompt(): string {
+  return (
+    'You sort browser tabs into a few works so a person can set them aside for the night. ' +
+    'You only see tab titles with ids. Reply with JSON only: {"groups":[{"name":"short work name","ids":["T1"]}]}. ' +
+    'Use each id at most once. ' +
+    t('Names are plain English, at most 40 characters, no emoji. ') +
+    t('Put videos and social feeds in a group named "Breaks". ') +
+    'Leave out ids you are unsure about.'
+  );
+}
 
 export function buildGroupingRequest(
   tabs: readonly TabSnapshot[],
@@ -59,7 +66,7 @@ export function buildGroupingRequest(
   let user = `Tabs:\n${lines.join('\n')}`;
   const line = userLine?.trim();
   if (line) user += `\n\nWhat the person wants to look at tomorrow: ${stripAddresses(line).slice(0, 300)}`;
-  return { token: newId(), deadline: clock.now() + timeoutMs, ids, system: SYSTEM, user };
+  return { token: newId(), deadline: clock.now() + timeoutMs, ids, system: systemPrompt(), user };
 }
 
 function extractJson(text: string): unknown {
@@ -118,7 +125,7 @@ export function parseGroupingAnswer(
     }
     if (!tabIds.length) continue;
     // A group the model calls "Breaks" is the Breaks group, so no step is ever made from it.
-    const isBreaks = clean.toLowerCase() === groupNames.breaks.toLowerCase();
+    const isBreaks = isBreaksName(clean);
     const key = isBreaks ? BREAKS_KEY : `llm:${slug(clean)}`;
     const existing = byKey.get(key);
     if (existing) existing.tabIds.push(...tabIds);

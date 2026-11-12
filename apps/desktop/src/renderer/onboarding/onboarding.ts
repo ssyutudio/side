@@ -3,6 +3,8 @@
 import type { ViewState } from '../../main/viewState';
 import type { PreviewView } from '../../main/controller';
 import { getApi } from '../shared/api';
+import { applyLanguage } from '../shared/lang';
+import { t } from '../../i18n';
 import { FIXTURE_PREVIEW } from '../shared/fixtures';
 import { onboardingView, type SetupPhase } from './onboardingView';
 
@@ -13,13 +15,16 @@ let extPath = 'apps/extension/dist';
 let preview: PreviewView | null = null;
 let asking = false;
 let checking = false;
+let state: ViewState | null = null;
 const started = Date.now();
 
 function render() {
+  applyLanguage(api, state);
   app.innerHTML = String(onboardingView({ phase, extPath, preview }));
 }
 
 async function onState(s: ViewState) {
+  state = s;
   if (s.connection === 'connected') {
     phase = 'connected';
     render();
@@ -44,12 +49,12 @@ app.addEventListener('click', async (e) => {
   if (!el) return;
   if (el.dataset.act === 'copy') {
     await navigator.clipboard.writeText(el.dataset.text ?? '').catch(() => undefined);
-    el.textContent = 'Copied';
+    el.textContent = t('Copied');
   }
   if (el.dataset.act === 'check') {
     if (checking) return; // one check at a time
     checking = true;
-    el.textContent = 'Checking…';
+    el.textContent = t('Checking…');
     const r = await api.invoke<{ status: string }>('side:check.connection').finally(() => (checking = false));
     phase = r?.status === 'connected' ? 'connected' : 'failed';
     void api.invoke<ViewState>('side:state').then(onState);

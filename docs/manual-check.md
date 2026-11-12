@@ -55,6 +55,7 @@ Load the extension once: `chrome://extensions` → Developer mode → **Load unp
 5. Drag sidy up to the top of the screen, then down to the bottom: it follows the pointer and stays whole on screen; a bubble or Mini opened there stays on screen too. Quit and relaunch: sidy is where you left it. A plain click still opens Mini.
 6. With 9 or more groups, open Wrap up: the list scrolls inside Mini and the Set aside button stays in view. Drag a tab toward the bottom edge of the list: the list scrolls to the last group.
 7. In Mini's tomorrow-line field, Cmd+C and Cmd+V work.
+8. Main → Settings → Language → Korean: Main, Mini, sidy's bubble and toasts switch at once, and the next Wrap up names groups in Korean. Step inside shows the Korean page marker. Back to English: everything switches back.
 
 ## AC8 · Waitlist and the full video flow
 

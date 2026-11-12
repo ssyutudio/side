@@ -25,6 +25,10 @@ export const PROMISE_CHOICES_MIN = [30, 60] as const;
 /** Default wake-up time used for the "if you sleep now" fact line ("HH:MM" is stored as minutes). */
 export const DEFAULT_WAKE_MINUTES = 7 * 60;
 
+/** Screen languages. English is the default; Korean is picked in Settings. */
+export const LANGUAGES = ['en', 'ko'] as const;
+export type Language = (typeof LANGUAGES)[number];
+
 export const SIDY_SIZES = ['small', 'medium', 'large'] as const;
 export type SidySize = (typeof SIDY_SIZES)[number];
 /** Visible sidy height in points for each size. Small follows the Director's ~40pt. */
