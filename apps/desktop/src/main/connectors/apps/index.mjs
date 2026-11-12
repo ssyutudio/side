@@ -9,7 +9,7 @@ import { runScript } from "./lib/applescript.mjs";
 import { installedMap } from "./lib/installed.mjs";
 import { actionTool, performAction } from "./lib/perform.mjs";
 import { cleanName, extensionOf, fillLabel, isExcludedPath, labelName, mediaKind } from "./lib/paths.mjs";
-import { documentQuery, exportedImagesQuery, exportsQuery, findPaths, lastUsedDates, photoshopImageQuery } from "./lib/spotlight.mjs";
+import { documentQuery, exportedImagesQuery, exportsQuery, findPaths, photoshopImageQuery } from "./lib/spotlight.mjs";
 import { say } from "./lib/words.mjs";
 import { candidateId, capPerApp, makeWork, recordFor } from "./lib/work.mjs";
 
@@ -107,8 +107,8 @@ async function collectDocuments(adapters, installed, home) {
 
   const facts = await Promise.all(kept.map((item) => fileFacts(item.path)));
   const real = kept.flatMap((item, index) => (facts[index] ? [{ ...item, mtimeMs: facts[index].mtimeMs }] : []));
-  const used = await lastUsedDates(real.map((item) => item.path));
-  return real.map((item) => ({ adapterId: item.adapterId, path: item.path, name: basename(item.path), touchedMs: Math.max(item.mtimeMs, used.get(item.path) ?? 0) }));
+  // "Touched" is when the file was last saved. Merely opening it today must not count as saved.
+  return real.map((item) => ({ adapterId: item.adapterId, path: item.path, name: basename(item.path), touchedMs: item.mtimeMs }));
 }
 
 /** Apps that keep projects in their own folders, where each project is a subfolder. */

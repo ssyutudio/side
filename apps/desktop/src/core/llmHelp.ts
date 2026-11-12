@@ -6,6 +6,7 @@
 import type { SavedFile, SavedTab, SetAside, Step } from '@side/shared';
 import { isExcluded, newId as defaultNewId } from '@side/shared';
 import type { Clock } from './clock';
+import { stripAddresses } from './addresses';
 import type { LlmTransport } from './llmGrouping';
 import { BREAKS_KEY, cleanTitle, shortName } from './grouping';
 import { checkStep } from './step';
@@ -15,19 +16,11 @@ export const HELP_TIMEOUT_MS = 6000;
 const MAX_SUGGESTION = 70;
 const ADVICE = /\b(should|must|need to|sleep|health|diagnos|adhd|anxiety|depress|therapy)\b/i;
 
+export { stripAddresses };
+
 export interface LlmRequest {
   system: string;
   user: string;
-}
-
-/** Strips anything that looks like an address or a domain. */
-export function stripAddresses(s: string): string {
-  return s
-    .replace(/https?:\/\/\S+/gi, '')
-    .replace(/\bwww\.\S+/gi, '')
-    .replace(/\b[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|org|net|io|app|dev|so|ai|co|kr|uk|de|jp)\b\S*/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
 }
 
 /** Asks once. Null on error, refusal or when the deadline passes; a late answer is ignored. */

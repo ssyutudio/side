@@ -49,7 +49,9 @@ export function decideSpeak(trigger: SpeakTrigger, c: SpeakContext): SpeakDecisi
   if (inQuietHours(c.now, c.quietHours)) return quiet('quiet_hours');
   if (c.focusUntil !== null && c.now < c.focusUntil) return quiet('focus');
   if (!c.hasSomethingToSay) return quiet('nothing_to_say');
-  if (c.lastSpokeAt !== null && c.now - c.lastSpokeAt < SPEAK_COOLDOWN_MS) return quiet('spoke_recently');
+  // A last-spoke time in the future (clock moved back) is no cooldown at all.
+  const since = c.lastSpokeAt === null ? null : c.now - c.lastSpokeAt;
+  if (since !== null && since >= 0 && since < SPEAK_COOLDOWN_MS) return quiet('spoke_recently');
   return { speak: true };
 }
 

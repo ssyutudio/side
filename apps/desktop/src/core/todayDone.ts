@@ -5,7 +5,6 @@
 import type { SetAside, Step, StepEvent } from '@side/shared';
 import { STILL_WORKING_AFTER_MS } from '@side/shared';
 import type { Clock } from './clock';
-import { startOfLocalDay } from './clock';
 import { done } from './copy';
 import { cleanTitle, shortName } from './grouping';
 import { fileWorkName } from './step';
@@ -15,7 +14,18 @@ export const WORK_DAY_START_HOURS = 4;
 
 /** Start (local midnight) of the calendar day this moment's work day is named after. */
 export function workDayOf(ms: number): number {
-  return startOfLocalDay(ms - WORK_DAY_START_HOURS * 3_600_000);
+  const d = new Date(ms);
+  if (d.getHours() < WORK_DAY_START_HOURS) d.setDate(d.getDate() - 1);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/** 4 a.m. local time that begins the work day `daysAhead` after the one `ms` belongs to (DST-safe). */
+export function workDayStart(ms: number, daysAhead = 0): number {
+  const d = new Date(workDayOf(ms));
+  d.setDate(d.getDate() + daysAhead);
+  d.setHours(WORK_DAY_START_HOURS, 0, 0, 0);
+  return d.getTime();
 }
 
 export interface DoneSources {

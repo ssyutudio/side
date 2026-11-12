@@ -5,8 +5,10 @@
 // after the deadline or for an older request is not applied automatically.
 import type { TabSnapshot, WorkGroup } from '@side/shared';
 import { isExcluded, newId } from '@side/shared';
+import { stripAddresses } from './addresses';
 import type { Clock } from './clock';
-import { cleanTitle, groupTabs, shortName } from './grouping';
+import { groupNames } from './copy';
+import { BREAKS_KEY, cleanTitle, groupTabs, shortName } from './grouping';
 
 export const DEFAULT_LLM_TIMEOUT_MS = 8000;
 const MAX_TITLE = 120;
@@ -38,10 +40,6 @@ const SYSTEM =
   'Use each id at most once. Names are plain English, at most 40 characters, no emoji. ' +
   'Put videos and social feeds in a group named "Breaks". Leave out ids you are unsure about.';
 
-function stripUrls(s: string): string {
-  return s.replace(/https?:\/\/\S+/gi, '').replace(/\b[a-z0-9-]+(\.[a-z0-9-]+)+\.(com|org|net|io|app|dev|so|ai|co)\b/gi, '').trim();
-}
-
 export function buildGroupingRequest(
   tabs: readonly TabSnapshot[],
   userLine: string | null,
@@ -55,12 +53,12 @@ export function buildGroupingRequest(
     if (isExcluded(t.url, excludedDomains)) continue;
     const id = `T${ids.size + 1}`;
     ids.set(id, t.tabId);
-    const title = stripUrls(cleanTitle(t.title)).slice(0, MAX_TITLE) || 'Untitled';
+    const title = stripAddresses(cleanTitle(t.title)).slice(0, MAX_TITLE) || 'Untitled';
     lines.push(`${id}: ${title}`);
   }
   let user = `Tabs:\n${lines.join('\n')}`;
   const line = userLine?.trim();
-  if (line) user += `\n\nWhat the person wants to look at tomorrow: ${stripUrls(line).slice(0, 300)}`;
+  if (line) user += `\n\nWhat the person wants to look at tomorrow: ${stripAddresses(line).slice(0, 300)}`;
   return { token: newId(), deadline: clock.now() + timeoutMs, ids, system: SYSTEM, user };
 }
 
@@ -75,8 +73,13 @@ function extractJson(text: string): unknown {
   }
 }
 
+/** Keeps letters and numbers of any script, so two Korean names stay two groups. Fits the 100-char key limit. */
 function slug(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'work';
+  const words = name.normalize('NFKC').toLowerCase().replace(/\+/g, 'plus').replace(/#/g, 'sharp');
+  const s = words.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
+  // Nothing but symbols or emoji: use their code points so different names stay different.
+  const key = s || [...words].map((c) => c.codePointAt(0)!.toString(16)).join('-') || 'work';
+  return key.slice(0, 90);
 }
 
 function rulesOnly(tabs: readonly TabSnapshot[], reason: GroupingFailure, sent?: string): GroupingOutcome {
@@ -103,7 +106,7 @@ export function parseGroupingAnswer(
     if (!g || typeof g !== 'object') continue;
     const { name, ids } = g as { name?: unknown; ids?: unknown };
     if (typeof name !== 'string' || !Array.isArray(ids)) continue;
-    const clean = shortName(stripUrls(name));
+    const clean = shortName(stripAddresses(name));
     if (!clean) continue;
     const tabIds: number[] = [];
     for (const id of ids) {
@@ -114,15 +117,24 @@ export function parseGroupingAnswer(
       tabIds.push(tabId);
     }
     if (!tabIds.length) continue;
-    const key = `llm:${slug(clean)}`;
+    // A group the model calls "Breaks" is the Breaks group, so no step is ever made from it.
+    const isBreaks = clean.toLowerCase() === groupNames.breaks.toLowerCase();
+    const key = isBreaks ? BREAKS_KEY : `llm:${slug(clean)}`;
     const existing = byKey.get(key);
     if (existing) existing.tabIds.push(...tabIds);
-    else byKey.set(key, { key, name: clean, tabIds, source: 'llm' });
+    else byKey.set(key, { key, name: isBreaks ? groupNames.breaks : clean, tabIds, source: 'llm' });
   }
   if (!byKey.size) return rulesOnly(tabs, 'unparseable', sent);
 
   const leftovers = tabs.filter((t) => !used.has(t.tabId));
-  return { groups: [...byKey.values(), ...groupTabs(leftovers)], applied: true, sent };
+  // The rules' own Breaks group joins the model's one instead of showing up twice.
+  const groups = [...byKey.values()];
+  for (const g of groupTabs(leftovers)) {
+    const same = groups.find((x) => x.key === g.key);
+    if (same) same.tabIds.push(...g.tabIds);
+    else groups.push(g);
+  }
+  return { groups, applied: true, sent };
 }
 
 /** Asks the transport once; any failure, slowness or bad answer falls back to the rules. */

@@ -58,6 +58,18 @@ describe("recentWork({ only })", () => {
     expect(asked).not.toContain(".psd");
   });
 
+  it("never asks when a file was last opened, so opening a file does not make it saved today", async () => {
+    const asked = [];
+    __setProcessForTests({
+      execFile(file, args, _options, callback) {
+        asked.push(`${file} ${args.join(" ")}`);
+        setImmediate(() => callback(null, "", ""));
+      },
+    });
+    await recentWork({ limit: 40, only: ["excel"] });
+    expect(asked.join("\n")).not.toContain("kMDItemLastUsedDate -raw");
+  });
+
   it("looks at nothing at all when no app is turned on", async () => {
     expect(await recentWork({ limit: 40, only: [] })).toEqual([]);
     expect(queries).toEqual([]);

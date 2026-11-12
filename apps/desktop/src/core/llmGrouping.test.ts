@@ -1,6 +1,7 @@
 import type { TabSnapshot } from '@side/shared';
 import { buildGroupingRequest, parseGroupingAnswer, groupWithLlm } from './llmGrouping';
 import { fixedClock } from './clock';
+import { BREAKS_KEY } from './grouping';
 
 function tab(tabId: number, url: string, title: string): TabSnapshot {
   return {
@@ -101,5 +102,55 @@ describe('groupWithLlm', () => {
     expect(r.applied).toBe(true);
     expect(r.sent).toContain('T1:');
     expect(r.groups[0].name).toBe('Retry work');
+  });
+});
+
+describe('addresses never reach the model', () => {
+  it('strips one-dot domains and www tokens from titles and the user line', () => {
+    const t = [tab(1, 'https://stripe.com/x', 'Pricing | stripe.com'), tab(2, 'https://notion.so/x', 'Plan on notion.so/team and www.example.org'), tab(3, 'https://nodejs.org', 'Node.js streams')];
+    const req = buildGroupingRequest(t, 'see bit.ly/abc and \uB124\uC774\uBC84.co.kr', [], fixedClock(0));
+    for (const bad of ['stripe.com', 'notion.so', 'example.org', 'bit.ly', 'co.kr', 'www.']) expect(req.user).not.toContain(bad);
+    expect(req.user).toContain('T1: Pricing');
+  });
+  it('keeps ordinary words that contain a dot', () => {
+    const req = buildGroupingRequest([tab(1, 'https://a.dev', 'Node.js streams and install.sh')], null, [], fixedClock(0));
+    expect(req.user).toContain('Node.js streams and install.sh');
+  });
+  it('strips an address out of a name the model returns', () => {
+    const req = buildGroupingRequest(tabs, null, [], fixedClock(0));
+    const out = parseGroupingAnswer('{"groups":[{"name":"Notes on stripe.com","ids":["T1"]}]}', req, req.token, tabs, fixedClock(0));
+    expect(out.groups[0].name).toBe('Notes on');
+  });
+});
+
+describe('group keys', () => {
+  it('keeps different Korean names apart and merges identical ones', () => {
+    const req = buildGroupingRequest(tabs, null, [], fixedClock(0));
+    const answer = '{"groups":[{"name":"\uACB0\uC81C \uC791\uC5C5","ids":["T1"]},{"name":"\uB514\uC790\uC778 \uB9AC\uBDF0","ids":["T2"]},{"name":"\uACB0\uC81C \uC791\uC5C5","ids":["T3"]}]}';
+    const out = parseGroupingAnswer(answer, req, req.token, tabs, fixedClock(0));
+    const llm = out.groups.filter((g) => g.source === 'llm');
+    expect(llm.map((g) => g.name)).toEqual(['\uACB0\uC81C \uC791\uC5C5', '\uB514\uC790\uC778 \uB9AC\uBDF0']);
+    expect(llm[0].tabIds).toHaveLength(2);
+    expect(new Set(llm.map((g) => g.key)).size).toBe(2);
+    expect(llm.every((g) => g.key.length <= 100)).toBe(true);
+  });
+  it('keeps C++ and C# and different emoji names apart, and caps the key length', () => {
+    const req = buildGroupingRequest(tabs, null, [], fixedClock(0));
+    const answer = JSON.stringify({ groups: [{ name: 'C++', ids: ['T1'] }, { name: 'C#', ids: ['T2'] }, { name: '🎵', ids: ['T3'] }, { name: '🎬', ids: ['T4'] }] });
+    const out = parseGroupingAnswer(answer, req, req.token, tabs, fixedClock(0));
+    expect(new Set(out.groups.map((g) => g.key)).size).toBe(4);
+    const long = JSON.stringify({ groups: [{ name: '\uAC00'.repeat(40), ids: ['T1'] }] });
+    expect(parseGroupingAnswer(long, req, req.token, tabs, fixedClock(0)).groups[0].key.length).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('a model group named Breaks', () => {
+  it('is the Breaks group, and merges with the rules leftover Breaks group', () => {
+    const req = buildGroupingRequest(tabs, null, [], fixedClock(0));
+    const out = parseGroupingAnswer('{"groups":[{"name":"breaks","ids":["T1"]},{"name":"Retry","ids":["T2"]}]}', req, req.token, tabs, fixedClock(0));
+    const breaks = out.groups.filter((g) => g.key === BREAKS_KEY);
+    expect(breaks).toHaveLength(1);
+    expect(breaks[0].name).toBe('Breaks');
+    expect(breaks[0].tabIds.sort()).toEqual([1, 3]); // the model's T1 plus the YouTube tab the rules found
   });
 });

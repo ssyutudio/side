@@ -1,5 +1,5 @@
 import type { SetAside, Step, StepEvent } from '@side/shared';
-import { todayDone, todayLine, workDayOf } from './todayDone';
+import { todayDone, todayLine, workDayOf, workDayStart } from './todayDone';
 import { fixedClock } from './clock';
 
 const at = (d: number, h: number, m = 0) => new Date(2026, 10, d, h, m).getTime();
@@ -60,5 +60,27 @@ describe('todayLine', () => {
     expect(todayLine([])).toBeNull();
     expect(todayLine(['Set aside 4 tabs in 2 groups.'], ['Fixed the jitter bug'])).toBe('Fixed the jitter bug');
     expect(todayLine(['Came back to X.', 'Set aside 4 tabs in 2 groups.'])).toBe('Set aside 4 tabs in 2 groups.');
+  });
+});
+
+describe('workDayOf on a DST change day', () => {
+  const prev = process.env.TZ;
+  afterEach(() => {
+    if (prev === undefined) delete process.env.TZ;
+    else process.env.TZ = prev;
+  });
+
+  it('3:30 a.m. on a 25-hour day still belongs to the evening before', () => {
+    process.env.TZ = 'America/New_York'; // 2026-11-01: clocks go back at 2:00
+    const early = new Date(2026, 10, 1, 3, 30).getTime();
+    expect(workDayOf(early)).toBe(new Date(2026, 9, 31).getTime());
+    expect(workDayOf(new Date(2026, 10, 1, 4, 0).getTime())).toBe(new Date(2026, 10, 1).getTime());
+  });
+
+  it('workDayStart is 4 a.m. local, even across the change', () => {
+    process.env.TZ = 'America/New_York';
+    const now = new Date(2026, 9, 31, 23, 0).getTime();
+    expect(workDayStart(now, 1)).toBe(new Date(2026, 10, 1, 4, 0).getTime());
+    expect(workDayStart(now, 2)).toBe(new Date(2026, 10, 2, 4, 0).getTime());
   });
 });

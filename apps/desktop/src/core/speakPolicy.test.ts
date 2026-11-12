@@ -111,3 +111,13 @@ describe('decideSpeak reason order', () => {
     expect(decideSpeak('unlock', base)).toEqual({ speak: false, reason: 'nothing_to_say' });
   });
 });
+
+describe('decideSpeak with a clock that moved back', () => {
+  it('a last-spoke time in the future is not a cooldown', () => {
+    const c = ctx({ lastSpokeAt: at(10, 19, 30) + 5 * 3_600_000 });
+    expect(decideSpeak('wake', c)).toEqual({ speak: true });
+  });
+  it('still holds the cooldown just after speaking', () => {
+    expect(decideSpeak('wake', ctx({ lastSpokeAt: at(10, 19, 30) - 1000 }))).toEqual({ speak: false, reason: 'spoke_recently' });
+  });
+});

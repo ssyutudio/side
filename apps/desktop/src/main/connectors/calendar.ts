@@ -5,6 +5,7 @@
 // changes or deletes an event. macOS asks for permission the first time; a "no" is said as it is.
 import { execFile } from 'node:child_process';
 import { z } from 'zod';
+import { workDayStart } from '../../core/todayDone';
 
 /** EKAuthorizationStatus: 0 not asked, 1 restricted, 2 denied, 3 full access (and 4 write-only). */
 export type CalendarStatus = 'not_asked' | 'restricted' | 'denied' | 'allowed' | 'write_only' | 'unavailable';
@@ -17,14 +18,14 @@ export interface CalendarPeek {
   leftToday: number;
 }
 
-// Fixed text: the only inputs are the mode and a number, read from argv. Only startDate and isAllDay
+// Fixed text: the only inputs are the mode and three numbers (now and the two day bounds), read from argv. Only startDate and isAllDay
 // are touched on each event.
 export const CALENDAR_JXA = `
 ObjC.import('EventKit');
 ObjC.import('Foundation');
 function statusName(s) { return ['not_asked','restricted','denied','allowed','write_only'][s] || 'unavailable'; }
 function run(argv) {
-  var mode = argv[0], now = Number(argv[1]);
+  var mode = argv[0], now = Number(argv[1]), tomorrowMs = Number(argv[2]), afterMs = Number(argv[3]);
   var store = $.EKEventStore.alloc.init;
   var status = Number($.EKEventStore.authorizationStatusForEntityType($.EKEntityTypeEvent));
   if (mode === 'request' && status === 0) {
@@ -36,12 +37,11 @@ function run(argv) {
     while (!done && $.NSDate.date.compare(until) < 0) $.NSRunLoop.currentRunLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(0.2));
     status = Number($.EKEventStore.authorizationStatusForEntityType($.EKEntityTypeEvent));
   }
-  if (mode === 'status' || status !== 3 || !isFinite(now)) return JSON.stringify({ status: statusName(status), firstTomorrow: null, leftToday: 0 });
-  var cal = $.NSCalendar.currentCalendar;
+  if (mode === 'status' || status !== 3 || !isFinite(now) || !isFinite(tomorrowMs) || !isFinite(afterMs)) return JSON.stringify({ status: statusName(status), firstTomorrow: null, leftToday: 0 });
+  // The bounds are work-day starts (4 a.m.) worked out in the app with calendar-aware dates.
   var nowDate = $.NSDate.dateWithTimeIntervalSince1970(now / 1000);
-  var today = cal.startOfDayForDate(nowDate);
-  var tomorrow = today.dateByAddingTimeInterval(86400);
-  var after = tomorrow.dateByAddingTimeInterval(86400);
+  var tomorrow = $.NSDate.dateWithTimeIntervalSince1970(tomorrowMs / 1000);
+  var after = $.NSDate.dateWithTimeIntervalSince1970(afterMs / 1000);
   function timed(from, to) {
     var pred = store.predicateForEventsWithStartDateEndDateCalendars(from, to, $());
     var list = store.eventsMatchingPredicate(pred);
@@ -54,7 +54,7 @@ function run(argv) {
     return out;
   }
   var left = timed(nowDate, tomorrow).filter(function (t) { return t >= now; }).length;
-  var next = timed(tomorrow, after).filter(function (t) { return t >= Number(tomorrow.timeIntervalSince1970) * 1000; });
+  var next = timed(tomorrow, after).filter(function (t) { return t >= tomorrowMs; });
   next.sort(function (a, b) { return a - b; });
   return JSON.stringify({ status: 'allowed', firstTomorrow: next.length ? Math.round(next[0]) : null, leftToday: left });
 }`;
@@ -101,10 +101,15 @@ export interface CalendarPort {
   peek(now: number): Promise<CalendarPeek>;
 }
 
+/** Start of the next work day and of the one after it (4 a.m. local), as the script's argv. */
+export function dayBounds(now: number): [string, string] {
+  return [String(workDayStart(now, 1)), String(workDayStart(now, 2))];
+}
+
 export function calendarPort(exec: Exec = osascript): CalendarPort {
   return {
     status: async () => parsePeek((await exec(['status', '0'], 5000)).stdout),
-    request: async (now) => parsePeek((await exec(['request', String(Math.round(now))], 70_000)).stdout),
-    peek: async (now) => parsePeek((await exec(['read', String(Math.round(now))], 8000)).stdout),
+    request: async (now) => parsePeek((await exec(['request', String(Math.round(now)), ...dayBounds(now)], 70_000)).stdout),
+    peek: async (now) => parsePeek((await exec(['read', String(Math.round(now)), ...dayBounds(now)], 8000)).stdout),
   };
 }

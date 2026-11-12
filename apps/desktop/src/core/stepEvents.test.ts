@@ -1,6 +1,6 @@
 import type { SetAside, Step, StepEvent } from '@side/shared';
 import { STILL_WORKING_AFTER_MS } from '@side/shared';
-import { applyStillWorking, judgeStillWorking, markClicked, markDismissed, markOpened, markShown, secondsToWork } from './stepEvents';
+import { STILL_WORKING_GRACE_MS, applyStillWorking, judgeStillWorking, markClicked, markDismissed, markOpened, markShown, secondsToWork } from './stepEvents';
 
 const step: Step = {
   id: 's1', fromSetAside: 'sa1', createdAt: 0, label: 'l', source: 'rule',
@@ -75,6 +75,11 @@ describe('judgeStillWorking', () => {
   it('does not count a break page or no active tab', () => {
     expect(judgeStillWorking(clicked, step, sa, 'https://www.youtube.com/watch?v=1', due)).toBe(false);
     expect(judgeStillWorking(clicked, step, sa, null, due)).toBe(false);
+  });
+  it('leaves it unjudged when the first report comes long after the due time', () => {
+    expect(judgeStillWorking(clicked, step, sa, 'https://docs.google.com/x', due + STILL_WORKING_GRACE_MS)).toBe(true);
+    expect(judgeStillWorking(clicked, step, sa, 'https://docs.google.com/x', due + STILL_WORKING_GRACE_MS + 1)).toBeNull();
+    expect(judgeStillWorking(clicked, step, sa, null, due + 3 * 3_600_000)).toBeNull();
   });
   it('leaves it open when Chrome is not connected', () => {
     expect(judgeStillWorking(clicked, step, sa, undefined, due)).toBeNull();

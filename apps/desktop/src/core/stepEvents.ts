@@ -6,6 +6,9 @@ import type { DismissKind, SetAside, Step, StepEvent } from '@side/shared';
 import { STILL_WORKING_AFTER_MS, hostOf } from '@side/shared';
 import { BREAKS_KEY, isBreakUrl } from './grouping';
 
+/** How late a tab report may be and still count as "ten minutes later". */
+export const STILL_WORKING_GRACE_MS = 5 * 60_000;
+
 function blank(stepId: string): StepEvent {
   return { stepId, shownAt: null, clickedAt: null, openedAt: null, stillWorkingAt10m: null, dismissed: null };
 }
@@ -66,6 +69,8 @@ export function judgeStillWorking(
 ): boolean | null {
   if (e.clickedAt === null) return null;
   if (now < e.clickedAt + STILL_WORKING_AFTER_MS) return null;
+  // A report that comes long after (Chrome was off, the Mac asleep) says nothing about minute ten.
+  if (now > e.clickedAt + STILL_WORKING_AFTER_MS + STILL_WORKING_GRACE_MS) return null;
   // A step in a desktop app can't be judged from Chrome's active tab.
   if (step.action.type !== 'open_url') return null;
   if (activeUrl === undefined) return null;
