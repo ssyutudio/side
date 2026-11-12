@@ -41,6 +41,27 @@ describe('SpeakService', () => {
     expect(shown[0]).toMatchObject({ kind: 'step', stepId: 'st1' });
   });
 
+  it('does not offer the step again once it was opened or dismissed', async () => {
+    const ev = { stepId: 'st1', shownAt: now - 1, clickedAt: now - 1, openedAt: now - 1, stillWorkingAt10m: null, dismissed: null };
+    const opened = await setup({ stepEvents: [ev] });
+    expect(await opened.svc.trigger('unlock')).toBeNull();
+    const dismissed = await setup({ stepEvents: [{ ...ev, clickedAt: null, openedAt: null, dismissed: 'not_now' }] });
+    expect(await dismissed.svc.trigger('unlock')).toBeNull();
+    // A click that Chrome never confirmed is not "opened": the step is still on offer.
+    const failed = await setup({ stepEvents: [{ ...ev, openedAt: null }] });
+    expect(await failed.svc.trigger('unlock')).toMatchObject({ kind: 'step', stepId: 'st1' });
+  });
+
+  it("does not offer tomorrow's step minutes after tonight's Set aside, only from the next work day", async () => {
+    now = new Date(2026, 10, 9, 23, 55).getTime();
+    const { svc } = await setup();
+    expect(await svc.trigger('unlock')).toBeNull();
+    now = new Date(2026, 10, 10, 3, 59).getTime();
+    expect(await svc.trigger('wake')).toBeNull();
+    now = new Date(2026, 10, 10, 4, 1).getTime();
+    expect(await svc.trigger('wake')).toMatchObject({ kind: 'step' });
+  });
+
   it('stays quiet within the hour after speaking and logs why', async () => {
     const { svc, shown, store } = await setup();
     await svc.trigger('app_start');
@@ -144,7 +165,22 @@ describe('SpeakService check-in edge cases', () => {
     expect(store.get().promises.at(-1)?.firedAt).not.toBeNull();
   });
 
+  it('retires a check-in that came due long ago (asleep, hidden, app closed) without a bubble', async () => {
+    const { svc, shown, store } = await setup();
+    await svc.choose(30);
+    now += 30 * 60_000 + 2 * 60 * 60_000 + 1000; // more than two hours past due
+    expect(await svc.tick()).toBeNull();
+    expect(shown).toEqual([]);
+    expect(store.get().promises.at(-1)).toMatchObject({ firedAt: expect.any(Number) });
+    expect(await svc.tick()).toBeNull();
+    // A check-in only slightly late still fires.
+    await svc.choose(30);
+    now += 30 * 60_000 + 60_000;
+    expect(await svc.tick()).toMatchObject({ kind: 'promise' });
+  });
+
   it('clears the drawn bubble when sidy is hidden', async () => {
+    now = new Date(2026, 10, 10, 19, 0).getTime(); // the next work day: tonight's step is offered then
     const { svc, shown } = await setup();
     await svc.trigger('app_start');
     expect(svc.bubble).not.toBeNull();

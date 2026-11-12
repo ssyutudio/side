@@ -7,11 +7,12 @@
 // there is nothing for an output guard to catch. Free conversation, memories, projects, reminders
 // and mail are Later.
 //
-// What goes to Claude: the person's line (trimmed, at most 300 characters) and the action ids.
+// What goes to Claude: the person's line (trimmed, at most 300 characters, web addresses removed) and the action ids.
 // Never tab titles, URLs, file names or anything else. The answer can only name an id from the list;
 // anything else does nothing. With AI drafting off, a few word rules choose instead.
 import { t } from '../i18n';
 import { KO_ASK } from '../i18n/ko/core';
+import { stripAddresses } from './addresses';
 import type { LlmRequest } from './llmHelp';
 
 export const ASK_MAX = 300;
@@ -128,11 +129,12 @@ const OUTSIDE = /\b(pay|buy|order|purchase|transfer|send|post|tweet|book|delete|
 
 export function decideByWords(line: string): AskDecision {
   if (detectCrisis(line)) return { kind: 'crisis', by: 'words' };
+  // "How do I hide a column in Excel" is a how-to, not the hide action: ask before the action rules.
+  if (HOW_TO.test(line) || KO_ASK.howTo.test(line)) return { kind: 'how_to', search: null, by: 'words' };
   for (const r of RULES) if (r.re.test(line)) return { kind: 'action', action: r.action, minutes: r.action === 'set_session_check' ? r.minutes ?? 60 : null, by: 'words' };
   // Korean phrasings of the same fixed actions (the patterns live with the Korean words).
   for (const r of KO_ASK.rules) if (r.re.test(line)) return { kind: 'action', action: r.action, minutes: r.action === 'set_session_check' ? r.minutes ?? 60 : null, by: 'words' };
   if (OUTSIDE.test(line) || KO_ASK.outside.test(line)) return { kind: 'declined', reason: 'outside_action', by: 'words' };
-  if (HOW_TO.test(line) || KO_ASK.howTo.test(line)) return { kind: 'how_to', search: null, by: 'words' };
   return { kind: 'menu', by: 'words' };
 }
 
@@ -162,7 +164,7 @@ function system(): string {
 }
 
 export function buildAskRequest(line: string): LlmRequest {
-  return { system: system(), user: `<line>${line.replace(/</g, '‹').replace(/>/g, '›')}</line>` };
+  return { system: system(), user: `<line>${stripAddresses(line).replace(/</g, '‹').replace(/>/g, '›')}</line>` };
 }
 
 function jsonOf(text: string): Record<string, unknown> | null {

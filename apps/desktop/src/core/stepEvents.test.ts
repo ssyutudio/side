@@ -98,3 +98,11 @@ describe('applyStillWorking', () => {
     expect(again[0].stillWorkingAt10m).toBe(true);
   });
 });
+
+describe('judgeStillWorking after a failed open', () => {
+  it('never judges a click that was not confirmed opened', () => {
+    const e: StepEvent = { stepId: 's1', shownAt: 0, clickedAt: 1_000, openedAt: null, stillWorkingAt10m: null, dismissed: null };
+    const step = { id: 's1', fromSetAside: 'sa1', createdAt: 0, label: 'l', source: 'rule', action: { type: 'open_url', url: 'https://docs.google.com/d', title: 't', position: null }, checks: { noJudgment: true, cannotFail: true, inRealTool: true, resultVisible: true } } as never;
+    expect(judgeStillWorking(e, step, null, 'https://docs.google.com/d', 1_000 + 10 * 60_000 + 1000)).toBeNull();
+  });
+});

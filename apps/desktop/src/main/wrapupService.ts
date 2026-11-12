@@ -40,6 +40,8 @@ export type UndoOutcome =
   | { kind: 'not_latest' }
   | { kind: 'not_found' }
   | { kind: 'failed'; message: string }
+  /** Chrome brought the tabs back, but the note of it could not be saved. Never "Chrome couldn't". */
+  | { kind: 'storage_failed'; reopened: number; message: string }
   | { kind: 'unconfirmed'; reason: string };
 
 export interface WrapupDeps {
@@ -92,26 +94,30 @@ export class WrapupService {
     return { ...report, tabs, skipped: { ...report.skipped, excluded: report.skipped.excluded + dropped, excludedByDomain: byDomain } };
   }
 
-  async preview(rawReport: TabsReport): Promise<WrapupPreview> {
+  /** `llm: false` groups by the rules alone: nothing about the tabs is sent to Claude. */
+  async preview(rawReport: TabsReport, opts: { llm?: boolean } = {}): Promise<WrapupPreview> {
     const report = this.clean(rawReport);
     const names = this.sideGroupNames();
     const candidates = candidateTabs(report, names);
     const { settings } = this.data;
     let groups = groupTabs(candidates);
-    if (settings.llmEnabled && this.deps.llm && candidates.length > 0) {
+    if (opts.llm !== false && settings.llmEnabled && this.deps.llm && candidates.length > 0) {
       const outcome = await groupWithLlm(candidates, null, settings.excludedDomains, this.deps.llm, this.deps.clock);
       groups = outcome.groups;
       const at = this.deps.clock.now();
       await this.deps.store
-        .update((d) => ({ ...d, llmLog: [...d.llmLog, { at, titles: candidates.length, userLine: false }].slice(-50) }))
+        .update((d) => ({ ...d, llmLog: [...d.llmLog, { at, titles: candidates.length, userLine: false, kind: 'group' as const }].slice(-50) }))
         .catch(() => undefined);
     }
     return buildPreview(report, groups, names);
   }
 
   /** Saves the record, then asks Chrome. `closeGroupKeys` are groups whose list the user confirmed closing. */
-  async confirm(preview: WrapupPreview, rawReport: TabsReport, closeGroupKeys: readonly string[], shownFiles?: SetAside['files']): Promise<WrapupOutcome> {
+  async confirm(shownPreview: WrapupPreview, rawReport: TabsReport, closeGroupKeys: readonly string[], shownFiles?: SetAside['files']): Promise<WrapupOutcome> {
     const report = this.clean(rawReport);
+    // A site excluded after the preview was shown: those tabs are not in the cleaned report any more.
+    // Drop them from the fold (and the expected URLs) so nothing is saved, sent or looked up for them.
+    const preview = withoutMissing(shownPreview, report, this.data.settings.excludedDomains);
     const id = newId();
     const payload = toApplyPayload(preview, id, closeGroupKeys);
     // Never send a tab the exclusion list covers, whatever the preview said.
@@ -197,13 +203,18 @@ export class WrapupService {
   async undo(setAsideId: string): Promise<UndoOutcome> {
     const sa = this.data.setAsides.find((s) => s.id === setAsideId);
     if (!sa) return { kind: 'not_found' };
-    const latest = latestSetAside(this.data.setAsides);
+    const latest = latestSetAside(this.data.setAsides, this.deps.clock.now());
     if (!latest || latest.id !== setAsideId) return { kind: 'not_latest' };
     const outcome = await this.deps.port.command('cmd.wrapup.undo', { setAsideId }, WRAPUP_TIMEOUT_MS);
     if (outcome.status === 'ok') {
       const reopened = Number((outcome.result as { reopened?: unknown } | undefined)?.reopened ?? 0) || 0;
-      await this.patch(setAsideId, (x) => ({ ...x, status: 'undone' }));
-      await this.deps.store.update((d) => ({ ...d, steps: d.steps.filter((s) => s.fromSetAside !== setAsideId) }));
+      try {
+        await this.patch(setAsideId, (x) => ({ ...x, status: 'undone' }));
+        await this.deps.store.update((d) => ({ ...d, steps: d.steps.filter((s) => s.fromSetAside !== setAsideId) }));
+      } catch (err) {
+        console.warn('[side] could not save the undo:', (err as Error).message);
+        return { kind: 'storage_failed', reopened, message: (err as Error).message };
+      }
       return { kind: 'undone', reopened };
     }
     if (outcome.status === 'failed') return { kind: 'failed', message: outcome.error.message };
@@ -211,9 +222,14 @@ export class WrapupService {
   }
 
   /** The answer to "What are you most curious about tomorrow?". Null means skipped. */
-  async setTomorrowLine(setAsideId: string, line: string | null): Promise<void> {
+  async setTomorrowLine(setAsideId: string, line: string | null): Promise<{ error: 'storage_failed' } | void> {
     const clean = line?.trim() ? line.trim().slice(0, 200) : null;
-    await this.patch(setAsideId, (sa) => ({ ...sa, userLine: clean }));
+    try {
+      await this.patch(setAsideId, (sa) => ({ ...sa, userLine: clean }));
+    } catch (err) {
+      console.warn('[side] could not save the tomorrow line:', (err as Error).message);
+      return { error: 'storage_failed' };
+    }
     const sa = this.data.setAsides.find((s) => s.id === setAsideId);
     if (sa && isLive(sa)) await this.afterApplied(setAsideId);
   }
@@ -226,6 +242,17 @@ export class WrapupService {
     }));
     return out!;
   }
+}
+
+/** The preview without tabs the report no longer carries or an exclusion now covers. */
+function withoutMissing(preview: WrapupPreview, report: TabsReport, excluded: readonly string[]): WrapupPreview {
+  const live = new Set(report.tabs.filter((t) => !isExcluded(t.url, excluded)).map((t) => t.tabId));
+  const fold = preview.fold
+    .map((g) => ({ ...g, tabIds: g.tabIds.filter((id) => live.has(id)) }))
+    .filter((g) => g.tabIds.length > 0);
+  const kept = new Set(fold.flatMap((g) => g.tabIds));
+  const expectUrls = Object.fromEntries(Object.entries(preview.expectUrls).filter(([id]) => kept.has(Number(id))));
+  return { ...preview, fold, expectUrls, foldCount: kept.size };
 }
 
 /** The extension's result, or (if it only said ok) the command's own groups. */

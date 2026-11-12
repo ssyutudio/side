@@ -95,8 +95,19 @@ describe('Connections · calendar', () => {
     expect(String(connectionsView(FIXTURES['cal-denied'], false))).toContain('macOS said no. Allow Side in System Settings &gt; Privacy &amp; Security &gt; Calendars.');
   });
 
+  it('says so when macOS never asked, instead of a plain Off, until it is turned off or answered', async () => {
+    const { svc, store } = await make('not_asked');
+    await svc.setCalendar(true);
+    expect(store.get().settings.calendar).toBe(false);
+    expect(svc.view().calendar).toMatchObject({ on: false, status: 'no_answer' });
+    const row = String(connectionsView({ ...FIXTURES.day, connections: { apps: [], calendar: svc.view().calendar! } }, false));
+    expect(row).toContain("macOS didn't ask.");
+    await svc.setCalendar(false);
+    expect(svc.view().calendar).toMatchObject({ status: 'not_asked' });
+  });
+
   it('the screen says what it reads and that titles stay on this computer', () => {
-    expect(String(connectionsView(FIXTURES.day, false))).toContain('Turn it on so sidy knows when tomorrow starts. Titles stay on this computer.');
+    expect(String(connectionsView(FIXTURES.day, false))).toContain('Turn it on so sidy knows when tomorrow starts. Never reads titles, places or attendees.');
     expect(String(connectionsView(FIXTURES['cal-on'], false))).toContain("Reads tomorrow's first event time and how many are left today.");
   });
 });

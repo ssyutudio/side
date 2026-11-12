@@ -4,7 +4,8 @@ import type { KeepReason } from '@side/shared';
 import type { PreviewView } from '../../main/controller';
 import { html, raw, type SafeHtml } from '../shared/html';
 import { sidySvg } from '../shared/sidy';
-import { k, t, tn } from '../../i18n';
+import { k, language, t, tn } from '../../i18n';
+import { KOREAN_NAME } from '../../i18n/ko';
 
 export type SetupPhase = 'connecting' | 'failed' | 'connected';
 
@@ -23,12 +24,23 @@ const WHY: Record<KeepReason, string> = {
 const done = (title: string, sub = '') => html`<li class="done"><span class="dot">✓</span><div><b>${title}</b>${sub ? html`<p>${sub}</p>` : ''}</div></li>`;
 const copyRow = (text: string) => html`<div class="copy"><code>${text}</code><button class="btn sm" data-act="copy" data-text="${text}">${t('Copy')}</button></div>`;
 
-export function onboardingView(o: { phase: SetupPhase; extPath: string; preview: PreviewView | null }): SafeHtml {
+/** English / Korean, each named in itself, right in the first window. */
+function languagePick(): SafeHtml {
+  const cur = language();
+  return html`<span class="seg lang-pick" role="group" aria-label="${t('Language')}">${(
+    [['en', 'English'], ['ko', KOREAN_NAME]] as const
+  ).map(([code, name]) => html`<button type="button" data-act="lang" data-lang="${code}" lang="${code}" aria-pressed="${code === cur ? 'true' : 'false'}">${name}</button>`)}</span>`;
+}
+
+export function onboardingView(o: { phase: SetupPhase; extPath: string; preview: PreviewView | null; llmAvailable?: boolean }): SafeHtml {
   const connected = o.phase === 'connected';
-  const lead = t('Tab titles, your one line and your step counts go to Claude to name groups and pick your next step. Addresses and page text stay on this computer.');
+  // Without a Claude key nothing is sent; the first window must not say otherwise.
+  const lead = o.llmAvailable === false
+    ? t('Everything stays on this computer: without a Claude key, sidy names groups and picks your next step with simple rules.')
+    : t('Tab titles, your one line and your step counts go to Claude to name groups and pick your next step. Addresses and page text stay on this computer.');
   const add = connected
     ? done(t('Side extension added'))
-    : html`<li class="${o.phase === 'failed' ? 'done' : 'now'}"><span class="dot">${o.phase === 'failed' ? '✓' : '2'}</span><div><b>${t('Add the Side extension to Chrome')}</b>
+    : html`<li class="now"><span class="dot">2</span><div><b>${t('Add the Side extension to Chrome')}</b>
 <p>${t('Open this page in Chrome, switch on Developer mode, click Load unpacked and pick the folder below.')}</p>
 ${copyRow('chrome://extensions')}${copyRow(o.extPath)}</div></li>`;
   const connect =
@@ -54,7 +66,7 @@ ${copyRow('chrome://extensions')}${copyRow(o.extPath)}</div></li>`;
     draft = html`<div style="margin-top:22px"><div class="busy" role="status"><span class="spin"></span>${t('Reading your open tabs…')}</div></div>`;
   }
 
-  return html`<div class="onb setup" role="dialog" aria-label="${t('Set up Side')}">${raw(sidySvg(48))}
+  return html`<div class="onb setup" role="dialog" aria-label="${t('Set up Side')}"><div class="onb-top">${raw(sidySvg(48))}${languagePick()}</div>
 <h1>${connected ? t('Side is connected') : t('Set up Side')}</h1><p class="lead">${connected ? '' : `${t('Two minutes.')} `}${lead}</p>
 <ol class="steps">${done(t('Side is running'))}${add}${connect}</ol>${draft}</div>`;
 }

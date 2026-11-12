@@ -1,6 +1,6 @@
 // "What you did today" from the user's own words and confirmed events only.
 // A page being open is not something done. A set-aside counts only once the
-// extension confirmed it; a step counts once it was clicked, and again if the
+// extension confirmed it; a step counts once it was opened, and again if the
 // user was still in that work ten minutes later.
 import type { SetAside, Step, StepEvent } from '@side/shared';
 import { STILL_WORKING_AFTER_MS } from '@side/shared';
@@ -58,9 +58,10 @@ export function todayDone(src: DoneSources, clock: Clock): string[] {
   const stepById = new Map(src.steps.map((s) => [s.id, s]));
   for (const ev of src.stepEvents) {
     const step = stepById.get(ev.stepId);
-    if (!step || !isToday(ev.clickedAt)) continue;
-    items.push({ at: ev.clickedAt, text: done.stepClicked(workName(step)) });
-    if (ev.stillWorkingAt10m === true) {
+    // Only a confirmed open counts as coming back: a click Chrome could not answer is not "done".
+    if (!step || !isToday(ev.openedAt)) continue;
+    items.push({ at: ev.openedAt, text: done.stepClicked(workName(step)) });
+    if (ev.stillWorkingAt10m === true && ev.clickedAt !== null) {
       items.push({ at: ev.clickedAt + STILL_WORKING_AFTER_MS, text: done.keptGoing(workName(step)) });
     }
   }

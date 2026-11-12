@@ -20,18 +20,25 @@ function skippedLines(s: ViewState): string[] {
   return lines;
 }
 
-function sentSentence(s: ViewState): string {
+/** Everything that left this computer, by kind (counts only), or why nothing did. */
+function sentBlock(s: ViewState): SafeHtml {
   const { llm, uploadEnabled } = s.saw;
-  const counts = ` ${t('Anonymous counts: {state}.', { state: uploadEnabled ? t('on (numbers only)') : t('off') })}`;
-  if (!llm.enabled) return `${t('Nothing to Claude. AI drafting is off, so sidy names groups with simple rules on this computer.')}${counts}`;
-  if (!llm.lastTitles) {
-    return `${t('Nothing yet. When you set today aside, tab titles go to Claude (Anthropic) to name groups; your one line and your step counts (numbers only) help pick the next step — no addresses, no page text, nothing from excluded sites.')}${counts}`;
+  const counts = t('Anonymous counts: {state}.', { state: uploadEnabled ? t('on (numbers only)') : t('off') });
+  const settings = html`<button type="button" class="link" data-act="nav" data-section="settings">${t('Settings')}</button>`;
+  if (!llm.available) return html`<p class="quiet">${t('Nothing to Claude. There is no Claude key on this computer, so sidy names groups with simple rules here.')} ${counts} ${settings}</p>`;
+  if (!llm.enabled) return html`<p class="quiet">${t('Nothing to Claude. AI drafting is off, so sidy names groups with simple rules on this computer.')} ${counts} ${settings}</p>`;
+  if (!llm.sends) {
+    return html`<p class="quiet">${t('Nothing yet. When you set today aside, tab titles go to Claude (Anthropic) to name groups; your one line and your step counts (numbers only) help pick the next step — no addresses, no page text, nothing from excluded sites.')} ${counts} ${settings}</p>`;
   }
-  const titles = tn(llm.lastTitles, '{n} tab title', '{n} tab titles');
-  const sent = llm.lastUserLine
-    ? t('{titles} and your one line, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.', { titles })
-    : t('{titles}, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.', { titles });
-  return `${sent}${counts}`;
+  const x = llm.sent;
+  const lines: string[] = [];
+  if (x.groupTitles) lines.push(t('{titles}, to name groups.', { titles: tn(x.groupTitles, '{n} tab title', '{n} tab titles') }));
+  if (x.groupNames) lines.push(t('Your group names, to suggest a question for tomorrow.'));
+  if (x.stepPick) lines.push(x.stepFiles ? t('Tab titles, file names (no folders) and your one line, to pick your next step.') : t('Tab titles and your one line, to pick your next step.'));
+  if (x.stepCounts) lines.push(t('Your step counts (numbers only), for the By your side sentence.'));
+  if (x.askLine) lines.push(t('The lines you typed in Ask sidy, to pick one action.'));
+  return html`<div class="quiet">${t('To Claude (Anthropic):')}<ul>${lines.map((l) => html`<li>${l}</li>`)}</ul>
+<p style="margin:8px 0 0">${t('Never addresses, page text, file contents or excluded sites.')} ${counts} ${settings}</p></div>`;
 }
 
 export function sawView(s: ViewState, local: SawLocal): SafeHtml {
@@ -43,7 +50,7 @@ export function sawView(s: ViewState, local: SawLocal): SafeHtml {
 <button type="button" class="btn fill" data-act="wrap">${t('Set aside today')}</button></div>`;
   }
   const skipped = saw.skipped.excluded + saw.skipped.incognito + saw.skipped.internal;
-  const sent = saw.llm.enabled ? saw.llm.lastTitles ?? 0 : 0;
+  const sent = saw.llm.enabled && saw.llm.available ? saw.llm.lastTitles ?? 0 : 0;
   const rows = local.showAll ? saw.tabs : saw.tabs.slice(0, FIRST);
   const skippedText = skippedLines(s);
   const lead = saw.source === 'last_wrapup' ? t('From your last wrap-up, {when}.', { when: saw.when ?? '' }) : t('What Side read from Chrome just now.');
@@ -55,5 +62,5 @@ export function sawView(s: ViewState, local: SawLocal): SafeHtml {
   )}</tbody></table>
 ${saw.tabs.length > FIRST ? html`<button type="button" class="link" style="margin-top:10px" data-act="saw-all">${local.showAll ? t('Show fewer') : t('Show all {n}', { n: saw.tabs.length })}</button>` : ''}</section>
 <section class="sec"><h2>${t('Skipped')}</h2><div class="quiet">${skippedText.length ? html`<ul style="margin:0;padding-left:18px">${skippedText.map((l) => html`<li>${l}</li>`)}</ul>` : t('Nothing skipped.')}</div></section>
-<section class="sec"><h2>${t('Sent off this computer')}</h2><p class="quiet">${sentSentence(s)} <button type="button" class="link" data-act="nav" data-section="settings">${t('Settings')}</button></p></section>`;
+<section class="sec"><h2>${t('Sent off this computer')}</h2>${sentBlock(s)}</section>`;
 }

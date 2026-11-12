@@ -55,7 +55,8 @@ export function toastView(toast: Toast): SafeHtml {
   if (toast.kind === 'hidden') {
     // The key shows {keys}; the shortcut is drawn in its place.
     const [before, after = ''] = t('sidy is hidden. Press {keys} or click Side in the Dock.').split('{keys}');
-    return html`<div class="toast" role="status">${before}<kbd style="color:var(--ink)">⌃⌥S</kbd>${after}<button class="btn sm" data-act="bring-back">${t('Bring back')}</button></div>`;
+    // One text block (the key inline), so the sentence doesn't break into separate flex pieces.
+    return html`<div class="toast" role="status"><span class="tt">${before}<kbd style="color:var(--ink)">⌃⌥S</kbd>${after}</span><button class="btn sm" data-act="bring-back">${t('Bring back')}</button></div>`;
   }
   return html`<div class="bubble short" role="status">${close(t('Close'))}<p style="margin-bottom:0">${toast.text}</p></div>`;
 }

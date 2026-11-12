@@ -20,7 +20,7 @@ const started = Date.now();
 
 function render() {
   applyLanguage(api, state);
-  app.innerHTML = String(onboardingView({ phase, extPath, preview }));
+  app.innerHTML = String(onboardingView({ phase, extPath, preview, llmAvailable: state?.saw.llm.available }));
 }
 
 async function onState(s: ViewState) {
@@ -60,6 +60,7 @@ app.addEventListener('click', async (e) => {
     void api.invoke<ViewState>('side:state').then(onState);
   }
   if (el.dataset.act === 'meet') void api.invoke('side:setup.done');
+  if (el.dataset.act === 'lang') void api.invoke('side:settings.set', { language: el.dataset.lang === 'ko' ? 'ko' : 'en' });
 });
 
 if (api.fixture) {

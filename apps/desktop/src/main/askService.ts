@@ -42,7 +42,7 @@ export class AskService {
     if (!settings.llmEnabled || !this.deps.llm) return decideByWords(line);
     const at = this.deps.clock.now();
     await this.deps.store
-      .update((d) => ({ ...d, llmLog: [...d.llmLog, { at, titles: 0, userLine: true }].slice(-50) }))
+      .update((d) => ({ ...d, llmLog: [...d.llmLog, { at, titles: 0, userLine: true, kind: 'ask' as const }].slice(-50) }))
       .catch(() => undefined);
     const text = await askOnce(this.deps.llm, buildAskRequest(line), this.deps.timeoutMs ?? ASK_TIMEOUT_MS);
     return parseAsk(text, line) ?? decideByWords(line);

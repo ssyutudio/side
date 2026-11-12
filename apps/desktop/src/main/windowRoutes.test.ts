@@ -7,6 +7,7 @@ function fakePort() {
     toggleMini: () => void calls.push(['toggleMini', null]),
     closeMini: () => void calls.push(['closeMini', null]),
     resizeMini: (h) => void calls.push(['resizeMini', h]),
+    keepMini: (k) => void calls.push(['keepMini', k]),
     moveSidy: (y, done) => void calls.push(['moveSidy', [y, done]]),
     toast: (t, ms) => void calls.push(['toast', [t, ms]]),
     checkConnection: async () => 'connected',

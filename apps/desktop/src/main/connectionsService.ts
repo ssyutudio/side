@@ -11,7 +11,8 @@ export const LISTED_APPS = ['word', 'excel', 'powerpoint', 'photoshop'] as const
 
 export interface ConnectionsView {
   apps: { id: string; tool: string; on: boolean }[];
-  calendar?: { on: boolean; status: CalendarStatus | 'checking'; firstTomorrow: number | null };
+  /** no_answer: turned on, but macOS never showed its question (or the helper couldn't run). */
+  calendar?: { on: boolean; status: CalendarStatus | 'checking' | 'no_answer'; firstTomorrow: number | null };
 }
 
 export interface ConnectionsDeps {
@@ -26,6 +27,8 @@ export class ConnectionsService {
   private installed: { id: string; tool: string }[] = [];
   private calStatus: CalendarStatus = 'not_asked';
   private checking = false;
+  /** The last time it was turned on, macOS never answered. Cleared by the next answer. */
+  private noAnswer = false;
   private firstTomorrow: number | null = null;
 
   constructor(private readonly deps: ConnectionsDeps) {}
@@ -48,7 +51,13 @@ export class ConnectionsService {
     return {
       apps: this.installed.map((a) => ({ id: a.id, tool: a.tool, on: on.has(a.id) })),
       ...(this.deps.calendar
-        ? { calendar: { on: this.on && this.calStatus === 'allowed', status: this.checking ? 'checking' : this.calStatus, firstTomorrow: this.on ? this.firstTomorrow : null } }
+        ? {
+            calendar: {
+              on: this.on && this.calStatus === 'allowed',
+              status: this.checking ? 'checking' : this.noAnswer ? 'no_answer' : this.calStatus,
+              firstTomorrow: this.on ? this.firstTomorrow : null,
+            },
+          }
         : {}),
     };
   }
@@ -77,6 +86,7 @@ export class ConnectionsService {
   async setCalendar(on: boolean): Promise<void> {
     if (!this.deps.calendar) return;
     if (!on) {
+      this.noAnswer = false;
       await this.deps.store.update((d) => ({ ...d, settings: { ...d.settings, calendar: false } }));
       this.firstTomorrow = null;
       return this.deps.onChange();
@@ -88,6 +98,8 @@ export class ConnectionsService {
     } finally {
       this.checking = false;
     }
+    // Still "not asked" afterwards: no question ever appeared. Said as it is, not as a plain Off.
+    this.noAnswer = this.calStatus === 'not_asked' || this.calStatus === 'unavailable';
     await this.deps.store.update((d) => ({ ...d, settings: { ...d.settings, calendar: this.calStatus === 'allowed' } }));
     await this.peekCalendar();
     this.deps.onChange();

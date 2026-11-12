@@ -28,6 +28,11 @@ describe('sanitizeSettings', () => {
     expect(s.excludedDomains).toEqual(['bank.com']);
   });
 
+  it('turns a quiet window with the same start and end off instead of showing it as on', () => {
+    expect(sanitizeSettings({ ...defaultSettings(), quietHours: { start: 480, end: 480 } }).quietHours).toBeNull();
+    expect(sanitizeSettings({ ...defaultSettings(), quietHours: { start: 1320, end: 480 } }).quietHours).toEqual({ start: 1320, end: 480 });
+  });
+
   it('falls back to small for an unknown sidy size', () => {
     expect(sanitizeSettings({ ...defaultSettings(), sidySize: 'huge' as never }).sidySize).toBe('small');
   });

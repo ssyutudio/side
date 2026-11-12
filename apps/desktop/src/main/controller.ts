@@ -54,6 +54,8 @@ export interface ControllerDeps {
   realNow?: () => number;
   /** False while the setup window is open: its "Meet sidy" button greets instead. */
   greetOnConnect?: () => boolean;
+  /** Side was started for recording a demo (SIDE_DEMO): Settings offers the Demo clock. */
+  demoTools?: boolean;
   /** True while Mini is open: a check-in waits (stays unfired) until it is closed. */
   miniOpen?: () => boolean;
 }
@@ -67,6 +69,9 @@ export interface PreviewView {
   /** Files saved today in the desktop apps turned on: name and app only. Never closed or touched. */
   files?: { name: string; tool: string }[];
 }
+
+/** After a click: ~10.5 and ~13 minutes, inside the window judgeStillWorking accepts (10 to 15). */
+const STILL_WORKING_CHECKS_MS = [10.5 * 60_000, 13 * 60_000];
 
 export class SideController {
   readonly wrapup: WrapupService;
@@ -103,6 +108,7 @@ export class SideController {
 
   state(): ViewState {
     const view = buildViewState({
+      llmAvailable: !!this.deps.llm,
       data: this.data,
       report: this.deps.bridge.status === 'connected' ? this.lastReport : null,
       bridge: this.deps.bridge.status,
@@ -110,7 +116,7 @@ export class SideController {
       now: this.deps.clock.now(),
     });
     // Claude's By your side sentence is cached per set of counts; a new one republishes once.
-    return { ...view, bySide: this.help.bySideFor(view.numbers, () => this.publish()), connections: this.conn.view() };
+    return { ...view, demoTools: view.demoTools || this.deps.demoTools === true, bySide: this.help.bySideFor(view.numbers, () => this.publish()), connections: this.conn.view() };
   }
 
   publish() {
@@ -128,6 +134,12 @@ export class SideController {
     this.publish();
   }
 
+  /** Forgets the paired extension, so the next one that connects is pinned instead (a re-loaded one has a new origin). */
+  async resetPairing(): Promise<{ ok: true }> {
+    await this.deps.store.update((d) => ({ ...d, pairedOrigin: null }));
+    return { ok: true };
+  }
+
   async onBridgeStatus(s: BridgeStatus) {
     if (s !== 'connected') {
       const waiting = this.waiters;
@@ -141,14 +153,23 @@ export class SideController {
 
   private firstRunBusy = false;
 
-  /** The first words come from the user's real tabs: a fold draft, made by the LLM when it is on and reachable, else by rules. */
+  /**
+   * The first words come from the user's real tabs: a count of how the rules would fold them. Titles are
+   * never sent to Claude just to say hello. With nothing to fold there is nothing to say, and the greeting
+   * is done (not retried on every reconnect).
+   */
   async greetFirstRun() {
     this.firstRunBusy = true;
     try {
       // Only a count for the greeting: the draft the user may be editing in Mini is left alone.
-      const made = await this.makePreview();
-      if ('error' in made) return;
-      await this.speak.firstRun({ tabs: made.preview.foldCount, groups: made.preview.fold.length });
+      const report = await this.freshReport();
+      if (!report || this.deps.bridge.status !== 'connected') return;
+      const preview = await this.wrapup.preview(report, { llm: false });
+      if (preview.foldCount === 0) {
+        await this.deps.store.update((d) => ({ ...d, firstRunDone: true }));
+        return;
+      }
+      await this.speak.firstRun({ tabs: preview.foldCount, groups: preview.fold.length });
     } finally {
       this.firstRunBusy = false;
     }
@@ -236,8 +257,9 @@ export class SideController {
   }
 
   /** Saves the line (or skip). With a line and the LLM on, the next step may move to the tab that matches it. */
-  async saveTomorrowLine(setAsideId: string, line: string | null): Promise<void> {
-    await this.wrapup.setTomorrowLine(setAsideId, line);
+  async saveTomorrowLine(setAsideId: string, line: string | null): Promise<{ error: 'storage_failed' } | void> {
+    const failed = await this.wrapup.setTomorrowLine(setAsideId, line);
+    if (failed) return failed;
     this.publish();
     if (line && line.trim()) {
       void this.help.recall(setAsideId).then((r) => {
@@ -266,7 +288,26 @@ export class SideController {
     const end = Date.now() + waitMs;
     while (this.deps.bridge.status !== 'connected' && Date.now() < end) await new Promise((r) => setTimeout(r, 200));
     if (this.deps.bridge.status !== 'connected') return { kind: 'unconfirmed' as const, reason: 'not_connected' };
-    return this.step.open(stepId);
+    const clickedAt = Date.now();
+    const out = await this.step.open(stepId);
+    if (out.kind === 'opened') this.scheduleStillWorkingChecks(stepId, clickedAt);
+    return out;
+  }
+
+  /**
+   * "Kept going 10 minutes" is judged from a tab report that lands 10 to 15 minutes after the click.
+   * Tab events may not come in that window, so ask Chrome for a fresh report twice. A check that is no
+   * longer needed (already judged, Chrome not connected) does nothing.
+   */
+  private scheduleStillWorkingChecks(stepId: string, clickedAt: number) {
+    for (const at of STILL_WORKING_CHECKS_MS) {
+      const timer = setTimeout(() => {
+        const ev = this.data.stepEvents.find((e) => e.stepId === stepId);
+        if (!ev || ev.stillWorkingAt10m !== null || this.deps.bridge.status !== 'connected') return;
+        this.deps.bridge.send('tabs.request', {});
+      }, Math.max(0, clickedAt + at - Date.now()));
+      (timer as { unref?: () => void }).unref?.();
+    }
   }
 
   // ---- One more hour ----
@@ -291,8 +332,11 @@ export class SideController {
 
   // ---- settings, hide, demo ----
 
-  async updateSettings(patch: Partial<Settings>): Promise<Settings> {
+  async updateSettings(rawPatch: Partial<Settings>): Promise<Settings> {
     const before = this.data.settings;
+    // A quiet window whose start equals its end is not a window: keep the one that was set.
+    const { quietHours: asked, ...rest } = rawPatch;
+    const patch: Partial<Settings> = asked && asked.start === asked.end ? rest : rawPatch;
     let shortcut = sanitizeSettings({ ...before, ...patch }).shortcut;
     if (shortcut !== before.shortcut && !this.deps.registerShortcut(shortcut)) {
       this.deps.registerShortcut(before.shortcut);

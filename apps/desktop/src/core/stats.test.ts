@@ -90,6 +90,23 @@ describe('sideNumbers', () => {
     expect(empty.clickRate).toEqual({ value: null, n: 0 });
   });
 
+  it('counts a step as opened only once Chrome confirmed it (a click that failed is not one)', () => {
+    const failedOpen: StepEvent = { stepId: 's1', shownAt: 1, clickedAt: 2, openedAt: null, stillWorkingAt10m: null, dismissed: null };
+    const n = sideNumbers(base({ stepEvents: [failedOpen] }));
+    expect(n.stepReady).toBe(true);
+    expect(n.clicked).toBe(0);
+    expect(n.clickRate).toEqual({ value: 0, n: 1 });
+    const opened = sideNumbers(base({ stepEvents: [{ ...failedOpen, openedAt: 5 }] }));
+    expect(opened.stepReady).toBe(false);
+    expect(opened.clicked).toBe(1);
+  });
+
+  it('does not count the tomorrow line of an undone set-aside', () => {
+    const undone: SetAside = { ...sa, id: 'sa2', status: 'undone' };
+    const n = sideNumbers(base({ setAsides: [sa, undone] }));
+    expect(n.setAsideTotals.lines).toBe(1);
+  });
+
   it('totals what was set aside: tabs and tomorrow lines', () => {
     const n = sideNumbers(base());
     expect(n.setAsideTotals).toEqual({ tabs: 3, lines: 1 });

@@ -65,7 +65,7 @@ describe('buildViewState', () => {
     expect(v.saw.withPosition).toBe(1);
     expect(v.saw.skipped).toEqual({ excluded: 2, excludedByDomain: { 'client-bank.com': 2 }, incognito: 1, internal: 1 });
     expect(v.saw.hosts.map((h) => h.host)).toEqual(['github.com', 'en.wikipedia.org', 'youtube.com']);
-    expect(v.saw.llm).toEqual({ enabled: true, sends: 0, lastAt: null, lastTitles: null, lastUserLine: false });
+    expect(v.saw.llm).toMatchObject({ enabled: true, available: true, sends: 0, lastAt: null, lastTitles: null, lastUserLine: false });
   });
 
   it('reports the connection truthfully when Chrome is not there', () => {
@@ -136,7 +136,16 @@ describe('buildViewState for Main', () => {
       data: data({ llmLog: [{ at: NOW - 5000, titles: 36, userLine: true }] }),
       report, bridge: 'connected', bubble: null, now: NOW,
     });
-    expect(v.saw.llm).toEqual({ enabled: true, sends: 1, lastAt: NOW - 5000, lastTitles: 36, lastUserLine: true });
+    expect(v.saw.llm).toMatchObject({ enabled: true, sends: 1, lastAt: NOW - 5000, lastTitles: 36, lastUserLine: true });
+  });
+
+  it('names every kind of thing sent, including older entries without a kind, and says when no key is set', () => {
+    const v = buildViewState({
+      data: data({ llmLog: [{ at: 1, titles: 36, userLine: false }, { at: 2, titles: 0, userLine: true, kind: 'ask' }, { at: 3, titles: 5, userLine: true, files: 2, kind: 'step' }] }),
+      report, bridge: 'connected', bubble: null, now: NOW, llmAvailable: false,
+    });
+    expect(v.saw.llm.available).toBe(false);
+    expect(v.saw.llm.sent).toEqual({ groupTitles: 36, groupNames: false, stepPick: true, stepFiles: 2, stepCounts: false, askLine: true });
   });
 });
 

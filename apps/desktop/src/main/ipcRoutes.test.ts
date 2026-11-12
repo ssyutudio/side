@@ -19,6 +19,7 @@ function fakeController() {
     setHidden: rec('setHidden'),
     demo: rec('demo'),
     openMain: rec('openMain'),
+    resetPairing: rec('resetPairing'),
     wrapup: { retry: rec('retry'), undo: rec('undo'), setTomorrowLine: rec('setTomorrowLine') },
     step: { open: rec('open'), dismiss: rec('dismiss') },
     ask: { ask: rec('ask') },
@@ -90,6 +91,15 @@ describe('routeIpc', () => {
     }
     // An extra key is stripped, never passed on.
     expect(calls.filter(([n]) => n === 'ask').map(([, a]) => a)).toEqual([["I'm done for today"], ['x']]);
+  });
+
+  it('resets the pairing (and refreshes the screens once), taking no input', async () => {
+    const { ctl, calls } = fakeController();
+    let published = 0;
+    ctl.publish = () => void published++;
+    expect(await routeIpc(ctl, 'side:pairing.reset', undefined)).toEqual({ ok: 'resetPairing' });
+    expect(calls.map((c) => c[0])).toEqual(['resetPairing']);
+    expect(published).toBe(1);
   });
 
   it('accepts only adapter-shaped app ids in settings', async () => {

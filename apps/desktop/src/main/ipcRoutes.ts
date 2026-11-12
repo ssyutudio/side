@@ -27,7 +27,7 @@ const settingsPatch = z
 
 type Ctl = Pick<
   SideController,
-  'state' | 'previewWrapup' | 'confirmWrapup' | 'editWrapup' | 'openStep' | 'suggestTomorrow' | 'saveTomorrowLine' | 'oneMoreHour' | 'bubbleDrawn' | 'updateSettings' | 'setHidden' | 'demo' | 'openMain' | 'publish'
+  'state' | 'resetPairing' | 'previewWrapup' | 'confirmWrapup' | 'editWrapup' | 'openStep' | 'suggestTomorrow' | 'saveTomorrowLine' | 'oneMoreHour' | 'bubbleDrawn' | 'updateSettings' | 'setHidden' | 'demo' | 'openMain' | 'publish'
 > & {
   wrapup: Pick<SideController['wrapup'], 'retry' | 'undo' | 'setTomorrowLine'>;
   step: Pick<SideController['step'], 'open' | 'dismiss'>;
@@ -84,6 +84,8 @@ const ROUTES = {
   'side:demo': route(z.object({ cmd: z.enum(DEMO_COMMANDS) }), (c, i) => c.demo(i.cmd)),
   'side:open.main': route(empty, (c) => c.openMain()),
   'side:apps.set': route(z.object({ id: z.string().regex(/^[a-z_]{1,40}$/), on: z.boolean() }), (c, i) => c.conn.setApp(i.id, i.on)),
+  // The extension was re-loaded from another folder (a new id): the next one that connects is paired.
+  'side:pairing.reset': route(empty, publishing((c) => c.resetPairing())),
   'side:connections.refresh': route(empty, (c) => c.conn.refresh()),
   'side:calendar.set': route(z.object({ on: z.boolean() }), (c, i) => c.conn.setCalendar(i.on)),
   // Ask sidy: one line in, one decision out. The screen runs the action with the same route its

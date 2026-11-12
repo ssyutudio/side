@@ -27,7 +27,10 @@ describe('homeView', () => {
   it('night: offers to set today aside', () => {
     const h = s(homeView(FIXTURES.night, {}));
     expect(h).toContain('Stopping for today?');
-    expect(h).toContain('Fold your 38 open tabs into groups');
+    // The preview folds fewer than all open tabs, so no number is promised here.
+    expect(h).toContain('Fold your open tabs into groups');
+    expect(h).not.toMatch(/38 open tabs/);
+    expect(h).not.toContain('Undo any time tonight');
     expect(h).toMatch(/btn fill[^>]*data-act="wrap"/);
   });
 
@@ -84,9 +87,11 @@ describe('Wrap up preview', () => {
     expect(h).toContain('Nothing to fold right now.');
   });
 
-  it('while checking, says it saved first and only reports what Chrome confirms', () => {
+  it('while checking, does not claim a save, lets the footer grow, and only reports what Chrome confirms', () => {
     const h = s(checkingView(FIXTURE_PREVIEW, { close: [], open: [] }));
-    expect(h).toContain('Saved on this computer.');
+    expect(h).not.toContain('Saved on this computer.');
+    expect(h).not.toMatch(/[^-]height:44px/);
+    expect(h).toContain('min-height:44px');
     expect(h).toContain('Checking with Chrome…');
     expect(h).toContain('sidy only reports what Chrome confirms.');
   });
@@ -101,7 +106,8 @@ const confirmed = (closed: number[] = []): SetAside => ({
 describe('Wrap up done', () => {
   it('leads with today, then the confirmed result, Undo, and one optional line', () => {
     const h = s(doneView(FIXTURES.wrapped, confirmed(), { line: '' }));
-    expect(h).toContain('Today: set aside 31 tabs in 3 groups.');
+    // No step events today: the result below is the only set-aside line.
+    expect(h).not.toContain('Today:');
     expect(h).toContain('5 tabs set aside in 2 groups.');
     expect(h).toContain('Chrome confirmed.');
     expect(h).toContain('Undo · bring back 5 tabs');
@@ -194,7 +200,7 @@ describe('Wrap up preview: drag to regroup', () => {
   it('lets each tab in an open group be dragged, and each group take drops or be dragged onto another', () => {
     const h = s(previewView(FIXTURE_PREVIEW, { close: [], open: ['g1'] }));
     expect(h).toContain('Drag a tab to another group or to a new one, or a group onto another to merge them.');
-    expect(h).toMatch(/<li data-tab="\d+">Pricing table patterns<\/li>/);
+    expect(h).toMatch(/<li data-tab="\d+" title="Pricing table patterns">Pricing table patterns<\/li>/);
     expect((h.match(/data-drop="g\d"/g) ?? []).length).toBe(3);
     expect((h.match(/data-drag-group="g\d"/g) ?? []).length).toBe(3);
     // Native HTML5 dragging never delivers drops in a macOS panel window (Mini is one), so the
@@ -313,7 +319,7 @@ describe('Mini in Korean', () => {
   it('home: night, day, wrapped and offline', () => {
     const night = s(homeView(FIXTURES.night, {}));
     says(night, 'Stopping for today?');
-    says(night, 'Fold your {n} open tabs into groups', { n: 38 });
+    says(night, 'Fold your open tabs into groups');
     says(night, 'Ask sidy');
     says(night, 'Open Side');
     expect(night).toContain(`<span>${t('Tabs in Chrome')}</span><b>38</b>`);
@@ -333,8 +339,8 @@ describe('Mini in Korean', () => {
     const local = { close: [], open: [] };
     const preview = s(previewView(FIXTURE_PREVIEW, local));
     for (const en of ['Set today aside', 'Fold', 'Rename', 'Drop a tab here to start a new group', 'Cancel']) says(preview, en);
-    says(s(checkingView(FIXTURE_PREVIEW, local)), 'Saved on this computer.');
-    const done = s(doneView(FIXTURES.wrapped, confirmed(), { line: '' }));
+    says(s(checkingView(FIXTURE_PREVIEW, local)), 'Checking with Chrome…');
+    const done = s(doneView(FIXTURES.day, confirmed(), { line: '' }));
     says(done, 'Chrome confirmed.');
     says(done, 'What are you most curious about tomorrow?');
     says(done, 'Skip');
@@ -346,6 +352,7 @@ describe('Mini in Korean', () => {
   it('one more hour and the clock', () => {
     const h = s(oneMoreView(FIXTURES.night.now, 450, 60, FIXTURES.night));
     says(h, 'Done — set aside now');
+    says(s(failedView({ kind: 'unconfirmed' })), 'Try again');
     says(h, 'Check in with me in');
     // 11:40 PM reads as "PM 11:40": the part of day first.
     expect(clock(new Date(2026, 10, 12, 23, 40).getTime())).toBe('\uC624\uD6C4 11:40');
@@ -363,5 +370,73 @@ describe('Mini in Korean', () => {
   it('step text', () => {
     expect(stepOpenedText({ kind: 'opened', restored: 'top' })).toBe(t("Opened the page. sidy couldn't find the exact spot."));
     expect(stepOpenedText({ kind: 'opened', restored: 'top' })).not.toContain('Opened');
+  });
+});
+
+describe('Mini QA fixes', () => {
+  it('group names and tab rows carry the full text in a title', () => {
+    const long = { ...FIXTURE_PREVIEW, groups: [{ ...FIXTURE_PREVIEW.groups[0], name: 'A very long group name that gets cut off by the panel' }, ...FIXTURE_PREVIEW.groups.slice(1)] };
+    const h = s(previewView(long, { close: [], open: [long.groups[0].key] }));
+    expect(h).toContain('title="A very long group name that gets cut off by the panel"');
+    expect(h).toContain(`title="${long.groups[0].tabs[0].title}"`);
+  });
+
+  it('the header close button is named Close Mini', () => {
+    expect(s(homeView(FIXTURES.night, {}))).toContain('aria-label="Close Mini"');
+    expect(s(homeView(FIXTURES.night, {}))).not.toContain('aria-label="Close"');
+  });
+
+  it('says 1 tab, not 1 tabs', () => {
+    const one = { ...FIXTURE_PREVIEW, groups: [{ ...FIXTURE_PREVIEW.groups[0], tabs: FIXTURE_PREVIEW.groups[0].tabs.slice(0, 1) }] };
+    const key = one.groups[0].key;
+    expect(primaryLabel(one, [key])).toBe('Close 1 tab');
+    expect(s(previewView(one, { close: [key], open: [] }))).toContain('This 1 tab will close. Undo brings it back.');
+    const w = { ...FIXTURES.wrapped, lastWrapup: { ...FIXTURES.wrapped.lastWrapup!, groups: [{ key: 'g1', name: 'One', count: 1 }] } };
+    expect(s(homeView(w, {}))).toContain('1 tab set aside in 1 group.');
+    const sa = { ...confirmed([7]), result: { grouped: [{ key: 'g1', chromeGroupId: 1, tabIds: [1] }], closed: [7], kept: [] } };
+    expect(s(doneView(FIXTURES.wrapped, sa, { line: '' }))).toContain('1 tab folded in 1 group, 1 closed.');
+  });
+
+  it('done: no repeated set-aside line, no "0 still open", but step events still lead', () => {
+    const noEvents = s(doneView(FIXTURES.wrapped, { ...confirmed(), todayDone: ['Set aside 31 tabs in 3 groups.'] }, { line: '' }));
+    expect(noEvents).not.toContain('class="today"');
+    expect(noEvents).not.toContain('still open.');
+    expect(s(doneView(FIXTURES.day, confirmed(), { line: '' }))).toContain('class="today"');
+  });
+
+  it('home: a wrap-up Chrome never confirmed offers Try again with that id', () => {
+    for (const status of ['unconfirmed', 'failed'] as const) {
+      const w = { ...FIXTURES.night, lastWrapup: { ...FIXTURES.wrapped.lastWrapup!, status, id: 'sa7' } };
+      const h = s(homeView(w, {}));
+      expect(h).toContain("Chrome didn't confirm the last wrap-up.");
+      expect(h).toMatch(/data-act="retry-last" data-id="sa7"/);
+    }
+    expect(s(homeView(FIXTURES.wrapped, {}))).not.toContain('retry-last');
+  });
+
+  it('Step inside shows Opening… and locks the button while waiting', () => {
+    const h = s(homeView(FIXTURES.day, { stepBusy: true }));
+    expect(h).toContain('Opening…');
+    expect(h).toMatch(/data-act="step-open"[^>]*aria-disabled="true"/);
+    expect(s(homeView(FIXTURES.day, {}))).not.toContain('Opening…');
+  });
+
+  it('Ask sidy: no next-step button without a step; Exclude points at Open Side; privacy note follows Claude', () => {
+    const menu = { kind: 'menu' as const, by: 'words' as const };
+    const reply = { line: 'x', state: 'reply' as const, reply: menu };
+    expect(s(askBlock(reply, { hasStep: false }))).not.toContain('data-action="open_step"');
+    expect(s(askBlock(reply, { hasStep: true }))).toContain('data-action="open_step"');
+    const all = s(askBlock(reply));
+    expect(all).not.toContain('Exclude this site');
+    expect(all).toContain('Open Side, then Excluded sites');
+    expect(s(askBlock({ line: '', state: 'idle' }, { claude: false }))).toContain('This line stays on this computer, and simple rules pick one action.');
+    expect(s(askBlock({ line: '', state: 'idle' }, { claude: false }))).not.toContain('goes to Claude');
+    expect(s(askBlock({ line: '', state: 'idle' }, { claude: true }))).toContain('Only this line goes to Claude');
+    const off = { ...FIXTURES.night, settings: { ...FIXTURES.night.settings, llmEnabled: false } };
+    expect(s(homeView(off, {}))).toContain('stays on this computer');
+    const noKey = { ...FIXTURES.night, saw: { ...FIXTURES.night.saw, llm: { ...FIXTURES.night.saw.llm, available: false } } };
+    expect(s(homeView(noKey, {}))).toContain('stays on this computer');
+    expect(s(homeView(FIXTURES.night, {}))).toContain('Only this line goes to Claude');
+    expect(s(homeView(FIXTURES.night, { ask: reply }))).not.toContain('data-action="open_step"');
   });
 });

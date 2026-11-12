@@ -1,5 +1,5 @@
 import type { StopPromise } from '@side/shared';
-import { activePromise, answerPromise, choosePromise, firePromise, isDue, oneMoreHour, hoursUntilWake } from './promise';
+import { activePromise, answerPromise, choosePromise, expirePromise, firePromise, isDue, isExpired, oneMoreHour, hoursUntilWake, PROMISE_GRACE_MS } from './promise';
 
 const at = (d: number, h: number, m = 0) => new Date(2026, 10, d, h, m).getTime();
 const WAKE = 7 * 60;
@@ -76,5 +76,19 @@ describe('firing and answering', () => {
   it('activePromise finds the pending one', () => {
     expect(activePromise([p])?.id).toBe('p');
     expect(activePromise([firePromise(p, 1000)])).toBeNull();
+  });
+});
+
+describe('expired check-ins', () => {
+  const p: StopPromise = { id: 'p', madeAt: 0, dueAt: 60 * 60_000, minutes: 60, firedAt: null, answer: null, summary: [] };
+  it('is not stale within the grace period, and is stale after it', () => {
+    expect(isExpired(p, p.dueAt + PROMISE_GRACE_MS)).toBe(false);
+    expect(isExpired(p, p.dueAt + PROMISE_GRACE_MS + 1)).toBe(true);
+    expect(isExpired({ ...p, firedAt: 5 }, p.dueAt + PROMISE_GRACE_MS + 1)).toBe(false);
+  });
+  it('retires the promise so nothing waits on it', () => {
+    const out = expirePromise(p, 10);
+    expect(out.firedAt).toBe(10);
+    expect(activePromise([out])).toBeNull();
   });
 });

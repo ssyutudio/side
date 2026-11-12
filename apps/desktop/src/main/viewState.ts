@@ -60,7 +60,17 @@ export interface ViewState {
     /** Each tab read from Chrome: title, site and where the reading position is. No page text sent anywhere. */
     tabs: { title: string; host: string | null; where: string }[];
     skipped: SkippedSummary;
-    llm: { enabled: boolean; sends: number; lastAt: number | null; lastTitles: number | null; lastUserLine: boolean };
+    llm: {
+      enabled: boolean;
+      /** False without a Claude key on this computer: nothing can be sent, rules do everything. */
+      available: boolean;
+      sends: number;
+      lastAt: number | null;
+      lastTitles: number | null;
+      lastUserLine: boolean;
+      /** Every kind of thing sent in the kept log (counts only), so the screen can name them all. */
+      sent: { groupTitles: number | null; groupNames: boolean; stepPick: boolean; stepFiles: number; stepCounts: boolean; askLine: boolean };
+    };
     uploadEnabled: boolean;
   };
   quiet: { last: { at: number; reason: QuietReason } | null; today: Partial<Record<QuietReason, number>> };
@@ -69,6 +79,8 @@ export interface ViewState {
   hidden: boolean;
   focusUntil: number | null;
   demoOffsetMs: number;
+  /** Show the Demo clock in Settings: Side was started with SIDE_DEMO, or demo time is on now. */
+  demoTools: boolean;
   /** One sentence from the user's own counts (rule, or Claude's from the numbers only). */
   bySide: { text: string; byClaude: boolean };
 }
@@ -81,6 +93,8 @@ export interface ViewInput {
   now: number;
   /** Claude's sentence when the controller has one for these counts; otherwise the rule is used. */
   bySide?: { text: string; byClaude: boolean };
+  /** Whether a Claude key is set on this computer. Missing: assumed yes. */
+  llmAvailable?: boolean;
 }
 
 /** Where the user was on a page, in words. */
@@ -140,7 +154,7 @@ export function buildViewState(input: ViewInput): ViewState {
   });
 
   const stepSa = step ? data.setAsides.find((s) => s.id === step.fromSetAside) : undefined;
-  const latest = latestSetAside(data.setAsides);
+  const latest = latestSetAside(data.setAsides, now);
   // What Side saw: the last confirmed Wrap up when there is one, so it survives Chrome being closed.
   const liveSa = latest && (latest.status === 'applied' || latest.status === 'partial') ? latest : null;
 
@@ -208,7 +222,7 @@ export function buildViewState(input: ViewInput): ViewState {
             : null,
         };
       }),
-    saw: { ...sawFrom(liveSa, report, now), llm: llmSeen(data), uploadEnabled: data.settings.uploadEnabled },
+    saw: { ...sawFrom(liveSa, report, now), llm: llmSeen(data, input.llmAvailable !== false), uploadEnabled: data.settings.uploadEnabled },
     quiet: {
       last: data.quietLog.length ? data.quietLog.reduce((a, b) => (b.at >= a.at ? b : a)) : null,
       today: quietToday,
@@ -218,6 +232,7 @@ export function buildViewState(input: ViewInput): ViewState {
     hidden: data.hidden,
     focusUntil: data.focusUntil,
     demoOffsetMs: data.demoOffsetMs,
+    demoTools: data.demoOffsetMs !== 0,
     bySide: input.bySide ?? { text: ruleBySide(numbers), byClaude: false },
   };
 }
@@ -259,10 +274,29 @@ function sawFrom(sa: SetAside | null, report: TabsReport | null, now: number) {
 }
 
 /** What went to Claude: the last request that carried tab titles (grouping), not a titles-free one. */
-function llmSeen(data: AppData) {
+/** The kind of an older log entry, worked out from its counts. */
+function kindOf(e: AppData['llmLog'][number]): NonNullable<AppData['llmLog'][number]['kind']> | 'groupNamesOrCounts' {
+  if (e.kind) return e.kind;
+  if (e.titles > 0) return e.userLine ? 'step' : 'group';
+  return e.userLine ? 'ask' : 'groupNamesOrCounts';
+}
+
+function llmSeen(data: AppData, available: boolean) {
   const titled = [...data.llmLog].reverse().find((e) => e.titles > 0) ?? null;
+  const kinds = data.llmLog.map(kindOf);
+  const lastGroup = [...data.llmLog].reverse().find((e) => kindOf(e) === 'group');
+  const steps = data.llmLog.filter((e) => kindOf(e) === 'step');
   return {
     enabled: data.settings.llmEnabled,
+    available,
+    sent: {
+      groupTitles: lastGroup ? lastGroup.titles : null,
+      groupNames: kinds.includes('suggest') || kinds.includes('groupNamesOrCounts'),
+      stepPick: steps.length > 0,
+      stepFiles: steps.reduce((n, e) => Math.max(n, e.files ?? 0), 0),
+      stepCounts: kinds.includes('bySide') || kinds.includes('groupNamesOrCounts'),
+      askLine: kinds.includes('ask'),
+    },
     sends: data.llmLog.length,
     lastAt: data.llmLog.length ? data.llmLog[data.llmLog.length - 1].at : null,
     lastTitles: titled ? titled.titles : null,

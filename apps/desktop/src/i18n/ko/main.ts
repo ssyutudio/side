@@ -2,6 +2,30 @@
 export const MAIN: Record<string, string> = {
   // Settings
   Language: '언어',
+  'Set quiet hours': '조용한 시간 정하기',
+  'One more hour uses it to say how long you would sleep if you stopped now.': '‘한 시간만 더’에서 지금 멈추면 몇 시간 잘 수 있는지 알려 줄 때 써요.',
+  'No Claude key on this computer, so nothing is sent and sidy uses simple rules here. To use Claude, put your key in .env.local (see the README) and start Side again.':
+    '이 컴퓨터에 Claude 키가 없어서 아무것도 보내지 않고, sidy는 간단한 규칙으로만 움직여요. Claude를 쓰려면 .env.local에 키를 넣고(README 참고) Side를 다시 실행해 주세요.',
+  "Reads tomorrow's first event time and how many are left today. Never reads titles, places or attendees.":
+    '내일 첫 일정의 시간과 오늘 남은 일정 수만 읽어요. 제목, 장소, 참석자는 읽지 않아요.',
+  'Turn it on so sidy knows when tomorrow starts. Never reads titles, places or attendees.':
+    '켜 두면 sidy가 내일이 언제 시작하는지 알 수 있어요. 제목, 장소, 참석자는 읽지 않아요.',
+  Show: '보기',
+  Hide: '접기',
+  'Saved {n} tab · Checking with Chrome…': '탭 {n}개 저장 · Chrome에 확인하는 중…',
+  'Saved {n} tabs · Checking with Chrome…': '탭 {n}개 저장 · Chrome에 확인하는 중…',
+  'Nothing to Claude. There is no Claude key on this computer, so sidy names groups with simple rules here.':
+    'Claude에 보낸 건 없어요. 이 컴퓨터에 Claude 키가 없어서 sidy가 간단한 규칙으로 그룹 이름을 정해요.',
+  'To Claude (Anthropic):': 'Claude(Anthropic)에 보낸 것:',
+  '{titles}, to name groups.': '{titles} — 그룹 이름을 정하려고',
+  'Your group names, to suggest a question for tomorrow.': '그룹 이름 — 내일 질문을 추천하려고',
+  'Tab titles, file names (no folders) and your one line, to pick your next step.': '탭 제목, 파일 이름(폴더 제외), 내가 남긴 한 줄 — 다음 한 걸음을 고르려고',
+  'Tab titles and your one line, to pick your next step.': '탭 제목과 내가 남긴 한 줄 — 다음 한 걸음을 고르려고',
+  'Your step counts (numbers only), for the By your side sentence.': '한 걸음 횟수(숫자만) — By your side 문장을 쓰려고',
+  'The lines you typed in Ask sidy, to pick one action.': 'sidy에게 묻기에 입력한 줄 — 할 일 하나를 고르려고',
+  'Never addresses, page text, file contents or excluded sites.': '주소, 페이지 내용, 파일 내용, 제외한 사이트는 절대 보내지 않아요.',
+  "macOS didn't ask. Allow Side, or the app you started it from, in System Settings > Privacy & Security > Calendars, then turn it on again.":
+    'macOS가 묻지 않았어요. 시스템 설정 > 개인정보 보호 및 보안 > 캘린더에서 Side(또는 Side를 실행한 앱)를 허용한 뒤 다시 켜 주세요.',
   'Words on every Side screen, and the language Claude answers in.': 'Side의 모든 화면에 쓰는 말이자, Claude가 답하는 언어예요.',
   Settings: '설정',
   'Changes apply right away.': '바꾸면 바로 적용돼요.',
@@ -9,7 +33,6 @@ export const MAIN: Record<string, string> = {
   'Quiet hours end': '조용한 시간 끝',
   to: '~',
   'Turn off': '끄기',
-  'Off · Set quiet hours': '꺼짐 · 조용한 시간 정하기',
   'sidy size': 'sidy 크기',
   Small: '작게',
   Medium: '보통',
@@ -18,9 +41,8 @@ export const MAIN: Record<string, string> = {
   'Show or hide sidy': 'sidy 숨기기 / 보이기',
   'Works from any app. Clicking Side in the Dock also brings sidy back.': '어떤 앱에서든 쓸 수 있어요. Dock에서 Side를 눌러도 sidy가 다시 나타나요.',
   'Quiet hours': '조용한 시간',
-  "sidy won't start talking in this window. A check-in you asked for still comes, once.": '이 시간에는 sidy가 먼저 말을 걸지 않아요. 요청해 둔 다시 묻기는 한 번 와요.',
+  "sidy won't start talking in this window. A check-in you asked for still comes, once.": '이 시간에는 sidy가 먼저 말을 걸지 않아요. 요청해 둔 다시 묻기는 한 번 알려 드려요.',
   'Wake-up time': '일어나는 시간',
-  'Used for one fact when you choose One more hour.': '‘한 시간만 더’를 고를 때, 일어날 때까지 남은 시간을 알려 주는 데만 써요.',
   'Little reactions': '작은 반응',
   'sidy stretches when you unlock, whistles when a video starts, nods to music — once, then still. Off with Reduce Motion too.':
     '잠금을 풀면 sidy가 기지개를 켜고, 영상이 시작되면 휘파람을 불고, 음악에 고개를 끄덕여요. 한 번만 하고 가만히 있어요. ‘동작 줄이기’를 켜 두면 꺼져요.',
@@ -49,6 +71,7 @@ export const MAIN: Record<string, string> = {
   'Waiting for the Side extension. Load it in chrome://extensions, then check again.': 'Side 확장 프로그램을 기다리고 있어요. chrome://extensions에서 불러온 뒤 다시 확인해 보세요.',
   'Make sure the Side extension is switched on in chrome://extensions.': 'chrome://extensions에서 Side 확장 프로그램이 켜져 있는지 확인해 보세요.',
   'Check again': '다시 확인',
+  'Pair a different extension': '다른 확장 프로그램 연결하기',
   'Found on this computer': '이 컴퓨터에서 찾은 앱',
   On: '켜짐',
   Off: '꺼짐',
@@ -58,9 +81,7 @@ export const MAIN: Record<string, string> = {
   Calendar: '캘린더',
   Checking: '확인 중',
   'Waiting for macOS to ask you.': 'macOS가 물어보기를 기다리고 있어요.',
-  "Reads tomorrow's first event time and how many are left today. Titles stay on this computer.": '내일 첫 일정의 시간과 오늘 남은 일정 수를 읽어요. 제목은 이 컴퓨터에만 있어요.',
   'macOS said no. Allow Side in System Settings > Privacy & Security > Calendars.': 'macOS가 허용하지 않았어요. 시스템 설정 > 개인정보 보호 및 보안 > 캘린더에서 Side를 허용해 주세요.',
-  'Turn it on so sidy knows when tomorrow starts. Titles stay on this computer.': '켜 두면 sidy가 내일이 언제 시작하는지 알 수 있어요. 제목은 이 컴퓨터에만 있어요.',
   'Desktop apps': '데스크톱 앱',
   'On: {apps}.': '켜진 앱: {apps}.',
   'Turn on the apps sidy may open a file in.': 'sidy가 파일을 열어도 되는 앱을 켜 주세요.',
@@ -92,9 +113,9 @@ export const MAIN: Record<string, string> = {
   'sidy folds your tabs and keeps one small step ready for when you come back.': 'sidy가 탭을 접고, 돌아왔을 때 할 작은 한 걸음을 하나 준비해 둬요.',
   'Set aside today': 'Set aside today',
   'tabs in Chrome': 'Chrome에 열린 탭',
-  'set aside': '정리함',
-  'in {n} group': '그룹 {n}개',
-  'in {n} groups': '그룹 {n}개',
+  'set aside': '정리한 탭',
+  'in {n} group': '· 그룹 {n}개',
+  'in {n} groups': '· 그룹 {n}개',
   'step opened': '열어 본 한 걸음',
   'steps opened': '열어 본 한 걸음',
   'kept going 10 min': '10분 넘게 이어감',
@@ -163,10 +184,10 @@ export const MAIN: Record<string, string> = {
   '(skipped)': '(건너뜀)',
   'Next step': '다음 한 걸음',
   'Stepped inside': 'Stepped inside',
-  'Kept going 10 min': '10분 넘게 이어갔나요',
-  'One line per day you used Side.': '하루에 한 줄씩, Side를 쓴 날만 보여요.',
+  'Kept going 10 min': '10분 넘게 이어감',
+  'One line for each time you set work aside.': '정리할 때마다 한 줄씩 보여요.',
   'No days yet. Your first wrap-up shows up here.': '아직 기록이 없어요. 첫 정리가 여기에 나타나요.',
-  'One line per day you used Side. Days off are simply not here.': '하루에 한 줄씩, Side를 쓴 날만 보여요. 쉰 날은 여기에 없어요.',
+  'One line for each time you set work aside. Days off are simply not here.': '정리할 때마다 한 줄씩 보여요. 쉰 날은 여기에 없어요.',
 
   // Excluded sites
   Site: '사이트',
@@ -180,7 +201,7 @@ export const MAIN: Record<string, string> = {
   Add: '추가',
   'Example: mybank.com — covers every page on that site.': '예: mybank.com — 그 사이트의 모든 페이지에 적용돼요.',
   "That doesn't look like a site address. Try something like mybank.com.": '사이트 주소가 아닌 것 같아요. mybank.com처럼 입력해 보세요.',
-  '{d} is already excluded.': '{d}: 이미 제외한 사이트예요.',
+  '{d} is already excluded.': '{d} — 이미 제외돼 있어요.',
 
   // What Side saw
   '{n} tab from {d} — excluded site, not read.': '{d}의 탭 {n}개 — 제외한 사이트라 읽지 않았어요.',
@@ -194,13 +215,9 @@ export const MAIN: Record<string, string> = {
   off: '꺼짐',
   'Nothing to Claude. AI drafting is off, so sidy names groups with simple rules on this computer.': 'Claude로 보낸 것이 없어요. AI 초안이 꺼져 있어서, sidy가 이 컴퓨터에서 간단한 규칙으로 그룹 이름을 정해요.',
   'Nothing yet. When you set today aside, tab titles go to Claude (Anthropic) to name groups; your one line and your step counts (numbers only) help pick the next step — no addresses, no page text, nothing from excluded sites.':
-    '아직 없어요. Set aside today를 하면 그룹 이름을 정하려고 탭 제목이 Claude(Anthropic)에 전달돼요. 내가 남긴 한 줄과 한 걸음 횟수(숫자만)는 다음 한 걸음을 고르는 데 쓰여요 — 주소, 페이지 내용, 제외한 사이트의 것은 보내지 않아요.',
+    '아직 없어요. Set aside today를 하면 그룹 이름을 정하려고 탭 제목이 Claude(Anthropic)에 전달돼요. 내가 남긴 한 줄과 한 걸음 횟수(숫자만)는 다음 한 걸음을 고르는 데 쓰여요 — 주소, 페이지 내용, 제외한 사이트의 내용은 보내지 않아요.',
   '{n} tab title': '탭 제목 {n}개',
   '{n} tab titles': '탭 제목 {n}개',
-  '{titles} and your one line, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.':
-    '{titles}와 내가 남긴 한 줄을 Claude(Anthropic)에 보냈어요. 그룹 이름을 정하고 다음 한 걸음을 고르는 데 쓰이고, 한 걸음 횟수(숫자만)도 함께 보냈어요. 주소, 페이지 내용, 제외한 사이트의 것은 보내지 않아요.',
-  '{titles}, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.':
-    '{titles}를 Claude(Anthropic)에 보냈어요. 그룹 이름을 정하고 다음 한 걸음을 고르는 데 쓰이고, 한 걸음 횟수(숫자만)도 함께 보냈어요. 주소, 페이지 내용, 제외한 사이트의 것은 보내지 않아요.',
   'Nothing read yet.': '아직 읽은 것이 없어요.',
   "Chrome isn't connected, so Side isn't reading anything right now.": 'Chrome이 연결되지 않아서 Side가 지금은 아무것도 읽지 않아요.',
   "After your first wrap-up you'll see every tab Side read and skipped.": '첫 정리를 하고 나면 Side가 읽은 탭과 건너뛴 탭을 모두 볼 수 있어요.',

@@ -34,4 +34,6 @@ export const ONBOARDING: Record<string, string> = {
   'Side is connected': 'Side가 연결됐어요',
   'Two minutes.': '2분이면 돼요.',
   'Side is running': 'Side가 실행 중이에요',
+  'Everything stays on this computer: without a Claude key, sidy names groups and picks your next step with simple rules.':
+    '모든 게 이 컴퓨터에만 있어요. Claude 키가 없어서 sidy가 간단한 규칙으로 그룹 이름을 정하고 다음 한 걸음을 골라요.',
 };

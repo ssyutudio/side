@@ -21,7 +21,7 @@ export function chip(s: ViewState): SafeHtml {
 }
 
 export function head(c: SafeHtml): SafeHtml {
-  return html`<div class="ph"><span class="name">Side</span>${c}<span class="sp"></span><button class="x" data-act="close" aria-label="${t('Close')}">×</button></div>`;
+  return html`<div class="ph"><span class="name">Side</span>${c}<span class="sp"></span><button class="x" data-act="close" aria-label="${t('Close Mini')}">×</button></div>`;
 }
 
 export function facts(rows: [string, string][]): SafeHtml {

@@ -4,7 +4,7 @@
 import type { KeepReason, SetAside } from '@side/shared';
 import type { ViewState } from '../../main/viewState';
 import type { PreviewView } from '../../main/controller';
-import { html, type SafeHtml } from '../shared/html';
+import { html, raw, type SafeHtml } from '../shared/html';
 import { k, t, tn, says } from '../../i18n';
 import { head, panel } from './parts';
 
@@ -39,7 +39,7 @@ export function primaryLabel(p: PreviewView, close: readonly string[]): string {
   let shut = 0;
   for (const g of p.groups) (close.includes(g.key) ? (shut += g.tabs.length) : (fold += g.tabs.length));
   if (shut && fold) return t('Fold {fold} · Close {shut}', { fold, shut });
-  if (shut) return t('Close {n} tabs', { n: shut });
+  if (shut) return tn(shut, 'Close {n} tab', 'Close {n} tabs');
   return t('Set aside {tabs}', { tabs: tabs(fold) });
 }
 
@@ -60,21 +60,21 @@ function body(p: PreviewView, local: WrapLocal, dim: boolean): SafeHtml {
     const renaming = local.renaming === g.key;
     const head = renaming
       ? html`<form class="rn" data-key="${g.key}"><i style="width:12px;height:12px;border-radius:4px;background:var(--c);flex:none"></i><input id="rn" maxlength="40" value="${g.name}" aria-label="${t('Group name')}" autocomplete="off"><button type="submit" class="btn sm">${t('Save')}</button></form>`
-      : html`<button class="dis" data-act="toggle" data-key="${g.key}" data-drag-group="${g.key}" aria-expanded="${open ? 'true' : 'false'}"><span class="chev" aria-hidden="true">▶</span><i style="width:12px;height:12px;border-radius:4px;background:var(--c);flex:none"></i><span class="n">${g.name}</span></button>
+      : html`<button class="dis" data-act="toggle" data-key="${g.key}" data-drag-group="${g.key}" aria-expanded="${open ? 'true' : 'false'}"><span class="chev" aria-hidden="true">▶</span><i style="width:12px;height:12px;border-radius:4px;background:var(--c);flex:none"></i><span class="n" title="${g.name}">${g.name}</span></button>
 <span class="seg" role="group" aria-label="${t('{name}: fold or close', { name: g.name })}"><button aria-pressed="${closing ? 'false' : 'true'}" data-act="mode" data-key="${g.key}" data-mode="fold">${t('Fold')}</button><button aria-pressed="${closing ? 'true' : 'false'}" data-act="mode" data-key="${g.key}" data-mode="close">${t('Close')}</button></span>
 <button type="button" class="rn-btn" data-act="rename" data-key="${g.key}" aria-label="${t('Rename {name}', { name: g.name })}"><span class="ic" aria-hidden="true">✏️</span>${t('Rename')}</button>`;
     return html`<div class="g" data-drop="${g.key}" style="--c:${COLORS[i % COLORS.length]}">
 ${head}
 ${open
-  ? html`${closing ? html`<div class="warn-line">${t('These {n} tabs will close. Undo brings them back.', { n: g.tabs.length })}</div>` : ''}<ul class="tl2" aria-label="${tabs(g.tabs.length)}">${g.tabs.map((x) => html`<li data-tab="${x.id}">${x.title}</li>`)}</ul>`
-  : html`<span class="ex">${tabs(g.tabs.length)} · ${sample}</span>`}</div>`;
+  ? html`${closing ? html`<div class="warn-line">${tn(g.tabs.length, 'This {n} tab will close. Undo brings it back.', 'These {n} tabs will close. Undo brings them back.')}</div>` : ''}<ul class="tl2" aria-label="${tabs(g.tabs.length)}">${g.tabs.map((x) => html`<li data-tab="${x.id}" title="${x.title}">${x.title}</li>`)}</ul>`
+  : html`<span class="ex" title="${sample}">${tabs(g.tabs.length)} · ${sample}</span>`}</div>`;
   });
   const content = p.groups.length
     ? html`<div><h2 class="wh">${t('Set today aside')}</h2><p class="sub">${t('{groups}, folded in Chrome. Nothing closes unless you pick Close.', { groups: groupsText(p.groups.length) })}</p>${p.groups.length > 1 ? html`<p class="note" style="margin:4px 0 0">${t('Drag a tab to another group or to a new one, or a group onto another to merge them.')}</p>` : ''}</div>
 <div class="gl">${groups}<div class="new-drop" data-drop="__new">➕ ${t('Drop a tab here to start a new group')}</div></div>`
     : html`<div><h2 class="wh">${t('Nothing to fold right now.')}</h2><p class="sub">${t('Every open tab is one sidy leaves alone. Here is why.')}</p></div>`;
-  return html`<div class="pb"${dim ? ' style="opacity:.45;pointer-events:none"' : ''}>${content}
-${stay.length ? html`<div class="stay"><h4>${stayCount ? t('{n} stay open', { n: stayCount }) : t('Left as they are')}</h4><ul>${stay.map(([title, r]) => html`<li>${title}<span>${r}</span></li>`)}</ul></div>` : ''}
+  return html`<div class="pb"${raw(dim ? ' style="opacity:.45;pointer-events:none"' : '')}>${content}
+${stay.length ? html`<div class="stay"><h4>${stayCount ? t('{n} stay open', { n: stayCount }) : t('Left as they are')}</h4><ul>${stay.map(([title, r]) => html`<li title="${title}">${title}<span>${r}</span></li>`)}</ul></div>` : ''}
 ${p.files?.length ? filesBlock(p.files) : ''}</div>`;
 }
 
@@ -96,21 +96,21 @@ export function checkingView(p: PreviewView, local: WrapLocal): SafeHtml {
   return panel([
     head(html`<span class="chip wait">${t('Working')}</span>`),
     body(p, local, true),
-    html`<div class="pf" role="status" aria-live="polite"><div class="row" style="align-items:center;gap:12px;height:44px"><span class="spin"></span><span><b>${t('Saved on this computer.')}</b> ${t('Checking with Chrome…')}</span></div>
+    html`<div class="pf" role="status" aria-live="polite"><div class="row" style="align-items:center;gap:12px;min-height:44px"><span class="spin"></span><span>${t('Checking with Chrome…')}</span></div>
 <p class="note" style="margin:6px 0 0">${t('sidy only reports what Chrome confirms.')}</p></div>`,
   ]);
 }
 
-function todayText(s: ViewState, sa: SetAside): { line: string; note: string } {
+/** What happened today besides setting aside (that line is the result right below). Nothing: no block at all. */
+function todayText(s: ViewState, sa: SetAside): { line: string; note: string } | null {
   const lines = sa.todayDone.length ? sa.todayDone : s.todayLines;
   // The set-aside line itself isn't news; it may have been saved in either language.
   const events = lines.filter((l) => !says(l, 'Set aside {tabs} in {groups}.'));
-  const pick = events.length ? events.slice(-2) : lines.slice(-1);
-  if (!pick.length) return { line: t('Today: you set today aside.'), note: t('No steps today, so sidy only counts what it set aside.') };
-  const text = pick.join(' ');
+  if (!events.length) return null;
+  const text = events.slice(-2).join(' ');
   return {
     line: t('Today: {text}', { text: `${text[0].toLowerCase()}${text.slice(1)}` }),
-    note: events.length ? t('From what you did with Side today — not from page text.') : t('No steps today, so sidy only counts what it set aside.'),
+    note: t('From what you did with Side today — not from page text.'),
   };
 }
 
@@ -121,7 +121,7 @@ export function doneView(s: ViewState, sa: SetAside, local: { line: string; sugg
   const groups = new Set(r.grouped.filter((g) => g.tabIds.length).map((g) => g.key)).size;
   const closed = r.closed.length;
   const result = closed
-    ? t('{folded} tabs folded in {groups}, {closed} closed.', { folded, groups: groupsText(groups), closed })
+    ? tn(folded, '{folded} tab folded in {groups}, {closed} closed.', '{folded} tabs folded in {groups}, {closed} closed.', { folded, groups: groupsText(groups), closed })
     : t('{tabs} set aside in {groups}.', { tabs: tabs(folded), groups: groupsText(groups) });
   const kept = r.kept.length
     ? html` ${tn(r.kept.length, 'Chrome kept {n} tab as it was ({reasons}).', 'Chrome kept {n} tabs as they were ({reasons}).', { reasons: [...new Set(r.kept.map((x) => t(REASON[x.reason]).toLowerCase()))].join(', ') })}`
@@ -134,8 +134,8 @@ export function doneView(s: ViewState, sa: SetAside, local: { line: string; sugg
   return panel([
     head(okChip()),
     html`<div class="pb">
-<div class="today">${today.line}<small>${today.note}</small></div>
-<div class="done-line"><b>${result}</b> ${t('{n} still open.', { n: stillOpen })} ${t('Chrome confirmed.')}${kept}</div>
+${today ? html`<div class="today">${today.line}<small>${today.note}</small></div>` : ''}
+<div class="done-line"><b>${result}</b>${stillOpen ? html` ${t('{n} still open.', { n: stillOpen })}` : ''} ${t('Chrome confirmed.')}${kept}</div>
 <button class="btn" data-act="undo" data-id="${sa.id}">${t('Undo · bring back {tabs}', { tabs: tabs(folded + closed) })}</button>
 <div class="field" style="margin-top:4px"><label for="tm">${t('What are you most curious about tomorrow?')}</label>
 ${sugg.length
@@ -143,7 +143,7 @@ ${sugg.length
       (c) => html`<button aria-pressed="${c === local.line ? 'true' : 'false'}" data-act="chip" data-text="${c}">${c}</button>`,
     )}</div>`
   : ''}
-<input id="tm" maxlength="200"${sugg.length ? ' style="margin-top:8px"' : ''} placeholder="${sugg.length ? t('Or write your own') : t('One line, if you like')}" autocomplete="off" value="${local.line}">
+<input id="tm" maxlength="200"${raw(sugg.length ? ' style="margin-top:8px"' : '')} placeholder="${sugg.length ? t('Or write your own') : t('One line, if you like')}" autocomplete="off" value="${local.line}">
 <p class="note" style="margin:6px 0 0">${t('Optional.')}${sugg.length ? ` ${t('Suggested by Claude from your group names.')}` : ''} ${t('sidy brings it back tomorrow.')}</p></div></div>
 <div class="pf"><div class="row"><button class="btn fill grow" data-act="save-line" data-id="${sa.id}">${t('Save')}</button><button class="btn grow" data-act="skip" data-id="${sa.id}">${t('Skip')}</button></div></div>`,
   ]);

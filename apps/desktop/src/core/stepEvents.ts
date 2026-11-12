@@ -67,7 +67,8 @@ export function judgeStillWorking(
   activeUrl: string | null | undefined,
   now: number,
 ): boolean | null {
-  if (e.clickedAt === null) return null;
+  // A click Chrome never confirmed is not a step that was started.
+  if (e.clickedAt === null || e.openedAt === null) return null;
   if (now < e.clickedAt + STILL_WORKING_AFTER_MS) return null;
   // A report that comes long after (Chrome was off, the Mac asleep) says nothing about minute ten.
   if (now > e.clickedAt + STILL_WORKING_AFTER_MS + STILL_WORKING_GRACE_MS) return null;

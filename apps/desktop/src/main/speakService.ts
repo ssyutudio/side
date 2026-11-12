@@ -5,14 +5,17 @@ import { newId, type QuietReason, type StopPromise } from '@side/shared';
 import type { JsonStore } from './store';
 import type { AppData } from './appData';
 import type { Clock } from '../core/clock';
-import { currentStep, enabledApps } from '../core/step';
+import { currentStep, enabledApps, latestSetAside } from '../core/step';
+import { workDayOf } from '../core/todayDone';
 import { decideSpeak, keepLatest, type PendingBubble, type SpeakTrigger } from '../core/speakPolicy';
 import {
   activePromise,
   answerPromise,
   choosePromise,
+  expirePromise,
   firePromise,
   isDue,
+  isExpired,
   oneMoreHour,
   type PromiseAnswer,
   type PromiseChoice,
@@ -55,7 +58,15 @@ export class SpeakService {
 
   private stepId(): string | null {
     const d = this.data;
-    return currentStep(d.setAsides, d.steps, d.settings.excludedDomains, this.deps.clock, undefined, { enabled: enabledApps(d.settings) })?.id ?? null;
+    const step = currentStep(d.setAsides, d.steps, d.settings.excludedDomains, this.deps.clock, undefined, { enabled: enabledApps(d.settings) });
+    if (!step) return null;
+    // One tiny step, offered to be acted on: not again once it was opened or dismissed, and not
+    // tomorrow's step minutes after tonight's Set aside (it waits for the next work day).
+    const ev = d.stepEvents.find((e) => e.stepId === step.id);
+    if (ev && (ev.openedAt !== null || ev.dismissed !== null)) return null;
+    const from = latestSetAside(d.setAsides, this.deps.clock.now());
+    if (from && workDayOf(from.endedAt) === workDayOf(this.deps.clock.now())) return null;
+    return step.id;
   }
 
   private async logQuiet(reason: QuietReason) {
@@ -172,6 +183,10 @@ export class SpeakService {
     const now = this.deps.clock.now();
     const p = activePromise(this.data.promises);
     if (!isDue(p, now) || !p) return null;
+    if (isExpired(p, now)) {
+      await this.deps.store.update((d) => ({ ...d, promises: d.promises.map((x) => (x.id === p.id ? expirePromise(x, now) : x)) }));
+      return null;
+    }
     // Mini is open: leave the check-in unfired so the next tick brings it once Mini is closed.
     if (this.deps.busy?.()) return null;
     const decision = decideSpeak('promise_due', {

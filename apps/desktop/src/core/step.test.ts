@@ -24,6 +24,27 @@ describe('latestSetAside', () => {
     expect(latestSetAside([a, b, c])?.id).toBe('c');
     expect(latestSetAside([])).toBeNull();
   });
+
+  it('does not let a later failed or abandoned attempt hide an earlier applied one', () => {
+    const applied = sa('applied', 100, []);
+    const failed = sa('failed', 300, [], null, 'failed');
+    const oldSaved = sa('saved', 200, [], null, 'saved');
+    expect(latestSetAside([applied, failed, oldSaved], 200 + 11 * 60_000)?.id).toBe('applied');
+  });
+
+  it('keeps a saved attempt that is still in flight, and unconfirmed ones (Retry and Undo still apply)', () => {
+    const applied = sa('applied', 100, []);
+    expect(latestSetAside([applied, sa('saved', 200, [], null, 'saved')], 200 + 60_000)?.id).toBe('saved');
+    expect(latestSetAside([applied, sa('u', 200, [], null, 'unconfirmed')], 10_000_000)?.id).toBe('u');
+  });
+
+  it('builds the next step from the earlier applied one when a later attempt failed', () => {
+    const tabs = [saved(2, 'https://github.com/acme/retry-queue/pull/12', 'PR 12', 'gh:acme/retry-queue', 800)];
+    const applied = sa('applied', 100, tabs);
+    const failed = sa('failed', 300, [saved(9, 'https://example.org/never-folded', 'Never folded', 'g', 900)], null, 'failed');
+    const step = currentStep([applied, failed], [], [], clock, ids)!;
+    expect(step.fromSetAside).toBe('applied');
+  });
 });
 
 describe('buildStep', () => {

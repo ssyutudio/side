@@ -134,7 +134,13 @@ describe('What Side saw', () => {
     expect(h).toContain('<b>37</b>tabs read');
     expect(h).toContain('<b>36</b>titles sent to Claude');
     expect(h).toContain('1 tab from client-portal.acme.com — excluded site, not read.');
-    expect(h).toContain('36 tab titles and your one line, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.');
+    expect(h).toContain('<li>36 tab titles, to name groups.</li>');
+    expect(h).toContain('<li>Your group names, to suggest a question for tomorrow.</li>');
+    expect(h).toContain('<li>Tab titles and your one line, to pick your next step.</li>');
+    expect(h).toContain('Never addresses, page text, file contents or excluded sites.');
+    const noKey = s(sawView({ ...FIXTURES.day, saw: { ...FIXTURES.day.saw, llm: { ...FIXTURES.day.saw.llm, available: false } } }, { showAll: false }));
+    expect(noKey).toContain('There is no Claude key on this computer');
+    expect(noKey).toContain('<b>0</b>titles sent to Claude');
     expect(h).toContain('Anonymous counts: off.');
     expect(h).toContain('Show all 37');
     expect((h.match(/<tr>/g) ?? []).length).toBe(11);
@@ -162,6 +168,10 @@ describe('Settings', () => {
     expect(h).toMatch(/data-key="uploadEnabled"[^>]*aria-checked="false"|aria-checked="false"[^>]*data-key="uploadEnabled"/);
     expect(h).toContain('Connections');
     expect(h).not.toMatch(BANNED);
+  });
+  it('offers the Demo clock only when Side runs for a demo (SIDE_DEMO) or demo time is on', () => {
+    expect(s(settingsView(FIXTURES.day))).not.toContain('Demo clock');
+    expect(s(settingsView({ ...FIXTURES.day, demoTools: true }))).toContain('Demo clock');
   });
   it('shows times with English clock labels, not the system locale', () => {
     const h = s(settingsView(FIXTURES.day));
@@ -226,13 +236,15 @@ describe('Korean', () => {
     expect(h).toContain(`<b>36</b>${ko('titles sent to Claude')}`);
     expect(h).toContain(t('Show all {n}', { n: 37 }));
     expect(h).toContain(t('Anonymous counts: {state}.', { state: ko('off') }));
-    expect(h).toContain(t('{titles} and your one line, to Claude (Anthropic), to name groups and pick your next step, plus your step counts (numbers only). No addresses, no page text, nothing from excluded sites.', { titles: tn(36, '{n} tab title', '{n} tab titles') }));
+    expect(h).toContain(t('{titles}, to name groups.', { titles: tn(36, '{n} tab title', '{n} tab titles') }));
     expect(h).toContain(tn(1, '{n} tab from {d} — excluded site, not read.', '{n} tabs from {d} — excluded site, not read.', { d: 'client-portal.acme.com' }));
     expect(s(sawView(FIXTURES['first-day'], { showAll: false }))).toContain(ko("After your first wrap-up you'll see every tab Side read and skipped."));
   });
   it('Settings and Connections', () => {
     const h = s(settingsView(FIXTURES.day));
-    for (const w of ['Settings', 'sidy size', 'Small', 'Quiet hours', 'AI drafting', 'Connections', 'Desktop apps', 'Demo clock', 'Real time']) expect(h).toContain(ko(w));
+    for (const w of ['Settings', 'sidy size', 'Small', 'Quiet hours', 'AI drafting', 'Connections', 'Desktop apps']) expect(h).toContain(ko(w));
+    const demo = s(settingsView({ ...FIXTURES.day, demoTools: true }));
+    for (const w of ['Demo clock', 'Real time']) expect(demo).toContain(ko(w));
     expect(h).toContain(ko('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic) to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.'));
     expect(h).toContain(`${ko('PM')} 10:30`);
     expect(h).toContain(`${ko('AM')} 7:30`);

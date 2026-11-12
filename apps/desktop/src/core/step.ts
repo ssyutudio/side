@@ -13,11 +13,19 @@ import type { Clock } from './clock';
 import { step as stepCopy } from './copy';
 import { BREAKS_KEY, UNSORTED_KEY, cleanTitle, displayGroupName, isBreakUrl, shortName } from './grouping';
 
-/** The most recent set-aside that still describes tabs to come back to. */
-export function latestSetAside(setAsides: readonly SetAside[]): SetAside | null {
+/** A record saved but never answered by Chrome for this long was abandoned (the app closed, say). */
+const STALE_SAVED_MS = 10 * 60_000;
+
+/**
+ * The most recent set-aside that still describes tabs to come back to. Undone and failed ones touched
+ * nothing; a saved-only one older than a few minutes never reached Chrome. None of them may hide an
+ * earlier Wrap up that really folded tabs (Undo and the next step would aim at the wrong one).
+ */
+export function latestSetAside(setAsides: readonly SetAside[], now?: number): SetAside | null {
   let best: SetAside | null = null;
   for (const sa of setAsides) {
-    if (sa.status === 'undone') continue;
+    if (sa.status === 'undone' || sa.status === 'failed') continue;
+    if (sa.status === 'saved' && now !== undefined && now - sa.endedAt > STALE_SAVED_MS) continue;
     if (!best || sa.endedAt > best.endedAt) best = sa;
   }
   return best;
@@ -165,7 +173,7 @@ export function currentStep(
   newId: () => string = defaultNewId,
   apps?: AppPicker,
 ): Step | null {
-  const sa = latestSetAside(setAsides);
+  const sa = latestSetAside(setAsides, clock.now());
   if (!sa) return null;
   const stored = steps.find((s) => s.fromSetAside === sa.id);
   if (stored && checkStep(stored, excludedDomains, apps?.enabled ?? []).ok) return stored;

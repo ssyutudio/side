@@ -66,6 +66,18 @@ export function isDue(p: StopPromise | null, now: number): boolean {
   return !!p && isActive(p) && now >= p.dueAt;
 }
 
+/** A check-in this long past its time (hidden, asleep, app closed) is stale: "the hour is up" would be a lie. */
+export const PROMISE_GRACE_MS = 2 * 60 * 60_000;
+
+export function isExpired(p: StopPromise | null, now: number): boolean {
+  return !!p && isActive(p) && now > p.dueAt + PROMISE_GRACE_MS;
+}
+
+/** Retires a stale check-in without a bubble: fired and answered "keep going", so nothing waits on it. */
+export function expirePromise(p: StopPromise, now: number): StopPromise {
+  return { ...p, firedAt: p.firedAt ?? now, answer: p.answer ?? 'keep_going' };
+}
+
 /** Marks the check-in as shown. Firing again changes nothing. */
 export function firePromise(p: StopPromise, now: number): StopPromise {
   return p.firedAt === null ? { ...p, firedAt: now } : p;

@@ -62,7 +62,7 @@ function render() {
   const focus = focusKey(document.activeElement as HTMLElement | null);
   // A redraw in the same section (a switch flipped, a state update) keeps the scroll position.
   const scroll = drawnSection === section ? (document.getElementById('content')?.scrollTop ?? 0) : 0;
-  const content = failed ? errorView() : !state || forceLoading ? loadingView() : body(state);
+  const content = failed ? errorView(section) : !state || forceLoading ? loadingView(section) : body(state);
   root.innerHTML = String(shellView(section, state, content));
   drawnSection = section;
   const box = document.getElementById('content');
@@ -143,9 +143,15 @@ root.addEventListener('click', (e) => {
       void api.invoke('side:check.connection').finally(load);
       void api.invoke('side:connections.refresh');
       break;
+    case 'pair-reset':
+      void api.invoke('side:pairing.reset').finally(() => void api.invoke('side:check.connection').finally(load));
+      break;
     case 'apps-show':
       local.appsOpen = !local.appsOpen;
       render();
+      break;
+    case 'conn-refresh':
+      void api.invoke('side:connections.refresh');
       break;
     case 'cal-toggle':
       void api.invoke('side:calendar.set', { on: el.dataset.on !== '1' });
@@ -221,19 +227,41 @@ root.addEventListener('focusout', (e) => {
   }
 });
 
-// A pushed update waits while a dropdown has focus: redrawing would shut its open menu.
-let redrawOnBlur = false;
-root.addEventListener('focusout', (e) => {
-  if ((e.target as HTMLElement).tagName === 'SELECT' && redrawOnBlur) {
-    redrawOnBlur = false;
+// A pushed update waits only while a dropdown's menu may be open (pressed, nothing picked yet),
+// at most 10 s: redrawing would shut the menu. Not while the dropdown merely keeps focus — on
+// macOS a click on a button leaves focus on the dropdown, and the screen would stop updating.
+const MENU_WAIT_MS = 10_000;
+let menuOpen = false;
+let redrawAfterMenu = false;
+let menuTimer: ReturnType<typeof setTimeout> | undefined;
+function menuClosed() {
+  menuOpen = false;
+  clearTimeout(menuTimer);
+  if (redrawAfterMenu) {
+    redrawAfterMenu = false;
     setTimeout(render, 0);
   }
+}
+root.addEventListener('mousedown', (e) => {
+  if ((e.target as HTMLElement).tagName !== 'SELECT') return;
+  menuOpen = true;
+  clearTimeout(menuTimer);
+  menuTimer = setTimeout(menuClosed, MENU_WAIT_MS);
+});
+root.addEventListener('change', (e) => {
+  if ((e.target as HTMLElement).tagName === 'SELECT') menuClosed();
+});
+root.addEventListener('focusout', (e) => {
+  if ((e.target as HTMLElement).tagName === 'SELECT') menuClosed();
+});
+root.addEventListener('keydown', (e) => {
+  if ((e.target as HTMLElement).tagName === 'SELECT' && (e.key === 'Escape' || e.key === 'Enter')) menuClosed();
 });
 
 api.onState((s) => {
   state = s;
   if (api.params.get('mode') !== 'error') failed = false;
-  if (document.activeElement?.tagName === 'SELECT') redrawOnBlur = true;
+  if (menuOpen) redrawAfterMenu = true;
   else render();
 });
 

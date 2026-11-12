@@ -188,6 +188,52 @@ describe('WrapupService', () => {
     expect(store.get().setAsides[1].status).toBe('undone');
   });
 
+  it('adding an excluded site while the preview is open saves and sends the rest, and never throws', async () => {
+    const port = new FakePort(groupedAll);
+    const { svc, store } = await setup(port, undefined, []);
+    const preview = await svc.preview(report);
+    expect(preview.fold.flatMap((g) => g.tabIds)).toContain(5);
+    await store.update((d) => ({ ...d, settings: { ...d.settings, excludedDomains: ['client-bank.com'] } }));
+    const out = await svc.confirm(preview, report, []);
+    expect(out.kind).toBe('applied');
+    const sent = port.sent[0].payload;
+    expect(sent.groups.flatMap((g: any) => g.tabIds)).not.toContain(5);
+    expect(Object.keys(sent.expectUrls)).not.toContain('5');
+    expect(store.get().setAsides[0].tabs.map((t) => t.tabId)).not.toContain(5);
+    expect(store.get().setAsides[0].tabs.length).toBeGreaterThan(0);
+  });
+
+  it('answers storage_failed (not a rejected promise) when the note of an undo cannot be saved', async () => {
+    const port = new FakePort((t, p) => (t === 'cmd.wrapup.undo' ? { status: 'ok', result: { reopened: 2 } } : groupedAll(t, p)));
+    const flaky: FsLike = { ...realFs, writeFile: (async (...a: Parameters<typeof realFs.writeFile>) => {
+      if (port.sent.some((s) => s.type === 'cmd.wrapup.undo')) throw new Error('disk full');
+      return realFs.writeFile(...a);
+    }) as FsLike['writeFile'] };
+    const { svc, store } = await setup(port, flaky);
+    await svc.confirm(await svc.preview(report), report, []);
+    const id = store.get().setAsides[0].id;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const out = await svc.undo(id);
+    warn.mockRestore();
+    expect(out).toMatchObject({ kind: 'storage_failed', reopened: 2 });
+  });
+
+  it('answers { error: "storage_failed" } when the tomorrow line cannot be saved', async () => {
+    const port = new FakePort(groupedAll);
+    let fail = false;
+    const flaky: FsLike = { ...realFs, writeFile: (async (...a: Parameters<typeof realFs.writeFile>) => {
+      if (fail) throw new Error('disk full');
+      return realFs.writeFile(...a);
+    }) as FsLike['writeFile'] };
+    const { svc, store } = await setup(port, flaky);
+    await svc.confirm(await svc.preview(report), report, []);
+    const id = store.get().setAsides[0].id;
+    fail = true;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    expect(await svc.setTomorrowLine(id, 'why?')).toEqual({ error: 'storage_failed' });
+    warn.mockRestore();
+  });
+
   it('stores the one line for tomorrow (or nothing when skipped) and uses it in the step', async () => {
     const { svc, store } = await setup(new FakePort(groupedAll));
     await svc.confirm(await svc.preview(report), report, []);

@@ -37,9 +37,22 @@ export interface AppData {
   hidden: boolean;
   firstRunDone: boolean;
   /** What was sent to the LLM (counts only), for "What Side saw". */
-  llmLog: { at: number; titles: number; userLine: boolean; files?: number }[];
+  llmLog: LlmSend[];
   /** Claude Code sessions that finished (folder kept on this computer only). Newest last, at most 20. */
   agentRuns?: AgentRun[];
+}
+
+/**
+ * One request to Claude, counts only. kind (missing in older files): group = tab titles to name
+ * groups; suggest = group names for tomorrow's question; step = titles (and file names) with the
+ * line for tomorrow, to pick the next step; bySide = step counts; ask = the line typed in Ask sidy.
+ */
+export interface LlmSend {
+  at: number;
+  titles: number;
+  userLine: boolean;
+  files?: number;
+  kind?: 'group' | 'suggest' | 'step' | 'bySide' | 'ask';
 }
 
 export function defaultSettings(): Settings {
@@ -88,6 +101,8 @@ export function sanitizeSettings(s: Settings): Settings {
     sidySize: (SIDY_SIZES as readonly string[]).includes(s.sidySize) ? s.sidySize : 'small',
     language: s.language === 'ko' || s.language === 'en' ? s.language : undefined,
     sidyAnchor: typeof s.sidyAnchor === 'number' && s.sidyAnchor >= 0 && s.sidyAnchor <= 1 ? s.sidyAnchor : undefined,
+    // The same time twice is no window at all (it never goes quiet): off, not a false "on".
+    quietHours: s.quietHours && s.quietHours.start !== s.quietHours.end ? s.quietHours : null,
     excludedDomains: domains,
     apps: [...new Set((s.apps ?? []).filter((a) => typeof a === 'string' && /^[a-z_]{1,40}$/.test(a)))].slice(0, 40),
   };

@@ -98,7 +98,7 @@ describe('Ask sidy', () => {
     expect(sent[0].user).toBe('<line>where did I stop?</line>');
     expect(body).not.toMatch(/https?:|www\.|\.xlsx|\.com\b/);
     // Counted for What Side saw: one line, no titles.
-    expect(store.get().llmLog).toEqual([{ at: clock.now(), titles: 0, userLine: true }]);
+    expect(store.get().llmLog).toEqual([{ at: clock.now(), titles: 0, userLine: true, kind: 'ask' }]);
   });
 
   it('how-to gets a search phrase and nothing more; requests to do things get a fixed no', async () => {

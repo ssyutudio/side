@@ -204,6 +204,7 @@ async function start() {
     },
     openMain: () => windows?.openMain(),
     greetOnConnect: () => !windows?.setupOpen(),
+    demoTools: process.env.SIDE_DEMO !== undefined,
   });
 
   for (const channel of IPC_CHANNELS) {
@@ -221,6 +222,7 @@ async function start() {
     },
     closeMini: () => windows?.closeMini(),
     resizeMini: (h: number) => windows?.resizeMini(h),
+    keepMini: (keep: boolean) => windows?.keepMiniScreen(keep),
     moveSidy: (y: number, done: boolean) => {
       if (!edge) return;
       const anchor = edge.moveTo(y);

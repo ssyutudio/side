@@ -33,6 +33,16 @@ describe('candidateTabs', () => {
   });
 });
 
+describe('toSetAside', () => {
+  it('skips a folded tab the report no longer has instead of throwing', () => {
+    const preview = buildPreview(report, groupTabs(tabs), ['Launch plan']);
+    const thin: TabsReport = { ...report, tabs: report.tabs.filter((t) => t.tabId !== 1) };
+    const rec = toSetAside('id', preview, thin, 1, null, [], false);
+    expect(rec.tabs.map((t) => t.tabId)).not.toContain(1);
+    expect(rec.tabs.length).toBeGreaterThan(0);
+  });
+});
+
 describe('buildPreview', () => {
   const groups = groupTabs(tabs); // deliberately includes tabs that must stay
   const p = buildPreview(report, groups, ['Launch plan']);

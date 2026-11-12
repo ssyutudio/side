@@ -4,7 +4,7 @@
 // Nothing is sent when the LLM is off or there is no key. Each send is logged by count only.
 import type { Step } from '@side/shared';
 import type { JsonStore } from './store';
-import type { AppData } from './appData';
+import type { AppData, LlmSend } from './appData';
 import type { Clock } from '../core/clock';
 import type { LlmTransport } from '../core/llmGrouping';
 import { askOnce, buildRecallRequest, buildSuggestRequest, HELP_TIMEOUT_MS, parseRecall, parseSuggestions, stepForTab } from '../core/llmHelp';
@@ -32,9 +32,9 @@ export class HelpService {
     return !!this.deps.llm && this.deps.store.get().settings.llmEnabled;
   }
 
-  private async log(titles: number, userLine: boolean, files = 0) {
+  private async log(kind: NonNullable<LlmSend['kind']>, titles: number, userLine: boolean, files = 0) {
     const at = this.deps.clock.now();
-    const entry = files ? { at, titles, userLine, files } : { at, titles, userLine };
+    const entry: LlmSend = files ? { at, titles, userLine, files, kind } : { at, titles, userLine, kind };
     await this.deps.store
       .update((d) => ({ ...d, llmLog: [...d.llmLog, entry].slice(-50) }))
       .catch(() => undefined);
@@ -50,7 +50,7 @@ export class HelpService {
     const sa = this.deps.store.get().setAsides.find((s) => s.id === setAsideId);
     if (!sa || !sa.groups.length) return [];
     const req = buildSuggestRequest(sa.groups.map((g) => g.name));
-    await this.log(0, false);
+    await this.log('suggest', 0, false);
     const text = await askOnce(this.deps.llm!, req, this.deps.timeoutMs ?? HELP_TIMEOUT_MS);
     const out = text ? parseSuggestions(text) : [];
     if (out.length) this.suggestions.set(cacheKey, out);
@@ -68,7 +68,7 @@ export class HelpService {
     const req = buildRecallRequest(sa.userLine, sa.tabs, d.settings.excludedDomains, files);
     if (!req.ids.size) return 'skipped';
     const fileCount = [...req.ids.values()].filter((v) => v.kind === 'file').length;
-    await this.log(req.ids.size - fileCount, true, fileCount);
+    await this.log('step', req.ids.size - fileCount, true, fileCount);
     const text = await askOnce(this.deps.llm!, req, this.deps.timeoutMs ?? HELP_TIMEOUT_MS);
     const target = text ? parseRecall(text, req.ids) : null;
     if (target === null) return 'kept';
@@ -106,7 +106,7 @@ export class HelpService {
     if (!this.bySideAsked.has(key)) {
       this.bySideAsked.add(key);
       void (async () => {
-        await this.log(0, false);
+        await this.log('bySide', 0, false);
         const text = await askOnce(this.deps.llm!, buildBySideRequest(c), this.deps.timeoutMs ?? HELP_TIMEOUT_MS);
         const sentence = text ? parseBySide(text, c) : null;
         if (sentence) {

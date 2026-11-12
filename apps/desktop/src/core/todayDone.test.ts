@@ -46,6 +46,11 @@ describe('todayDone', () => {
     expect(lines).toEqual(['Came back to Retry design notes.', 'Kept going on Retry design notes for 10+ minutes.']);
   });
 
+  it('does not say "Came back" for a click Chrome never confirmed', () => {
+    const failed: StepEvent = { stepId: 's1', shownAt: at(9, 9), clickedAt: at(9, 9, 1), openedAt: null, stillWorkingAt10m: null, dismissed: null };
+    expect(todayDone({ setAsides: [], steps: [step], stepEvents: [failed] }, fixedClock(at(9, 20)))).toEqual([]);
+  });
+
   it('puts the user own words in as written and ignores other days', () => {
     const lines = todayDone(
       { setAsides: [setAside('old', at(7, 22), 'applied', [[1]])], steps: [], stepEvents: [], notes: [{ at: at(9, 21), text: '  Fixed the jitter bug  ' }] },

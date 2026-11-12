@@ -38,7 +38,7 @@ class FakeBridge implements BridgePort {
   }
 }
 
-async function setup() {
+async function setup(extra: { demoTools?: boolean; llm?: any; report?: TabsReport } = {}) {
   const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-ctl-')), 'd.json'), defaultAppData);
   await store.load();
   const bridge = new FakeBridge();
@@ -47,15 +47,16 @@ async function setup() {
   const bubbles: unknown[] = [];
   const clock = new DemoClock(fixedClock(REAL));
   const ctl = new SideController({
-    store, bridge, clock, llm: null,
+    store, bridge, clock, llm: extra.llm ?? null,
     edge: { resize: (s) => resized.push(s), show: () => undefined, hide: () => undefined },
     registerShortcut: (a) => { shortcuts.push(a); return a !== 'Taken+Key'; },
     push: () => undefined,
     renderBubble: (b) => bubbles.push(b),
     openMain: () => undefined,
     realNow: () => REAL,
+    demoTools: extra.demoTools,
   });
-  bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
+  bridge.onRequest = () => setTimeout(() => void ctl.onReport(extra.report ?? report), 5);
   return { store, bridge, ctl, resized, shortcuts, bubbles, clock };
 }
 
@@ -72,6 +73,18 @@ describe('SideController language', () => {
     await ctl.updateSettings({ language: 'en' });
     expect(bridge.sent.filter((m) => m.type === 'lang.set').pop()).toEqual({ type: 'lang.set', payload: { lang: 'en' } });
     expect(language()).toBe('en');
+  });
+});
+
+describe('SideController demo clock', () => {
+  it('offers the Demo clock only for a demo launch or while demo time is on', async () => {
+    expect((await setup()).ctl.state().demoTools).toBe(false);
+    expect((await setup({ demoTools: true })).ctl.state().demoTools).toBe(true);
+    const { ctl } = await setup();
+    await ctl.demo('night');
+    expect(ctl.state().demoTools).toBe(true);
+    await ctl.demo('reset');
+    expect(ctl.state().demoTools).toBe(false);
   });
 });
 
@@ -178,9 +191,10 @@ describe('SideController', () => {
   });
 
   it('records a spoken bubble and a shown step only after the screen drew it', async () => {
-    const { ctl, store } = await setup();
+    const { ctl, store, clock } = await setup();
     await ctl.previewWrapup();
     await ctl.confirmWrapup([]);
+    clock.setOffset(14 * 3600_000); // the step waits for the next work day
     await ctl.speak.trigger('app_start');
     expect(store.get().spokeAt).toEqual([]);
     await ctl.bubbleDrawn();
@@ -325,5 +339,89 @@ describe('SideController hand edits to the Wrap up draft', () => {
   it('needs a draft first', async () => {
     const { ctl } = await setup();
     expect(await ctl.editWrapup({ op: 'move', tabId: 1, to: 'x' })).toEqual({ error: 'no_preview' });
+  });
+});
+
+describe('SideController journey fixes', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('an excluded site added while the Wrap up preview is open does not break confirm', async () => {
+    const { ctl, store, bridge } = await setup();
+    const pv = await ctl.previewWrapup();
+    if ('error' in pv) throw new Error('not connected');
+    expect(pv.groups.flatMap((g) => g.tabs.map((t) => t.id))).toContain(2);
+    await ctl.updateSettings({ excludedDomains: ['github.com'] });
+    const out = await ctl.confirmWrapup([]);
+    expect(out.kind).toBe('applied');
+    const apply = bridge.sent.find((s) => s.type === 'cmd.wrapup.apply');
+    expect(JSON.stringify(apply?.payload)).not.toContain('github.com');
+    expect(store.get().setAsides).toHaveLength(1);
+  });
+
+  it('forgets the paired extension so the next one that connects is paired', async () => {
+    const { ctl, store } = await setup();
+    await store.update((d) => ({ ...d, pairedOrigin: 'chrome-extension://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }));
+    expect(await ctl.resetPairing()).toEqual({ ok: true });
+    expect(store.get().pairedOrigin).toBeNull();
+  });
+
+  it('keeps the quiet hours that were set when a new window would start and end at the same time', async () => {
+    const { ctl } = await setup();
+    await ctl.updateSettings({ quietHours: { start: 22 * 60, end: 8 * 60 } });
+    const out = await ctl.updateSettings({ quietHours: { start: 8 * 60, end: 8 * 60 } });
+    expect(out.quietHours).toEqual({ start: 22 * 60, end: 8 * 60 });
+  });
+
+  it('greets an empty Chrome once: marks the greeting done and never sends titles to Claude', async () => {
+    const llm = vi.fn(async () => '{}');
+    const empty: TabsReport = { ...report, tabs: [tab(3, 'https://news.ycombinator.com/', { active: true })] };
+    const { ctl, store, bubbles } = await setup({ llm, report: empty });
+    await ctl.greetFirstRun();
+    expect(store.get().firstRunDone).toBe(true);
+    expect(bubbles).toEqual([]);
+    expect(llm).not.toHaveBeenCalled();
+  });
+
+  it('greets with a count from the rules alone, without Claude', async () => {
+    const llm = vi.fn(async () => '{}');
+    const { ctl, bubbles } = await setup({ llm });
+    await ctl.greetFirstRun();
+    expect(bubbles[0]).toMatchObject({ kind: 'first_run', tabs: 2 });
+    expect(llm).not.toHaveBeenCalled();
+    // A real Wrap up preview still uses Claude.
+    await ctl.previewWrapup();
+    expect(llm).toHaveBeenCalled();
+  });
+
+  it('asks Chrome for a fresh report about 10.5 and 13 minutes after a step opens, only while still unjudged', async () => {
+    const { ctl, bridge } = await setup();
+    await ctl.previewWrapup();
+    await ctl.confirmWrapup([]);
+    const stepId = ctl.step.current()!.id;
+    vi.useFakeTimers();
+    const requests = () => bridge.sent.filter((s) => s.type === 'tabs.request').length;
+    const out = await ctl.openStep(stepId);
+    expect(out.kind).toBe('opened');
+    const before = requests();
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    expect(requests()).toBe(before);
+    await vi.advanceTimersByTimeAsync(31_000);
+    expect(requests()).toBe(before + 1);
+    await vi.advanceTimersByTimeAsync(3 * 60_000);
+    expect(requests()).toBe(before + 2);
+  });
+
+  it('does not ask again at 13 minutes when the step was already judged', async () => {
+    const { ctl, bridge, store } = await setup();
+    await ctl.previewWrapup();
+    await ctl.confirmWrapup([]);
+    const stepId = ctl.step.current()!.id;
+    vi.useFakeTimers();
+    await ctl.openStep(stepId);
+    const before = bridge.sent.filter((s) => s.type === 'tabs.request').length;
+    await vi.advanceTimersByTimeAsync(10.5 * 60_000 + 1000);
+    await store.update((d) => ({ ...d, stepEvents: d.stepEvents.map((e) => ({ ...e, stillWorkingAt10m: true })) }));
+    await vi.advanceTimersByTimeAsync(4 * 60_000);
+    expect(bridge.sent.filter((s) => s.type === 'tabs.request').length).toBe(before + 1);
   });
 });

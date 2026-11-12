@@ -77,7 +77,7 @@ Main → **What Side saw** lists what Side read, what it skipped and what it sen
 | Quitting and relaunching the app | `SIDE_DEMO=three-days npm start` makes it read three days later |
 | Every number on the Main screen comes from local records | `SIDE_DEMO=reset npm start` returns to real time |
 
-The demo clock moves only Side's own clock and never your system clock. The video says where it was used.
+The demo clock moves only Side's own clock and never your system clock. The video says where it was used. Its buttons appear in Settings only when Side was started with `SIDE_DEMO` (or while demo time is on, so you can always return to real time).
 
 Demo helpers:
 

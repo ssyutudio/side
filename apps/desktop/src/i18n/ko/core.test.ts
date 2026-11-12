@@ -71,6 +71,9 @@ describe('Korean copy', () => {
     expect(decideByWords('숨겨')).toMatchObject({ action: 'hide' });
     expect(decideByWords('설정 열어줘')).toMatchObject({ action: 'open_main' });
     expect(decideByWords('엑셀 사용법 알려줘')).toMatchObject({ kind: 'how_to' });
+    // A how-to that names an action word is still a how-to.
+    expect(decideByWords('엑셀에서 열 숨기는 방법')).toMatchObject({ kind: 'how_to' });
+    expect(decideByWords('설정 어떻게 해')).toMatchObject({ kind: 'how_to' });
     expect(decideByWords('나 대신 메일 보내줘')).toMatchObject({ kind: 'declined', reason: 'outside_action' });
     expect(decideByWords('안녕')).toMatchObject({ kind: 'menu' });
     expect(detectCrisis('죽고 싶다')).toBe(true);

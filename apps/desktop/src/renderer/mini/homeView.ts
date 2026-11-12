@@ -1,15 +1,17 @@
 // Mini's home: connection, a few facts, the one next action, quick actions and Open Side.
 // One filled button per state; tabs in Chrome and tabs set aside are separate facts.
 import type { ViewState } from '../../main/viewState';
-import { html, type SafeHtml } from '../shared/html';
+import { html, raw, type SafeHtml } from '../shared/html';
 import { k, t, tn } from '../../i18n';
 import { cap, chip, clock, facts, footer, head, panel, quick, setAsideText, type QuickAction } from './parts';
-import { askBlock, type AskLocal } from './askView';
+import { askBlock, type AskContext, type AskLocal } from './askView';
 
 export interface HomeLocal {
   /** A one-line result from the last quick action (e.g. after Undo). */
   notice?: string;
   checking?: boolean;
+  /** Step inside was pressed and the app has not answered yet. */
+  stepBusy?: boolean;
   /** Ask sidy: the line, and what is under the box. */
   ask?: AskLocal;
 }
@@ -32,6 +34,17 @@ function appsFact(s: ViewState): [string, string][] {
   return on.length ? [[t('Desktop apps'), on.join(', ')]] : [];
 }
 
+/** The box's context: the next step may not exist, and the line goes to Claude only when it can. */
+const askCtx = (s: ViewState): AskContext => ({ hasStep: !!s.step, claude: s.settings.llmEnabled && s.saw.llm.available });
+
+/** Chrome never confirmed the last wrap-up: say so, and offer to run it again (Undo stays where it is offered). */
+function unsure(s: ViewState): SafeHtml | '' {
+  const w = s.lastWrapup;
+  if (!w || (w.status !== 'unconfirmed' && w.status !== 'failed')) return '';
+  return html`<div class="alert"><b>${t("Chrome didn't confirm the last wrap-up.")}</b>${t('Look at the tab bar, or try again — tabs already set aside are skipped.')}
+<button class="btn" style="margin-top:8px" data-act="retry-last" data-id="${w.id}">${t('Try again')}</button></div>`;
+}
+
 const live = (s: ViewState) => !!s.lastWrapup && (s.lastWrapup.status === 'applied' || s.lastWrapup.status === 'partial');
 
 export function homeView(s: ViewState, local: HomeLocal): SafeHtml {
@@ -41,7 +54,7 @@ export function homeView(s: ViewState, local: HomeLocal): SafeHtml {
       head(chip(s)),
       html`<div class="pb">${notice}
 <div class="alert"><b>${t("Chrome isn't connected.")}</b>${t('Side reconnects on its own when Chrome is open. Still off? Make sure the Side extension is switched on in chrome://extensions.')}</div>
-<button class="btn fill" data-act="check"${local.checking ? ' aria-disabled="true"' : ''}>${local.checking ? t('Checking…') : t('Check again')}</button>
+<button class="btn fill" data-act="check"${raw(local.checking ? ' aria-disabled="true"' : '')}>${local.checking ? t('Checking…') : t('Check again')}</button>
 ${facts([
   [t('Tabs in Chrome'), t('Unknown until connected')],
   ...appsFact(s),
@@ -53,7 +66,7 @@ ${quick([
   { icon: '↩️', title: k('Bring back the last tabs'), sub: k('Needs Chrome — connect first.'), act: 'undo', off: true },
   HIDE,
 ])}
-${askBlock(local.ask ?? IDLE)}</div>`,
+${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
       footer(),
     ]);
   }
@@ -64,8 +77,8 @@ ${askBlock(local.ask ?? IDLE)}</div>`,
     const set = w.groups.reduce((n, g) => n + g.count, 0);
     return panel([
       head(chip(s)),
-      html`<div class="pb">${notice}
-<div class="done-line"><b>${t('{tabs} tabs set aside in {groups}.', { tabs: set, groups: tn(w.groups.length, '{n} group', '{n} groups') })}</b> ${t('{n} still open.', { n: s.numbers.tabsOpen ?? 0 })}</div>
+      html`<div class="pb">${notice}${unsure(s)}
+<div class="done-line"><b>${tn(set, '{tabs} tab set aside in {groups}.', '{tabs} tabs set aside in {groups}.', { tabs: set, groups: tn(w.groups.length, '{n} group', '{n} groups') })}</b>${s.numbers.tabsOpen ? html` ${t('{n} still open.', { n: s.numbers.tabsOpen })}` : ''}</div>
 ${facts([
   [t('Tabs in Chrome'), tabs],
   ...appsFact(s),
@@ -77,7 +90,7 @@ ${quick([
   ONE_MORE,
   HIDE,
 ])}
-${askBlock(local.ask ?? IDLE)}</div>`,
+${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
       footer(),
     ]);
   }
@@ -88,9 +101,9 @@ ${askBlock(local.ask ?? IDLE)}</div>`,
     const asked = repeat ? html`<div class="w">${t('You asked:')} ${w!.userLine}</div>` : html`<div class="w">${s.step.host ?? ''}</div>`;
     return panel([
       head(chip(s)),
-      html`<div class="pb">${notice}
+      html`<div class="pb">${notice}${unsure(s)}
 <div class="step"><div class="lbl">${t('Next step · from {when}', { when })}</div><div class="t">${s.step.label}</div>${asked}
-<button class="btn fill" style="width:100%" data-act="step-open" data-step="${s.step.id}">${t('Step inside')}</button></div>
+<button class="btn fill" style="width:100%" data-act="step-open" data-step="${s.step.id}"${raw(local.stepBusy ? ' aria-disabled="true"' : '')}>${t('Step inside')}</button>${local.stepBusy ? html`<div class="row asking" role="status" aria-live="polite"><span class="spin"></span>${t('Opening…')}</div>` : ''}</div>
 ${facts([
   [t('Tabs in Chrome'), tabs],
   ...appsFact(s),
@@ -103,16 +116,15 @@ ${quick([
   focusAction(s),
   HIDE,
 ])}
-${askBlock(local.ask ?? IDLE)}</div>`,
+${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
       footer(),
     ]);
   }
 
-  const open = s.numbers.tabsOpen ?? s.numbers.tabsInChrome ?? 0;
   return panel([
     head(chip(s)),
-    html`<div class="pb">${notice}
-<div class="step"><div class="lbl">${t('Stopping for today?')}</div><div class="t">${t('Fold your {n} open tabs into groups', { n: open })}</div><div class="w">${t('Nothing closes. Undo any time tonight.')}</div>
+    html`<div class="pb">${notice}${unsure(s)}
+<div class="step"><div class="lbl">${t('Stopping for today?')}</div><div class="t">${t('Fold your open tabs into groups')}</div><div class="w">${t('Nothing closes. Undo brings your tabs back.')}</div>
 <button class="btn fill" style="width:100%" data-act="wrap">${t('Set aside today')}</button></div>
 ${facts([
   [t('Tabs in Chrome'), tabs],
@@ -121,7 +133,7 @@ ${facts([
   [t('Next step'), t('Ready after you set aside')],
 ])}
 ${quick([ONE_MORE, focusAction(s), HIDE])}
-${askBlock(local.ask ?? IDLE)}</div>`,
+${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
     footer(),
   ]);
 }

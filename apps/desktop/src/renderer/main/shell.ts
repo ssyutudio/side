@@ -15,6 +15,8 @@ const NAV: [Section, string, string][] = [
 ];
 
 export function connectionChip(c: ViewState['connection'] | null): SafeHtml {
+  // Nothing known yet (still loading, or the data file couldn't be read): no warning to show.
+  if (c === null) return html``;
   if (c === 'connected') return html`<span class="chip ok">${t('Chrome connected')}</span>`;
   if (c === 'waiting') return html`<span class="chip wait">${t('Waiting for Chrome')}</span>`;
   return html`<span class="chip warn">${t('Chrome not connected')}</span>`;
@@ -30,12 +32,15 @@ export function shellView(section: Section, state: ViewState | null, body: SafeH
 <main class="content" id="content">${content}</main></div>`;
 }
 
-export function loadingView(): SafeHtml {
-  return html`<h1>${t('Today')}</h1><div class="busy" role="status" aria-live="polite" style="margin-top:24px"><span class="spin"></span>${t('Loading your history…')}</div>`;
+/** The section's own name, so a loading or error screen stays where the user is. */
+const titleOf = (section: Section) => t(NAV.find(([id]) => id === section)?.[2] ?? 'Today');
+
+export function loadingView(section: Section = 'today'): SafeHtml {
+  return html`<h1>${titleOf(section)}</h1><div class="busy" role="status" aria-live="polite" style="margin-top:24px"><span class="spin"></span>${t('Loading your history…')}</div>`;
 }
 
-export function errorView(): SafeHtml {
-  return html`<h1>${t('Today')}</h1>
+export function errorView(section: Section = 'today'): SafeHtml {
+  return html`<h1>${titleOf(section)}</h1>
 <div class="alert" role="alert" style="max-width:640px;margin-top:20px"><b>${t("Couldn't load your history.")}</b>${t("Side couldn't read its data file on this computer. Your tabs in Chrome are untouched. Try again; if it keeps failing, the file may have been moved.")}</div>
 <div class="row" style="margin-top:14px"><button type="button" class="btn fill" data-act="retry">${t('Try again')}</button><button type="button" class="btn" data-act="reveal">${t('Show data file')}</button></div>`;
 }

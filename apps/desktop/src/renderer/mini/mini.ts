@@ -39,6 +39,23 @@ let suggestions: string[] = [];
 let home: HomeLocal = {};
 /** The screen drawn last, so a redraw of the same screen keeps where its body was scrolled. */
 let drawnScreen: string | null = null;
+/** The notice drawn last: a new one is shown from the top of the body, where it is, not where the body was scrolled. */
+let drawnNotice: string | undefined;
+/** What the app was last told about a Wrap up in progress (see side:mini.keep). */
+let keepSent: boolean | null = null;
+/** The language drawn last: a push that changes it redraws every screen, including a Wrap up in progress. */
+let drawnLanguage: string | undefined;
+
+const EMPTY_PREVIEW: PreviewView = { groups: [], kept: [], alreadySetAside: 0, skipped: { excluded: 0, incognito: 0, internal: 0 }, foldCount: 0 };
+
+/** A selector for the focused control, so a redraw can give focus back (buttons have no id). */
+function focusKey(el: Element | null): string | null {
+  if (!(el instanceof HTMLElement) || el === document.body || el.id) return null;
+  const a = el.dataset.act;
+  if (!a) return null;
+  const extra = ['key', 'mode', 'action', 'min', 'text', 'id'].map((k) => (el.dataset[k] ? `[data-${k}="${CSS.escape(el.dataset[k]!)}"]` : '')).join('');
+  return `[data-act="${CSS.escape(a)}"]${extra}`;
+}
 
 function render() {
   if (!state) return;
@@ -62,13 +79,22 @@ function render() {
   // Checking shows the same list as the preview it confirms, so it counts as the same screen.
   const screen = view.name === 'checking' ? 'preview' : view.name;
   const same = drawnScreen === screen;
-  const scroll = same ? (app.querySelector('.pb')?.scrollTop ?? 0) : 0;
+  const notice = view.name === 'home' ? home.notice : undefined;
+  const scroll = same && notice === drawnNotice ? (app.querySelector('.pb')?.scrollTop ?? 0) : 0;
+  const focus = same ? focusKey(document.activeElement) : null;
   const lists = new Map<string, number>();
   if (same) app.querySelectorAll<HTMLElement>('[data-drop] .tl2').forEach((l) => lists.set(l.closest<HTMLElement>('[data-drop]')!.dataset.drop!, l.scrollTop));
   // Room on every side so the panel's shadow fades out inside the window instead of being cut
   // into a visible box at the window edge.
   app.innerHTML = `<div class="mini-room">${h}</div>`;
   drawnScreen = screen;
+  drawnNotice = notice;
+  drawnLanguage = state.settings.language;
+  const keep = view.name === 'preview' || view.name === 'checking' || view.name === 'done' || view.name === 'failed';
+  if (keep !== keepSent) {
+    keepSent = keep;
+    void Promise.resolve(api.invoke('side:mini.keep', { keep })).catch(() => undefined);
+  }
   const body = app.querySelector<HTMLElement>('.pb');
   if (body && scroll) body.scrollTop = scroll;
   app.querySelectorAll<HTMLElement>('[data-drop] .tl2').forEach((l) => {
@@ -82,6 +108,7 @@ function render() {
     back.focus({ preventScroll: true });
     if (typed.start !== null && typed.end !== null) back.setSelectionRange(typed.start, typed.end);
   }
+  if (focus && !back) app.querySelector<HTMLElement>(focus)?.focus({ preventScroll: true });
   const ask = app.querySelector<HTMLInputElement>('#ask');
   ask?.addEventListener('input', () => (home = { ...home, ask: { line: ask.value, state: 'idle' } }));
   ask?.addEventListener('keydown', (e) => {
@@ -124,7 +151,7 @@ function pushedRender() {
 }
 
 async function loadSuggestions(id: string) {
-  const r = await api.invoke<{ suggestions?: string[] }>('side:wrapup.suggest', { id });
+  const r = await api.invoke<{ suggestions?: string[] }>('side:wrapup.suggest', { id }).catch(() => null);
   // Only if the user is still on that result.
   if (view.name === 'done' && view.sa.id === id && r?.suggestions?.length) {
     suggestions = r.suggestions;
@@ -132,7 +159,18 @@ async function loadSuggestions(id: string) {
   }
 }
 
-function afterWrap(out: WrapOut, p: PreviewView | null) {
+/** A Wrap up route's answer; one that throws or answers with an error is "unconfirmed", never a screen stuck on Checking. */
+async function wrapCall(channel: string, payload?: unknown): Promise<WrapOut> {
+  try {
+    const r = await api.invoke<WrapOut | { error: string } | null>(channel, payload);
+    return !r || 'error' in r ? { kind: 'unconfirmed' } : r;
+  } catch {
+    return { kind: 'unconfirmed' };
+  }
+}
+
+/** `retryId`: the Wrap up to try again when the answer doesn't carry it. */
+function afterWrap(out: WrapOut, p: PreviewView | null, retryId: string | null = null) {
   if ((out.kind === 'applied' || out.kind === 'partial') && out.setAside) {
     suggestions = [];
     go({ name: 'done', sa: out.setAside });
@@ -145,26 +183,52 @@ function afterWrap(out: WrapOut, p: PreviewView | null) {
     : out.kind === 'extension_storage_failed' ? { kind: 'extension_storage_failed', message: out.message ?? '' }
     : out.kind === 'storage_failed' ? { kind: 'storage_failed', message: out.message ?? '' }
     : { kind: 'not_connected' };
-  go({ name: 'failed', f, retryId: out.setAside?.id ?? null, p });
+  go({ name: 'failed', f, retryId: out.setAside?.id ?? retryId, p });
 }
 
 async function startWrap() {
   wrap = { close: [], open: [] };
   line = '';
   go({ name: 'loading' });
-  const p = await api.invoke<PreviewView | { error: string }>('side:wrapup.preview');
+  const p = await api.invoke<PreviewView | { error: string }>('side:wrapup.preview').catch(() => null);
   if (!p || 'error' in p) return go({ name: 'failed', f: { kind: 'not_connected' }, retryId: null, p: null });
   go({ name: 'preview', p });
 }
 
 async function confirm(p: PreviewView) {
   go({ name: 'checking', p });
-  afterWrap(await api.invoke<WrapOut>('side:wrapup.confirm', { closeGroupKeys: wrap.close }), p);
+  afterWrap(await wrapCall('side:wrapup.confirm', { closeGroupKeys: wrap.close }), p);
 }
 
+/** side:toast takes at most 200 characters. */
+const TOAST_MAX = 200;
+
 async function toastAndClose(text: string) {
-  await api.invoke('side:toast', { text, ms: 3500 });
-  await api.invoke('side:mini.close');
+  const short = text.length > TOAST_MAX ? `${text.slice(0, TOAST_MAX - 1).trimEnd()}…` : text;
+  // Mini closes even when the toast can't be shown.
+  await api.invoke('side:toast', { text: short, ms: 3500 }).catch(() => undefined);
+  await api.invoke('side:mini.close').catch(() => undefined);
+}
+
+/** Closing Mini: not in the middle of checking with Chrome, and a line typed for tomorrow is kept, not dropped. */
+async function closeMini() {
+  if (view.name === 'checking') return;
+  if (view.name === 'done' && line.trim()) return saveLine(view.sa.id);
+  await api.invoke('side:mini.close').catch(() => undefined);
+}
+
+/** Saves the line for tomorrow (or none). A failed save says so and leaves Mini open, so the words are not lost. */
+async function saveLine(id: string | undefined) {
+  const text = line.trim();
+  let ok = true;
+  try {
+    const r = await api.invoke<{ error?: string } | null>('side:wrapup.tomorrow', { id, line: text || null });
+    ok = !(r && typeof r === 'object' && 'error' in r);
+  } catch {
+    ok = false;
+  }
+  if (!ok) return void api.invoke('side:toast', { text: t("Couldn't save your question. Try again."), ms: 3500 }).catch(() => undefined);
+  return toastAndClose(text ? t('Saved your question. See you tomorrow.') : t('Set aside. See you tomorrow.'));
 }
 
 // ---- Ask sidy: one line → at most one fixed action, run as its own button would run it ----
@@ -174,27 +238,37 @@ async function askNow() {
   if (!line || home.ask?.state === 'asking') return;
   home = { ...home, notice: undefined, ask: { line, state: 'asking' } };
   render();
-  const r = await api.invoke<{ decision?: AskDecision; latest?: boolean; error?: string }>('side:ask', { line });
+  let r: { decision?: AskDecision; latest?: boolean; error?: string } | null;
+  try {
+    r = await api.invoke<{ decision?: AskDecision; latest?: boolean; error?: string }>('side:ask', { line });
+  } catch {
+    r = null;
+  }
   // A newer ask, or a different screen by now: this answer is not applied.
-  if (!r.decision || r.latest === false || view.name !== 'home' || home.ask?.line !== line) return;
+  if (view.name !== 'home' || home.ask?.line !== line || r?.latest === false) return;
+  if (!r || !r.decision) {
+    home = { ...home, notice: t("Couldn't ask sidy just now. Try again."), ask: { line, state: 'idle' } };
+    return render();
+  }
   if (r.decision.kind === 'action') {
     home = { ...home, ask: { line: '', state: 'idle' } };
-    return askDo(r.decision.action);
+    return askDo(r.decision.action, r.decision.minutes);
   }
   home = { ...home, ask: { line, state: 'reply', reply: r.decision } };
   render();
 }
 
-async function askDo(id: AskActionId) {
+async function askDo(id: AskActionId, minutes: 30 | 60 | null = null) {
   home = { ...home, ask: { line: '', state: 'idle' } };
   if (id === 'open_step' && !state?.step) {
     home = { ...home, notice: t("There's no next step yet. It's made after you set today aside.") };
     return render();
   }
-  if (id === 'quiet_hour') home = { ...home, notice: t('Quiet for 1 hour. No bubbles until then.') };
+  if (id === 'quiet_hour') home = { ...home, notice: t("Quiet for 1 hour. sidy won't start talking until then; a check-in you asked for still comes.") };
   const el = document.createElement('button');
   el.dataset.act = actFor(id);
   if (state?.step) el.dataset.step = state.step.id;
+  if (minutes) el.dataset.min = String(minutes);
   await act(el);
   render();
 }
@@ -203,7 +277,7 @@ async function act(el: HTMLElement) {
   const a = el.dataset.act;
   const key = el.dataset.key ?? '';
   switch (a) {
-    case 'close': return void api.invoke('side:mini.close');
+    case 'close': return void closeMini();
     case 'rename':
       wrap = { ...wrap, renaming: key };
       render();
@@ -214,7 +288,7 @@ async function act(el: HTMLElement) {
       await navigator.clipboard.writeText(el.dataset.text ?? '').catch(() => undefined);
       el.textContent = t('Copied');
       return;
-    case 'open-main': await api.invoke('side:open.main'); return void api.invoke('side:mini.close');
+    case 'open-main': await api.invoke('side:open.main').catch(() => undefined); return void api.invoke('side:mini.close').catch(() => undefined);
     case 'home': home = {}; return go({ name: 'home' });
     case 'wrap': return void startWrap();
     case 'toggle':
@@ -235,37 +309,62 @@ async function act(el: HTMLElement) {
       if (view.name !== 'failed') return;
       if (view.retryId) {
         const p = view.p;
-        go({ name: 'checking', p: p ?? { groups: [], kept: [], alreadySetAside: 0, skipped: { excluded: 0, incognito: 0, internal: 0 }, foldCount: 0 } });
-        return afterWrap(await api.invoke<WrapOut>('side:wrapup.retry', { id: view.retryId }), p);
+        const id = view.retryId;
+        go({ name: 'checking', p: p ?? EMPTY_PREVIEW });
+        return afterWrap(await wrapCall('side:wrapup.retry', { id }), p, id);
       }
       return view.p && view.f.kind === 'storage_failed' ? void confirm(view.p) : void startWrap();
+    case 'retry-last': {
+      // From home: the last wrap-up Chrome never confirmed, run again (tabs already set aside are skipped).
+      const id = el.dataset.id;
+      if (!id || view.name !== 'home') return;
+      go({ name: 'checking', p: EMPTY_PREVIEW });
+      return afterWrap(await wrapCall('side:wrapup.retry', { id }), null, id);
+    }
     case 'undo': {
       const id = el.dataset.id ?? state?.lastWrapup?.id;
       if (!id) return;
       home = { notice: t('Checking with Chrome…') };
       go({ name: 'home' });
-      const r = await api.invoke<{ kind: string; reopened?: number; message?: string }>('side:wrapup.undo', { id });
+      let r: { kind?: string; reopened?: number; message?: string } | null;
+      try {
+        r = await api.invoke<{ kind?: string; reopened?: number; message?: string }>('side:wrapup.undo', { id });
+      } catch {
+        r = null;
+      }
+      if (view.name !== 'home') return;
       home = {
         notice:
-          r.kind === 'undone' ? (r.reopened ? t('Brought your tabs back, including {n} that were closed.', { n: r.reopened }) : t('Brought your tabs back.'))
-          : r.kind === 'failed' ? t("Chrome couldn't undo it: {message}", { message: r.message ?? '' })
-          : r.kind === 'not_latest' ? t('Only the last wrap-up can be undone.')
+          r?.kind === 'undone' ? (r.reopened ? t('Brought your tabs back, including {n} that were closed.', { n: r.reopened }) : t('Brought your tabs back.'))
+          : r?.kind === 'failed' ? t("Chrome couldn't undo it: {message}", { message: r.message ?? '' })
+          : r?.kind === 'not_latest' ? t('Only the last wrap-up can be undone.')
+          : r?.kind === 'storage_failed' ? t("Brought your tabs back in Chrome, but couldn't note it on this computer. Look at the tab bar.")
           : t("Chrome didn't answer. Look at the tab bar, or try again."),
       };
       return render();
     }
-    case 'save-line':
-      await api.invoke('side:wrapup.tomorrow', { id: el.dataset.id, line: line.trim() || null });
-      return toastAndClose(line.trim() ? t('Saved your question. See you tomorrow.') : t('Set aside. See you tomorrow.'));
+    case 'save-line': return saveLine(el.dataset.id);
     case 'chip':
       // Picking again replaces the line: only the last value is kept.
       line = el.dataset.text ?? '';
       return render();
     case 'skip':
-      await api.invoke('side:wrapup.tomorrow', { id: el.dataset.id, line: null });
+      await api.invoke('side:wrapup.tomorrow', { id: el.dataset.id, line: null }).catch(() => undefined);
       return toastAndClose(t('Set aside. See you tomorrow.'));
     case 'step-open': {
-      const r = await api.invoke<StepOpenReply>('side:step.open', { stepId: el.dataset.step });
+      if (home.stepBusy) return;
+      // The app may take up to 30 s: say it is opening, and don't take a second press.
+      home = { ...home, stepBusy: true };
+      render();
+      let r: StepOpenReply;
+      try {
+        r = (await api.invoke<StepOpenReply | { error: string } | null>('side:step.open', { stepId: el.dataset.step })) as StepOpenReply;
+        if (!r || 'error' in r) r = { kind: 'unconfirmed' };
+      } catch {
+        r = { kind: 'unconfirmed' };
+      }
+      home = { ...home, stepBusy: false };
+      if (view.name === 'home') render();
       return toastAndClose(stepOpenedText(r));
     }
     case 'hide': return void api.invoke('side:hide', { hidden: true });
@@ -278,12 +377,16 @@ async function act(el: HTMLElement) {
       home = {};
       return render();
     case 'one-more':
-      await api.invoke('side:onemore');
-      return go({ name: 'onemore', minutes: 60 });
+      await api.invoke('side:onemore').catch(() => undefined);
+      return go({ name: 'onemore', minutes: el.dataset.min === '30' ? 30 : 60 });
     case 'pick': return go({ name: 'onemore', minutes: el.dataset.min === '30' ? 30 : 60 });
     case 'promise': {
       const minutes = el.dataset.min === '30' ? 30 : 60;
-      await api.invoke('side:onemore.choose', { minutes });
+      try {
+        await api.invoke('side:onemore.choose', { minutes });
+      } catch {
+        return void api.invoke('side:toast', { text: t("Couldn't set the check-in. Try again."), ms: 3500 }).catch(() => undefined);
+      }
       return toastAndClose(t("Okay. I'll check in once, at {time}.", { time: clock((state?.now ?? Date.now()) + minutes * 60_000) }));
     }
   }
@@ -391,7 +494,7 @@ window.addEventListener('pointerup', async (e) => {
   const before = new Set(view.p.groups.map((x) => x.key));
   const op = to === '__new' && p.drag.kind === 'tab' ? { op: 'new', tabId: p.drag.id }
     : p.drag.kind === 'tab' ? { op: 'move', tabId: p.drag.id, to } : { op: 'merge', from: p.drag.key, into: to };
-  const next = await api.invoke<PreviewView | { error: string }>('side:wrapup.edit', op);
+  const next = await api.invoke<PreviewView | { error: string }>('side:wrapup.edit', op).catch(() => null);
   if (!next || 'error' in next || !('groups' in next) || view.name !== 'preview') return;
   const keys = new Set(next.groups.map((x) => x.key));
   const made = next.groups.find((x) => !before.has(x.key))?.key;
@@ -421,7 +524,7 @@ async function saveRename(form: HTMLFormElement) {
   const name = form.querySelector<HTMLInputElement>('#rn')?.value ?? '';
   wrap = { ...wrap, renaming: undefined };
   if (view.name !== 'preview') return;
-  const next = await api.invoke<PreviewView | { error: string }>('side:wrapup.edit', { op: 'rename', key, name });
+  const next = await api.invoke<PreviewView | { error: string }>('side:wrapup.edit', { op: 'rename', key, name }).catch(() => null);
   // The user may have left the preview while the app answered.
   if (view.name !== 'preview') return;
   go({ name: 'preview', p: next && 'groups' in next ? next : view.p });
@@ -441,13 +544,14 @@ window.addEventListener('keydown', (e) => {
     wrap = { ...wrap, renaming: undefined };
     return render();
   }
-  if (e.key === 'Escape') void api.invoke('side:mini.close');
+  if (e.key === 'Escape') void closeMini();
 });
 
 api.onState((s) => {
+  const languageChanged = drawnLanguage !== undefined && s.settings.language !== drawnLanguage;
   state = s;
-  // Live updates refresh home; a Wrap up in progress keeps its own screen.
-  if (view.name === 'home' || view.name === 'done' || view.name === 'onemore') pushedRender();
+  // Live updates refresh home; a Wrap up in progress keeps its own screen, in the language shown.
+  if (view.name === 'home' || view.name === 'done' || view.name === 'onemore' || languageChanged) pushedRender();
 });
 api.onMiniView((v) => {
   home = {};

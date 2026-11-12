@@ -25,6 +25,11 @@ let suppressClick = false;
 /** Where the pointer was last seen over this window, to recheck click-through after a redraw. */
 let lastPointer: { x: number; y: number } | null = null;
 
+/** Long enough to read: a long one (where to allow an app in System Settings) stays longer. */
+function readingMs(text: string): number {
+  return Math.min(12_000, Math.max(4_000, 2_500 + text.length * 50));
+}
+
 function rightOffset() {
   return Math.round(size * 0.92) + 18;
 }
@@ -41,9 +46,10 @@ function render() {
   }
   applyLanguage(api, state);
   const hiddenToast = toast?.kind === 'hidden';
-  const mode = state?.hidden || hiddenToast ? 'hidden' : bubble || toast || drag?.moved ? 'out' : 'quiet';
-  let overlay = '';
+  // A bubble whose step is gone draws nothing, so sidy must not stay slid out for it.
   const inner = bubble && state ? bubbleView(bubble, state) : null;
+  const mode = state?.hidden || hiddenToast ? 'hidden' : inner || toast || drag?.moved ? 'out' : 'quiet';
+  let overlay = '';
   if (inner && bubble) overlay = `<div class="${bubbleClass(bubble)}" role="status">${inner}</div>`;
   else if (toast) overlay = String(toastView(toast));
   app.innerHTML = String(edgeView({ mode, size, hitY: hit.y, hitSize: hit.h })) + overlay;
@@ -99,10 +105,12 @@ async function act(el: HTMLElement) {
   }
   if (a === 'step-open' && el.dataset.step) {
     bubble = null;
-    showToast({ text: t('Opening it in Chrome…'), ms: 15000 });
+    // A web step opens in Chrome; a file step opens in its desktop app (no host).
+    showToast({ text: state?.step?.host ? t('Opening it in Chrome…') : t('Opening it…'), ms: 15000 });
     void api.invoke('side:bubble.close');
     const r = await api.invoke<StepOpenReply>('side:step.open', { stepId: el.dataset.step });
-    return showToast({ text: stepOpenedText(r), ms: 4000 });
+    const text = stepOpenedText(r);
+    return showToast({ text, ms: readingMs(text) });
   }
   if (a === 'rest-today' && el.dataset.step) {
     bubble = null;

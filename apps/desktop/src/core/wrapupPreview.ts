@@ -91,9 +91,9 @@ export function toSetAside(
 ): SetAside {
   const byId = new Map(report.tabs.map((t) => [t.tabId, t]));
   const tabs = preview.fold.flatMap((g) =>
-    g.tabIds.map((tabId) => {
-      const t = byId.get(tabId)!;
-      return { tabId, url: t.url, title: t.title, lastAccessed: t.lastAccessed, position: t.position, groupKey: g.key };
+    g.tabIds.flatMap((tabId) => {
+      const t = byId.get(tabId);
+      return t ? [{ tabId, url: t.url, title: t.title, lastAccessed: t.lastAccessed, position: t.position, groupKey: g.key }] : [];
     }),
   );
   const line = userLine?.trim();
