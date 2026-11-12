@@ -2,7 +2,6 @@
 export const MAIN: Record<string, string> = {
   // Settings
   Language: '언어',
-  'Set quiet hours': '조용한 시간 정하기',
   'One more hour uses it to say how long you would sleep if you stopped now.': '‘한 시간만 더’에서 지금 멈추면 몇 시간 잘 수 있는지 알려 줄 때 써요.',
   'No Claude key on this computer, so nothing is sent and sidy uses simple rules here. To use Claude, put your key in .env.local (see the README) and start Side again.':
     '이 컴퓨터에 Claude 키가 없어서 아무것도 보내지 않고, sidy는 간단한 규칙으로만 움직여요. Claude를 쓰려면 .env.local에 키를 넣고(README 참고) Side를 다시 실행해 주세요.',
@@ -32,7 +31,6 @@ export const MAIN: Record<string, string> = {
   'Quiet hours start': '조용한 시간 시작',
   'Quiet hours end': '조용한 시간 끝',
   to: '~',
-  'Turn off': '끄기',
   'sidy size': 'sidy 크기',
   Small: '작게',
   Medium: '보통',

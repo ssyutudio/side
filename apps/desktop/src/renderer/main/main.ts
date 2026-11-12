@@ -28,6 +28,8 @@ const local = {
   appsOpen: api.params.get('apps') === 'open',
   /** History days left open, so a redraw doesn't fold what the user opened. Null until they touch one. */
   daysOpen: null as Set<string> | null,
+  /** The quiet hours last turned off here, offered again when switched back on. */
+  lastQuiet: null as { start: number; end: number } | null,
 };
 
 function body(s: ViewState): SafeHtml {
@@ -133,12 +135,13 @@ root.addEventListener('click', (e) => {
     case 'demo':
       void api.invoke('side:demo', { cmd: el.dataset.cmd });
       break;
-    case 'quiet-on':
-      setSettings({ quietHours: { start: 22 * 60, end: 8 * 60 } });
+    case 'quiet-toggle': {
+      // Off keeps the times in mind for this window, so turning it back on brings the same hours.
+      const q = state?.settings.quietHours;
+      if (q) local.lastQuiet = q;
+      setSettings({ quietHours: q ? null : (local.lastQuiet ?? { start: 22 * 60, end: 8 * 60 }) });
       break;
-    case 'quiet-off':
-      setSettings({ quietHours: null });
-      break;
+    }
     case 'check':
       void api.invoke('side:check.connection').finally(load);
       void api.invoke('side:connections.refresh');

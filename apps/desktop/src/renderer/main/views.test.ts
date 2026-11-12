@@ -169,6 +169,14 @@ describe('Settings', () => {
     expect(h).toContain('Connections');
     expect(h).not.toMatch(BANNED);
   });
+  it('turns quiet hours on and off with a switch, and shows the times only while on', () => {
+    const on = s(settingsView(FIXTURES.day));
+    expect(on).toMatch(/aria-checked="true"[^>]*data-act="quiet-toggle"/);
+    expect(on).toContain('data-act="quiet-start"');
+    const off = s(settingsView({ ...FIXTURES.day, settings: { ...FIXTURES.day.settings, quietHours: null } }));
+    expect(off).toMatch(/aria-checked="false"[^>]*data-act="quiet-toggle"/);
+    expect(off).not.toContain('data-act="quiet-start"');
+  });
   it('offers the Demo clock only when Side runs for a demo (SIDE_DEMO) or demo time is on', () => {
     expect(s(settingsView(FIXTURES.day))).not.toContain('Demo clock');
     expect(s(settingsView({ ...FIXTURES.day, demoTools: true }))).toContain('Demo clock');

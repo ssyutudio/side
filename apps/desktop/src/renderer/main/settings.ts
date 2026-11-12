@@ -36,9 +36,11 @@ function sw(key: 'llmEnabled' | 'uploadEnabled' | 'reactions', on: boolean, labe
 
 export function settingsView(s: ViewState, opts: { appsOpen: boolean } = { appsOpen: false }): SafeHtml {
   const st = s.settings;
+  // On/off is a switch like every other row; the times show only while it is on.
+  const quietSwitch = html`<button type="button" class="sw" role="switch" aria-checked="${st.quietHours ? 'true' : 'false'}" aria-label="${t('Quiet hours')}" data-act="quiet-toggle"></button>`;
   const quiet = st.quietHours
-    ? html`<span class="ctl row" style="align-items:center">${timeSelect('quiet-start', t('Quiet hours start'), st.quietHours.start)}<span>${t('to')}</span>${timeSelect('quiet-end', t('Quiet hours end'), st.quietHours.end)}<button type="button" class="btn sm" data-act="quiet-off">${t('Turn off')}</button></span>`
-    : html`<span class="ctl"><button type="button" class="btn sm" data-act="quiet-on">${t('Set quiet hours')}</button></span>`;
+    ? html`<span class="ctl row" style="align-items:center">${timeSelect('quiet-start', t('Quiet hours start'), st.quietHours.start)}<span>${t('to')}</span>${timeSelect('quiet-end', t('Quiet hours end'), st.quietHours.end)}${quietSwitch}</span>`
+    : html`<span class="ctl">${quietSwitch}</span>`;
   return html`<h1>${t('Settings')}</h1><p class="lead">${t('Changes apply right away.')}</p><div class="set">
 ${languageRow(st.language === 'ko' ? 'ko' : 'en')}
 <div class="r"><b>${t('sidy size')}</b><p>${t('Small fits the edge best. You can see it change on the right.')}</p><span class="ctl seg" role="group" aria-label="${t('sidy size')}">${SIZES.map(
