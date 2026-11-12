@@ -90,6 +90,35 @@ describe('WrapupService', () => {
     expect(port.sent).toHaveLength(0);
   });
 
+  it('sends apply and undo with a longer wait than the default', async () => {
+    const waits: unknown[] = [];
+    const port = { sent: [] as any[], command: async (type: any, p: any, ms?: number) => (waits.push([type, ms]), type === 'cmd.wrapup.apply' ? groupedAll(type, p) : ({ status: 'ok', result: { reopened: 0 } } as CommandOutcome)) };
+    const { svc } = await setup(port as unknown as FakePort);
+    const out = await svc.confirm(await svc.preview(report), report, []);
+    if (out.kind !== 'applied' && out.kind !== 'partial') throw new Error(out.kind);
+    await svc.undo(out.setAside.id);
+    expect(waits).toEqual([['cmd.wrapup.apply', 60_000], ['cmd.wrapup.undo', 60_000]]);
+  });
+
+  it('does not leave the screen waiting when saving Chrome\'s answer fails', async () => {
+    const port = new FakePort(groupedAll);
+    // The record is written before the send; only the write after Chrome answered fails.
+    let failFrom = Infinity;
+    const flaky: FsLike = { ...realFs, writeFile: (async (...a: Parameters<typeof realFs.writeFile>) => {
+      if (port.sent.length >= failFrom) throw new Error('disk full');
+      return realFs.writeFile(...a);
+    }) as FsLike['writeFile'] };
+    const { svc } = await setup(port, flaky);
+    const preview = await svc.preview(report);
+    failFrom = 1;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const out = await svc.confirm(preview, report, []);
+    warn.mockRestore();
+    expect(out.kind).toBe('unconfirmed');
+    // Retry resends the same saved command rather than starting a new wrap-up.
+    expect(out.kind === 'unconfirmed' && out.setAside.id).toBeTruthy();
+  });
+
   it('records what the extension confirmed and prepares exactly one step', async () => {
     const { svc, store, path } = await setup(new FakePort(groupedAll));
     const out = await svc.confirm(await svc.preview(report), report, []);

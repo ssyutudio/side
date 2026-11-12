@@ -41,6 +41,15 @@ interface Route<S extends z.ZodTypeAny> {
 }
 const route = <S extends z.ZodTypeAny>(schema: S, run: (ctl: Ctl, input: z.infer<S>) => unknown): Route<S> => ({ schema, run });
 
+/** A route that changes state but publishes nothing itself: the screens are refreshed once after it runs. */
+const publishing =
+  <I>(run: (ctl: Ctl, input: I) => unknown) =>
+  async (ctl: Ctl, input: I) => {
+    const out = await run(ctl, input);
+    ctl.publish();
+    return out;
+  };
+
 const ROUTES = {
   'side:state': route(empty, (c) => c.state()),
   'side:wrapup.preview': route(empty, (c) => c.previewWrapup()),
@@ -54,23 +63,23 @@ const ROUTES = {
     ]),
     (c, i) => c.editWrapup(i),
   ),
-  'side:wrapup.retry': route(z.object({ id }), (c, i) => c.wrapup.retry(i.id)),
-  'side:wrapup.undo': route(z.object({ id }), (c, i) => c.wrapup.undo(i.id)),
+  'side:wrapup.retry': route(z.object({ id }), publishing((c, i) => c.wrapup.retry(i.id))),
+  'side:wrapup.undo': route(z.object({ id }), publishing((c, i) => c.wrapup.undo(i.id))),
   'side:wrapup.tomorrow': route(z.object({ id, line: z.string().max(500).nullable() }), (c, i) => c.saveTomorrowLine(i.id, i.line)),
   'side:wrapup.suggest': route(z.object({ id }), async (c, i) => ({ suggestions: await c.suggestTomorrow(i.id) })),
-  'side:step.open': route(z.object({ stepId: id }), (c, i) => c.openStep(i.stepId)),
-  'side:step.dismiss': route(z.object({ stepId: id, kind: z.enum(['not_now', 'rest_today']) }), (c, i) => c.step.dismiss(i.stepId, i.kind)),
+  'side:step.open': route(z.object({ stepId: id }), publishing((c, i) => c.openStep(i.stepId))),
+  'side:step.dismiss': route(z.object({ stepId: id, kind: z.enum(['not_now', 'rest_today']) }), publishing((c, i) => c.step.dismiss(i.stepId, i.kind))),
   'side:bubble.drawn': route(empty, (c) => c.bubbleDrawn()),
   'side:bubble.close': route(empty, (c) => c.speak.clear()),
   'side:onemore': route(empty, (c) => c.oneMoreHour()),
   'side:onemore.choose': route(
     z.object({ minutes: z.union(PROMISE_CHOICES_MIN.map((m) => z.literal(m)) as [z.ZodLiteral<30>, z.ZodLiteral<60>]) }),
-    (c, i) => c.speak.choose(i.minutes),
+    publishing((c, i) => c.speak.choose(i.minutes)),
   ),
   'side:promise.answer': route(z.object({ answer: z.enum(['set_aside', 'keep_going', 'not_today']) }), (c, i) => c.speak.answer(i.answer)),
   'side:settings.set': route(settingsPatch, (c, i) => c.updateSettings(i)),
   'side:hide': route(z.object({ hidden: z.boolean() }), (c, i) => c.setHidden(i.hidden)),
-  'side:focus': route(z.object({ minutes: z.number().int().min(1).max(600).nullable() }), (c, i) => c.speak.setFocus(i.minutes)),
+  'side:focus': route(z.object({ minutes: z.number().int().min(1).max(600).nullable() }), publishing((c, i) => c.speak.setFocus(i.minutes))),
   'side:demo': route(z.object({ cmd: z.enum(DEMO_COMMANDS) }), (c, i) => c.demo(i.cmd)),
   'side:open.main': route(empty, (c) => c.openMain()),
   'side:apps.set': route(z.object({ id: z.string().regex(/^[a-z_]{1,40}$/), on: z.boolean() }), (c, i) => c.conn.setApp(i.id, i.on)),

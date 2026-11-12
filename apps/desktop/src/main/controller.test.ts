@@ -112,6 +112,54 @@ describe('SideController', () => {
     expect(store.get().demoOffsetMs).toBe(clock.offset);
   });
 
+  it('relaunching with the same demo command lands on the same moment instead of jumping again', async () => {
+    const { ctl, clock } = await setup();
+    await ctl.demo('next-day', 'real');
+    const first = clock.now();
+    await ctl.demo('next-day', 'real');
+    expect(clock.now()).toBe(first);
+  });
+
+  it('reset drops spoke times and a rest that lie in the demo future', async () => {
+    const { ctl, store } = await setup();
+    await ctl.demo('next-day');
+    const future = REAL + 3_600_000;
+    await store.update((d) => ({ ...d, spokeAt: [REAL - 1000, future], restedUntil: future }));
+    await ctl.demo('reset');
+    expect(store.get().spokeAt).toEqual([REAL - 1000]);
+    expect(store.get().restedUntil).toBeNull();
+    expect(store.get().demoOffsetMs).toBe(0);
+  });
+
+  it('keeps a setting changed while updateSettings was waiting its turn in the write queue', async () => {
+    const { ctl, store } = await setup();
+    const real = store.update.bind(store);
+    let injected = false;
+    store.update = (fn) => {
+      if (!injected) {
+        injected = true;
+        void real((d) => ({ ...d, settings: { ...d.settings, apps: ['figma'] } }));
+      }
+      return real(fn);
+    };
+    await ctl.updateSettings({ reactions: false });
+    expect(store.get().settings.apps).toEqual(['figma']);
+    expect(store.get().settings.reactions).toBe(false);
+  });
+
+  it('a reconnect greeting does not replace the draft the user is editing', async () => {
+    const { ctl } = await setup();
+    const first = await ctl.previewWrapup();
+    if ('error' in first) throw new Error('not connected');
+    const g = first.groups[0];
+    await ctl.editWrapup({ op: 'rename', key: g.key, name: 'My name' });
+    await ctl.greetFirstRun();
+    // A move onto its own group changes nothing and shows the draft as it now stands.
+    const out = await ctl.editWrapup({ op: 'move', tabId: g.tabs[0].id, to: g.key });
+    if ('error' in out) throw new Error('no draft');
+    expect(out.groups.find((x) => x.key === g.key)?.name).toBe('My name');
+  });
+
   it('records a spoken bubble and a shown step only after the screen drew it', async () => {
     const { ctl, store } = await setup();
     await ctl.previewWrapup();

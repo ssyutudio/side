@@ -24,7 +24,7 @@ import type { AgentRun } from './connectors/claudeCode';
 export interface BridgePort {
   readonly status: BridgeStatus;
   send<T extends MessageType>(type: T, payload: PayloadOf<T>): boolean;
-  command<T extends MessageType>(type: T, payload: PayloadOf<T>): Promise<CommandOutcome>;
+  command<T extends MessageType>(type: T, payload: PayloadOf<T>, timeoutMs?: number): Promise<CommandOutcome>;
 }
 
 export interface EdgePort {
@@ -53,6 +53,8 @@ export interface ControllerDeps {
   realNow?: () => number;
   /** False while the setup window is open: its "Meet sidy" button greets instead. */
   greetOnConnect?: () => boolean;
+  /** True while Mini is open: a check-in waits (stays unfired) until it is closed. */
+  miniOpen?: () => boolean;
 }
 
 export interface PreviewView {
@@ -86,6 +88,7 @@ export class SideController {
     this.speak = new SpeakService({
       store,
       clock,
+      busy: deps.miniOpen,
       render: (b) => {
         deps.renderBubble(b);
         this.publish();
@@ -141,9 +144,10 @@ export class SideController {
   async greetFirstRun() {
     this.firstRunBusy = true;
     try {
-      const preview = await this.previewWrapup();
-      if ('error' in preview) return;
-      await this.speak.firstRun({ tabs: preview.foldCount, groups: preview.groups.length });
+      // Only a count for the greeting: the draft the user may be editing in Mini is left alone.
+      const made = await this.makePreview();
+      if ('error' in made) return;
+      await this.speak.firstRun({ tabs: made.preview.foldCount, groups: made.preview.fold.length });
     } finally {
       this.firstRunBusy = false;
     }
@@ -167,12 +171,18 @@ export class SideController {
 
   // ---- Wrap up ----
 
-  async previewWrapup(): Promise<PreviewView | { error: 'not_connected' }> {
+  private async makePreview(): Promise<{ preview: WrapupPreview; report: TabsReport; files: NonNullable<SetAside['files']> } | { error: 'not_connected' }> {
     const report = await this.freshReport();
     if (!report || this.deps.bridge.status !== 'connected') return { error: 'not_connected' };
     const [preview, files] = await Promise.all([this.wrapup.preview(report), this.wrapup.filesToday()]);
-    this.draft = { preview, report, files };
-    return this.viewOf(preview, report, files);
+    return { preview, report, files };
+  }
+
+  async previewWrapup(): Promise<PreviewView | { error: 'not_connected' }> {
+    const made = await this.makePreview();
+    if ('error' in made) return made;
+    this.draft = made;
+    return this.viewOf(made.preview, made.report, made.files);
   }
 
   private viewOf(preview: WrapupPreview, report: TabsReport, files: NonNullable<SetAside['files']> = []): PreviewView {
@@ -282,12 +292,17 @@ export class SideController {
 
   async updateSettings(patch: Partial<Settings>): Promise<Settings> {
     const before = this.data.settings;
-    let next = sanitizeSettings({ ...before, ...patch });
-    if (next.shortcut !== before.shortcut && !this.deps.registerShortcut(next.shortcut)) {
+    let shortcut = sanitizeSettings({ ...before, ...patch }).shortcut;
+    if (shortcut !== before.shortcut && !this.deps.registerShortcut(shortcut)) {
       this.deps.registerShortcut(before.shortcut);
-      next = { ...next, shortcut: before.shortcut };
+      shortcut = before.shortcut;
     }
-    await this.deps.store.update((d) => ({ ...d, settings: next }));
+    // Merged onto the newest settings inside the queued write, so a concurrent change is not lost.
+    let next = before;
+    await this.deps.store.update((d) => {
+      next = sanitizeSettings({ ...d.settings, ...patch, ...(patch.shortcut !== undefined ? { shortcut } : {}) });
+      return { ...d, settings: next };
+    });
     if (next.sidySize !== before.sidySize) this.deps.edge?.resize(next.sidySize);
     if (next.excludedDomains.join('\n') !== before.excludedDomains.join('\n')) {
       this.deps.bridge.send('exclusions.set', { domains: next.excludedDomains });
@@ -304,11 +319,17 @@ export class SideController {
     this.publish();
   }
 
-  async demo(cmd: DemoCommand) {
+  /** `base: 'real'` jumps from real time (a launch-time command that must not stack on the stored offset). */
+  async demo(cmd: DemoCommand, base: 'stored' | 'real' = 'stored') {
     const realNow = this.deps.realNow?.() ?? Date.now();
-    const offset = demoOffset(cmd, realNow, this.data.demoOffsetMs);
+    const offset = demoOffset(cmd, realNow, base === 'real' ? 0 : this.data.demoOffsetMs);
     this.deps.clock.setOffset(offset);
-    await this.deps.store.update((d) => ({ ...d, demoOffsetMs: offset }));
+    await this.deps.store.update((d) =>
+      cmd === 'reset'
+        ? // Back in real time: nothing recorded in the demo's future may keep blocking sidy.
+          { ...d, demoOffsetMs: offset, spokeAt: d.spokeAt.filter((t) => t <= realNow), restedUntil: d.restedUntil !== null && d.restedUntil > realNow ? null : d.restedUntil }
+        : { ...d, demoOffsetMs: offset },
+    );
     this.publish();
   }
 

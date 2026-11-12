@@ -45,6 +45,25 @@ describe('routeIpc', () => {
     expect(calls.map((c) => c[0])).toEqual(['confirmWrapup', 'saveTomorrowLine', 'suggestTomorrow', 'choose', 'updateSettings', 'updateSettings', 'demo']);
   });
 
+  it('publishes once after each route that changes state without publishing itself', async () => {
+    const { ctl } = fakeController();
+    let published = 0;
+    ctl.publish = () => void published++;
+    const requests: [string, unknown][] = [
+      ['side:focus', { minutes: 60 }],
+      ['side:wrapup.undo', { id: 'sa1' }],
+      ['side:wrapup.retry', { id: 'sa1' }],
+      ['side:onemore.choose', { minutes: 30 }],
+      ['side:step.open', { stepId: 'st1' }],
+      ['side:step.dismiss', { stepId: 'st1', kind: 'not_now' }],
+    ];
+    for (const [channel, payload] of requests) {
+      published = 0;
+      await routeIpc(ctl, channel, payload);
+      expect([channel, published]).toEqual([channel, 1]);
+    }
+  });
+
   it('rejects malformed or unknown requests without calling anything', async () => {
     const { ctl, calls } = fakeController();
     expect(await routeIpc(ctl, 'side:onemore.choose', { minutes: 45 })).toEqual({ error: 'invalid request' });

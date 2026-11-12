@@ -37,6 +37,9 @@ export interface BridgeOptions {
   onLateResult?: (msg: Message) => void;
 }
 
+/** How many timed-out command ids are remembered, to recognise their late results. */
+const EXPIRED_MAX = 200;
+
 const EXTENSION_ORIGIN = /^chrome-extension:\/\/[a-p]{32}$/;
 
 interface Pending {
@@ -99,8 +102,11 @@ export class Bridge {
   }
 
   private attach(ws: WebSocket) {
-    // A service worker that woke up again replaces the old connection.
-    if (this.socket && this.socket !== ws) this.socket.terminate();
+    // A service worker that woke up again replaces the old connection; its commands can no longer be answered.
+    if (this.socket && this.socket !== ws) {
+      this.settleAll('disconnected');
+      this.socket.terminate();
+    }
     this.socket = ws;
     ws.on('message', (data) => this.receive(ws, String(data)));
     ws.on('close', () => this.detach(ws));
@@ -110,18 +116,33 @@ export class Bridge {
   private detach(ws: WebSocket) {
     if (this.socket !== ws) return;
     this.socket = null;
+    this.settleAll('disconnected');
+    if (this.status === 'connected') this.setStatus('disconnected');
+  }
+
+  /** Ends every waiting command as unconfirmed; a result that still arrives later is recognised as late. */
+  private settleAll(reason: 'disconnected') {
     for (const [id, p] of this.pending) {
       clearTimeout(p.timer);
-      this.expired.add(id);
-      p.resolve({ status: 'unconfirmed', reason: 'disconnected' });
+      this.expire(id);
+      p.resolve({ status: 'unconfirmed', reason });
     }
     this.pending.clear();
-    if (this.status === 'connected') this.setStatus('disconnected');
+  }
+
+  private expire(id: string) {
+    this.expired.add(id);
+    // A Set keeps insertion order: drop the oldest beyond the cap.
+    while (this.expired.size > EXPIRED_MAX) this.expired.delete(this.expired.values().next().value as string);
   }
 
   private receive(ws: WebSocket, raw: string) {
     const parsed = parseMessage(raw);
-    if (!parsed.ok) return; // dropped on purpose: the app stays up and ignores it
+    if (!parsed.ok) {
+      // Dropped on purpose (the app stays up), but not silently. The reason only, never the contents.
+      console.warn(`[side] dropped a message from the extension: ${parsed.reason}`);
+      return;
+    }
     const msg = parsed.msg;
     this.lastSeenAt = Date.now();
     if (this.status !== 'connected' && this.socket === ws) this.setStatus('connected');
@@ -172,8 +193,8 @@ export class Bridge {
     return true;
   }
 
-  /** Sends a command and waits for the extension to confirm it, up to timeoutMs. */
-  command<T extends MessageType>(type: T, payload: PayloadOf<T>): Promise<CommandOutcome> {
+  /** Sends a command and waits for the extension to confirm it, up to timeoutMs (default: the bridge's). */
+  command<T extends MessageType>(type: T, payload: PayloadOf<T>, timeoutMs?: number): Promise<CommandOutcome> {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN || this.status !== 'connected') {
       return Promise.resolve({ status: 'unconfirmed', reason: 'not_connected' });
     }
@@ -181,9 +202,9 @@ export class Bridge {
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
         this.pending.delete(msg.id);
-        this.expired.add(msg.id);
+        this.expire(msg.id);
         resolve({ status: 'unconfirmed', reason: 'timeout' });
-      }, this.opts.timeoutMs);
+      }, timeoutMs ?? this.opts.timeoutMs);
       this.pending.set(msg.id, { resolve, timer });
       this.socket!.send(encodeMessage(msg));
     });

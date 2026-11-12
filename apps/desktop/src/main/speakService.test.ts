@@ -21,11 +21,11 @@ const step: Step = {
   checks: { noJudgment: true, cannotFail: true, inRealTool: true, resultVisible: true }, source: 'rule',
 };
 
-async function setup(seed: Partial<AppData> = {}) {
+async function setup(seed: Partial<AppData> = {}, busy?: () => boolean) {
   const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-speak-')), 'd.json'), () => ({ ...defaultAppData(), setAsides: [sa], steps: [step], ...seed }));
   await store.load();
   const shown: (Bubble | null)[] = [];
-  const svc = new SpeakService({ store, clock, render: (b) => shown.push(b) });
+  const svc = new SpeakService({ store, clock, render: (b) => shown.push(b), busy });
   return { store, svc, shown };
 }
 
@@ -123,6 +123,45 @@ describe('SpeakService', () => {
     now += 31 * 60_000;
     await svc.tick();
     expect((await svc.answer('set_aside')).goToWrapup).toBe(true);
+  });
+});
+
+describe('SpeakService check-in edge cases', () => {
+  beforeEach(() => {
+    now = new Date(2026, 10, 10, 1, 0).getTime();
+  });
+
+  it('keeps the check-in unfired while Mini is open and fires it once Mini is closed', async () => {
+    let mini = true;
+    const { svc, shown, store } = await setup({}, () => mini);
+    await svc.choose(30);
+    now += 31 * 60_000;
+    expect(await svc.tick()).toBeNull();
+    expect(shown).toEqual([]);
+    expect(store.get().promises.at(-1)?.firedAt).toBeNull();
+    mini = false;
+    expect(await svc.tick()).toMatchObject({ kind: 'promise' });
+    expect(store.get().promises.at(-1)?.firedAt).not.toBeNull();
+  });
+
+  it('clears the drawn bubble when sidy is hidden', async () => {
+    const { svc, shown } = await setup();
+    await svc.trigger('app_start');
+    expect(svc.bubble).not.toBeNull();
+    await svc.setHidden(true);
+    expect(svc.bubble).toBeNull();
+    expect(shown.at(-1)).toBeNull();
+  });
+
+  it('logs why a due check-in stayed quiet only once, not on every tick', async () => {
+    const { svc, store } = await setup({ hidden: true });
+    await svc.choose(30);
+    now += 31 * 60_000;
+    for (let i = 0; i < 5; i++) {
+      await svc.tick();
+      now += 30_000;
+    }
+    expect(store.get().quietLog.filter((q) => q.reason === 'hidden')).toHaveLength(1);
   });
 });
 

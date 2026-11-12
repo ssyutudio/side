@@ -40,6 +40,8 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 Without a key, Side groups tabs with its built-in rules.
 
+Drag sidy up or down the right edge to move it; Side remembers the spot after a relaunch. A click that doesn't move still opens Mini.
+
 Keyboard: **Control+Option+S** hides sidy completely and brings it back. Clicking Side in the Dock also brings it back.
 
 ## Using it

@@ -86,6 +86,7 @@ export function sanitizeSettings(s: Settings): Settings {
     ...defaultSettings(),
     ...s,
     sidySize: (SIDY_SIZES as readonly string[]).includes(s.sidySize) ? s.sidySize : 'small',
+    sidyAnchor: typeof s.sidyAnchor === 'number' && s.sidyAnchor >= 0 && s.sidyAnchor <= 1 ? s.sidyAnchor : undefined,
     excludedDomains: domains,
     apps: [...new Set((s.apps ?? []).filter((a) => typeof a === 'string' && /^[a-z_]{1,40}$/.test(a)))].slice(0, 40),
   };

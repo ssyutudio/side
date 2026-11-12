@@ -52,7 +52,9 @@ Load the extension once: `chrome://extensions` → Developer mode → **Load unp
 2. Main → Excluded sites → add `en.wikipedia.org`, then Wrap up. What Side saw shows it as skipped, by count only. Check the data file: `grep -c wikipedia ~/Library/Application\ Support/Side/side-data.json` → 0 for tabs from after the exclusion.
 3. Press Control+Option+S: a toast, then no sidy at all (`screencapture -x ~/Desktop/sidy-hidden.png`). Press it again, or click Side in the Dock, and sidy comes back.
 4. Settings → sidy size → Large: sidy changes at once. Quit and relaunch: it is still Large.
-5. In Mini's tomorrow-line field, Cmd+C and Cmd+V work.
+5. Drag sidy up to the top of the screen, then down to the bottom: it follows the pointer and stays whole on screen; a bubble or Mini opened there stays on screen too. Quit and relaunch: sidy is where you left it. A plain click still opens Mini.
+6. With 9 or more groups, open Wrap up: the list scrolls inside Mini and the Set aside button stays in view. Drag a tab toward the bottom edge of the list: the list scrolls to the last group.
+7. In Mini's tomorrow-line field, Cmd+C and Cmd+V work.
 
 ## AC8 · Waitlist and the full video flow
 

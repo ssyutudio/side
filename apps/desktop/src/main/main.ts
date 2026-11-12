@@ -29,7 +29,11 @@ app.setName('Side');
 // writes into the real data file.
 app.setPath('userData', process.env.SIDE_USER_DATA || join(app.getPath('appData'), 'Side'));
 
-if (!app.requestSingleInstanceLock()) {
+// Only the process that holds the lock starts; a second one quits without touching the data file.
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  // Said out loud: otherwise a fresh build seems to launch while the old one stays on screen.
+  console.log('[side] Side is already running, so this launch only brings sidy back. Quit Side first (Dock → Quit) to start this build.');
   app.quit();
 }
 
@@ -80,7 +84,7 @@ function logReport(report: TabsReport) {
 function registerShortcut(accel: string): boolean {
   globalShortcut.unregisterAll();
   try {
-    return globalShortcut.register(accel, () => void ctl?.setHidden(edge?.isVisible() ?? false));
+    return globalShortcut.register(accel, () => void ctl?.setHidden(!store.get().hidden));
   } catch {
     return false;
   }
@@ -163,6 +167,11 @@ async function start() {
     preload: join(__dirname, 'preload.js'),
     page: join(__dirname, 'renderer', 'edge.html'),
     size: store.get().settings.sidySize,
+    anchor: store.get().settings.sidyAnchor,
+  });
+  // Registered before any await so the first paint cannot be missed; Hide is checked at that moment.
+  edge.win.once('ready-to-show', () => {
+    if (!store.get().hidden) edge?.show();
   });
   windows = new Windows({
     preload: join(__dirname, 'preload.js'),
@@ -184,6 +193,7 @@ async function start() {
       pushToWindows('side:state', state);
       maybeUpload();
     },
+    miniOpen: () => !!windows?.miniOpen(),
     renderBubble: (bubble) => {
       // While Mini is open the user is already talking to Side: no bubble on top of it.
       if (bubble && windows?.miniOpen()) return void setTimeout(() => ctl?.speak.clear(), 0);
@@ -208,6 +218,13 @@ async function start() {
     },
     closeMini: () => windows?.closeMini(),
     resizeMini: (h: number) => windows?.resizeMini(h),
+    moveSidy: (y: number, done: boolean) => {
+      if (!edge) return;
+      const anchor = edge.moveTo(y);
+      windows?.followSidy();
+      // The spot is remembered once, when the drag ends; a failed save only loses the spot.
+      if (done) void ctl?.updateSettings({ sidyAnchor: anchor }).catch(() => undefined);
+    },
     toast: (text: string, ms: number) => edge?.win.webContents.send('side:toast', { text, ms }),
     checkConnection: async () => {
       for (let i = 0; i < 15 && bridge?.status !== 'connected'; i++) await new Promise((r) => setTimeout(r, 200));
@@ -233,11 +250,11 @@ async function start() {
 
   const demo = parseDemoCommand(process.env.SIDE_DEMO);
   if (demo) {
-    await ctl.demo(demo);
+    // From real time, so relaunching with the same SIDE_DEMO lands on the same moment instead of jumping again.
+    await ctl.demo(demo, 'real');
     console.log(`[side] demo clock: ${demo} -> ${new Date(clock.now()).toString()}`);
   }
 
-  if (!store.get().hidden) edge.win.once('ready-to-show', () => edge?.show());
   // First launch: walk through connecting Chrome before sidy says anything.
   if (!store.get().firstRunDone && !store.get().pairedOrigin) windows.openSetup();
   if (!registerShortcut(store.get().settings.shortcut)) console.warn(`[side] shortcut ${store.get().settings.shortcut} is taken by another app`);
@@ -297,18 +314,20 @@ async function start() {
   }
 }
 
-app.whenReady().then(start);
+if (gotLock) {
+  app.whenReady().then(start);
 
-// Dock click brings sidy back after Hide; otherwise it opens Main.
-app.on('activate', () => {
-  if (store.get().hidden) void ctl?.setHidden(false);
-  else windows?.openMain();
-});
-app.on('second-instance', () => void ctl?.setHidden(false));
-app.on('will-quit', () => {
-  globalShortcut.unregisterAll();
-  void bridge?.stop();
-});
-app.on('window-all-closed', () => {
-  // Side keeps running at the edge; quitting is explicit.
-});
+  // Dock click brings sidy back after Hide; otherwise it opens Main.
+  app.on('activate', () => {
+    if (store.get().hidden) void ctl?.setHidden(false);
+    else windows?.openMain();
+  });
+  app.on('second-instance', () => void ctl?.setHidden(false));
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
+    void bridge?.stop();
+  });
+  app.on('window-all-closed', () => {
+    // Side keeps running at the edge; quitting is explicit.
+  });
+}

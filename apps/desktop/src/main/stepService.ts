@@ -34,6 +34,9 @@ export function activeUrlOf(report: TabsReport | null): string | null | undefine
   return active.reduce((a, b) => ((b.lastAccessed ?? 0) > (a.lastAccessed ?? 0) ? b : a)).url;
 }
 
+/** Chrome may wait for the page to load and for the scroll to restore, so this outlasts the default. */
+const STEP_OPEN_TIMEOUT_MS = 30_000;
+
 export class StepService {
   constructor(private readonly deps: { store: JsonStore<AppData>; port: CommandPort; clock: Clock; apps?: AppsPort | null }) {}
 
@@ -65,11 +68,11 @@ export class StepService {
       stepEvents: markClicked(d.stepEvents, stepId, clickedAt),
     }));
     if (step.action.type === 'app') return this.openInApp(step);
-    const outcome = await this.deps.port.command('cmd.step.open', {
-      stepId,
-      url: step.action.url,
-      position: step.action.position,
-    });
+    const outcome = await this.deps.port.command(
+      'cmd.step.open',
+      { stepId, url: step.action.url, position: step.action.position },
+      STEP_OPEN_TIMEOUT_MS,
+    );
     if (outcome.status === 'ok') {
       const openedAt = this.deps.clock.now();
       const d = await this.deps.store.update((x) => ({ ...x, stepEvents: markOpened(x.stepEvents, stepId, openedAt) }));
@@ -112,9 +115,11 @@ export class StepService {
   /** Feed every tab report here; due "still working" checks are filled in once and never change. */
   async observe(report: TabsReport | null): Promise<void> {
     const d = this.data;
-    const next = applyStillWorking(d.stepEvents, d.steps, d.setAsides, activeUrlOf(report), this.deps.clock.now());
-    const changed = next.some((e, i) => e !== d.stepEvents[i]);
-    if (changed) await this.deps.store.update((x) => ({ ...x, stepEvents: next }));
+    const url = activeUrlOf(report);
+    const now = this.deps.clock.now();
+    const changed = applyStillWorking(d.stepEvents, d.steps, d.setAsides, url, now).some((e, i) => e !== d.stepEvents[i]);
+    // Recomputed from the newest events inside the write, so a click recorded meanwhile is kept.
+    if (changed) await this.deps.store.update((x) => ({ ...x, stepEvents: applyStillWorking(x.stepEvents, x.steps, x.setAsides, url, now) }));
   }
 
   private find(stepId: string): Step | null {

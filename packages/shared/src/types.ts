@@ -188,6 +188,8 @@ export interface StepEvent {
 
 export interface Settings {
   sidySize: 'small' | 'medium' | 'large';
+  /** Where the user dragged sidy: its center as a fraction of the screen's height (0 top, 1 bottom). Missing: the default spot. */
+  sidyAnchor?: number;
   /** Electron accelerator that shows or hides sidy. */
   shortcut: string;
   /** Minutes from local midnight; sidy does not speak first inside this window. Null = off. */

@@ -12,6 +12,7 @@ let phase: SetupPhase = 'connecting';
 let extPath = 'apps/extension/dist';
 let preview: PreviewView | null = null;
 let asking = false;
+let checking = false;
 const started = Date.now();
 
 function render() {
@@ -30,6 +31,8 @@ async function onState(s: ViewState) {
     }
   } else if (phase === 'connected') {
     phase = 'failed';
+    // The tabs may change before Chrome is back: the next connection shows a fresh draft.
+    preview = null;
   } else if (Date.now() - started > 6000) {
     phase = 'failed';
   }
@@ -44,8 +47,10 @@ app.addEventListener('click', async (e) => {
     el.textContent = 'Copied';
   }
   if (el.dataset.act === 'check') {
+    if (checking) return; // one check at a time
+    checking = true;
     el.textContent = 'Checking…';
-    const r = await api.invoke<{ status: string }>('side:check.connection');
+    const r = await api.invoke<{ status: string }>('side:check.connection').finally(() => (checking = false));
     phase = r?.status === 'connected' ? 'connected' : 'failed';
     void api.invoke<ViewState>('side:state').then(onState);
   }

@@ -22,25 +22,36 @@ export interface EdgeLayout {
 const BUBBLE_ROOM = 470;
 /** Window height: tall enough for a bubble with one sentence, one action and a close. */
 const WINDOW_HEIGHT = 300;
-/** Vertical anchor of sidy's center, as a fraction of the work area height. */
-const ANCHOR = 0.62;
+/** Where sidy's center sits until the user drags it: a fraction of the work area height. */
+export const DEFAULT_ANCHOR = 0.62;
 
-export function edgeLayout(workArea: Rect, size: SidySize): EdgeLayout {
+/**
+ * anchor: sidy's center as a fraction of the work area height (0 = top, 1 = bottom). sidy stays
+ * whole inside the work area; near the top or bottom the window stops at the edge and sidy moves
+ * inside it instead.
+ */
+export function edgeLayout(workArea: Rect, size: SidySize, anchor = DEFAULT_ANCHOR): EdgeLayout {
   const sidyHeight = SIDY_HEIGHT_PT[size];
   const hitSide = Math.max(SIDY_HIT_PT, sidyHeight + 8);
   const width = BUBBLE_ROOM + hitSide;
   const height = Math.max(WINDOW_HEIGHT, hitSide);
 
-  const centerY = workArea.y + Math.round(workArea.height * ANCHOR);
+  const a = Number.isFinite(anchor) ? Math.min(Math.max(anchor, 0), 1) : DEFAULT_ANCHOR;
+  const half = Math.round(hitSide / 2);
+  const centerY = Math.min(
+    Math.max(workArea.y + Math.round(workArea.height * a), workArea.y + half),
+    workArea.y + workArea.height - half,
+  );
   let y = centerY - Math.round(height / 2);
   y = Math.min(Math.max(y, workArea.y), workArea.y + workArea.height - height);
 
   const window: Rect = { x: workArea.x + workArea.width - width, y, width, height };
-  const hit: Rect = {
-    x: width - hitSide,
-    y: Math.round(height / 2 - hitSide / 2),
-    width: hitSide,
-    height: hitSide,
-  };
+  const hit: Rect = { x: width - hitSide, y: centerY - y - half, width: hitSide, height: hitSide };
   return { window, hit, sidyHeight };
+}
+
+/** The anchor that puts sidy's center at screen point y (what a drag ends on). */
+export function anchorAt(workArea: Rect, y: number): number {
+  if (workArea.height <= 0 || !Number.isFinite(y)) return DEFAULT_ANCHOR;
+  return Math.min(Math.max((y - workArea.y) / workArea.height, 0), 1);
 }

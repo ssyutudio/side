@@ -168,4 +168,57 @@ describe('Bridge', () => {
     expect(ctx.statuses).toEqual(['waiting', 'connected', 'disconnected', 'connected']);
     second.ws.close();
   });
+  it('settles commands of a replaced connection as disconnected, not as a timeout', async () => {
+    ctx = setup({ timeoutMs: 5000 });
+    const port = await ctx.bridge.start();
+    const first = await connect(port, EXT_A);
+    first.ws.send(encodeMessage(makeMessage('hello', { extVersion: '0.1.0' })));
+    await until(() => ctx.bridge.status === 'connected');
+    const pending = ctx.bridge.command('cmd.wrapup.undo', { setAsideId: 'sa1' });
+    const second = await connect(port, EXT_A);
+    second.ws.send(encodeMessage(makeMessage('hello', { extVersion: '0.1.0' })));
+    expect(await pending).toEqual({ status: 'unconfirmed', reason: 'disconnected' });
+    second.ws.close();
+  });
+
+  it('takes a per-call timeout and keeps the default for other commands', async () => {
+    ctx = setup({ timeoutMs: 80 });
+    const port = await ctx.bridge.start();
+    const { ws } = await connect(port, EXT_A);
+    ws.send(encodeMessage(makeMessage('hello', { extVersion: '0.1.0' })));
+    await until(() => ctx.bridge.status === 'connected');
+    const started = Date.now();
+    const long = ctx.bridge.command('cmd.wrapup.undo', { setAsideId: 'sa1' }, 400);
+    expect(await ctx.bridge.command('cmd.wrapup.undo', { setAsideId: 'sa2' })).toEqual({ status: 'unconfirmed', reason: 'timeout' });
+    expect(Date.now() - started).toBeLessThan(300);
+    expect(await long).toEqual({ status: 'unconfirmed', reason: 'timeout' });
+    expect(Date.now() - started).toBeGreaterThanOrEqual(380);
+    ws.close();
+  });
+
+  it('remembers only the last 200 timed-out command ids', async () => {
+    ctx = setup({ timeoutMs: 1 });
+    const port = await ctx.bridge.start();
+    const { ws } = await connect(port, EXT_A);
+    ws.send(encodeMessage(makeMessage('hello', { extVersion: '0.1.0' })));
+    await until(() => ctx.bridge.status === 'connected');
+    for (let i = 0; i < 230; i++) await ctx.bridge.command('tabs.request', {});
+    expect((ctx.bridge as unknown as { expired: Set<string> }).expired.size).toBe(200);
+    ws.close();
+  });
+
+  it('warns, without the contents, when a frame is dropped', async () => {
+    ctx = setup();
+    const port = await ctx.bridge.start();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { ws, inbox } = await connect(port, EXT_A);
+    ws.send(JSON.stringify({ id: 'x', type: 'tabs.report', payload: { secret: 'https://private.example/page' } }));
+    ws.send(encodeMessage(makeMessage('ping', {})));
+    await until(() => inbox.some((m) => m.type === 'pong'));
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('bad payload for tabs.report');
+    expect(String(warn.mock.calls[0][0])).not.toContain('private.example');
+    warn.mockRestore();
+    ws.close();
+  });
 });

@@ -217,6 +217,9 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 .mini-room{padding:28px}
 .mini-room .panel{position:relative;box-shadow:0 8px 22px rgba(20,24,40,.20),0 0 0 1px rgba(20,24,40,.08)}
+/* Mini never grows past its window (the app caps the window at the screen): the body scrolls. */
+.mini-room .panel{max-height:calc(100vh - 56px)}
+.panel .pb{overscroll-behavior:contain}
 /* Setup steps: the text column may shrink, and a long folder path wraps instead of pushing the
    step text and the Copy buttons past the card. */
 .steps>li{grid-template-columns:30px minmax(0,1fr)}
@@ -277,3 +280,10 @@ button[disabled],.btn[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .g .rn input{flex:1;min-width:0;height:40px;border:1.5px solid var(--blue);border-radius:10px;padding:0 10px;font-size:15px;font-weight:700}
 .gl .new-drop{border:1.5px dashed var(--line);border-radius:12px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink2);font-family:Tossface,var(--font)}
 .gl .new-drop.drop-over{border-color:var(--blue);color:var(--blue);background:var(--blue-soft,#EEF1FD)}
+
+/* Main at its narrowest (760 wide): History details and the counts row fit the content column. */
+.counts{flex-wrap:wrap;row-gap:8px}
+@media (max-width:1000px){
+  .hist summary{grid-template-columns:110px minmax(0,1fr) auto}
+  .hist .d{padding-left:18px;grid-template-columns:minmax(100px,180px) minmax(0,1fr)}
+}

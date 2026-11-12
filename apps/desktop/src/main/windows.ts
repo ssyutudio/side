@@ -88,6 +88,11 @@ export class Windows {
     this.placeMini();
   }
 
+  /** sidy moved: Mini, if it is up, stays beside it. */
+  followSidy() {
+    if (this.miniOpen()) this.placeMini();
+  }
+
   openMain() {
     if (!this.main || this.main.isDestroyed()) {
       const area = screen.getPrimaryDisplay().workArea;
@@ -108,6 +113,7 @@ export class Windows {
       void this.main.loadFile(join(this.o.rendererDir, 'main.html'));
       this.main.once('ready-to-show', () => this.main?.show());
     } else {
+      if (this.main.isMinimized()) this.main.restore();
       this.main.show();
     }
     this.main.focus();

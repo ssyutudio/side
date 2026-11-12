@@ -6,6 +6,7 @@ import { JsonStore } from './store';
 import { defaultAppData, type AppData } from './appData';
 import { StepService, activeUrlOf } from './stepService';
 import { restUntil } from '../core/speakPolicy';
+import { markClicked } from '../core/stepEvents';
 import type { CommandOutcome } from './bridge';
 
 let now = new Date(2026, 10, 10, 19, 0).getTime();
@@ -93,6 +94,34 @@ describe('StepService', () => {
     expect(store.get().stepEvents[0].stillWorkingAt10m).toBeNull();
     now += STILL_WORKING_AFTER_MS + 1;
     await svc.observe(report('https://github.com/acme/retry-lib/pull/31'));
+    expect(store.get().stepEvents[0].stillWorkingAt10m).toBe(true);
+  });
+});
+
+describe('StepService writes', () => {
+  it('opens a step with a longer wait than the default, since Chrome may load and restore first', async () => {
+    const seen: unknown[] = [];
+    const { store } = await setup({ status: 'ok', result: {} });
+    const port = { command: async (_t: any, _p: any, ms?: number) => (seen.push(ms), { status: 'ok', result: {} } as CommandOutcome) };
+    await new StepService({ store, port, clock }).open('st1');
+    expect(seen).toEqual([30_000]);
+  });
+
+  it('observe keeps an event recorded while its own write was queued', async () => {
+    const { svc, store } = await setup({ status: 'ok', result: { tabId: 4, restored: 'top' } });
+    await svc.open('st1');
+    now += STILL_WORKING_AFTER_MS + 1;
+    const real = store.update.bind(store);
+    let injected = false;
+    store.update = (fn) => {
+      if (!injected) {
+        injected = true;
+        void real((d) => ({ ...d, stepEvents: markClicked(d.stepEvents, 'other', now) }));
+      }
+      return real(fn);
+    };
+    await svc.observe(report('https://github.com/acme/retry-lib/pull/31'));
+    expect(store.get().stepEvents.map((e) => e.stepId)).toEqual(['st1', 'other']);
     expect(store.get().stepEvents[0].stillWorkingAt10m).toBe(true);
   });
 });

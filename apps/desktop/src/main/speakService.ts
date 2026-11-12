@@ -29,6 +29,8 @@ export interface SpeakDeps {
   clock: Clock;
   /** Draws (or clears, with null) the one bubble. The renderer confirms drawing via confirmDrawn. */
   render: (bubble: Bubble | null) => void;
+  /** True while the user is in Mini: a check-in is held back (not consumed) until it is false. */
+  busy?: () => boolean;
 }
 
 const QUIET_LOG_MAX = 200;
@@ -37,6 +39,8 @@ export class SpeakService {
   private pending: PendingBubble | null = null;
   private onScreen: Bubble | null = null;
   asleep = false;
+  /** The due promise whose quiet reason is already logged, so a 30-second tick does not log it again. */
+  private quietLoggedFor: string | null = null;
 
   constructor(private readonly deps: SpeakDeps) {}
 
@@ -127,6 +131,7 @@ export class SpeakService {
     await this.deps.store.update((d) => ({ ...d, hidden }));
     if (hidden) {
       this.onScreen = null;
+      this.deps.render(null);
       return;
     }
     // Back on screen: show only the latest missed bubble, if it still applies.
@@ -167,6 +172,8 @@ export class SpeakService {
     const now = this.deps.clock.now();
     const p = activePromise(this.data.promises);
     if (!isDue(p, now) || !p) return null;
+    // Mini is open: leave the check-in unfired so the next tick brings it once Mini is closed.
+    if (this.deps.busy?.()) return null;
     const decision = decideSpeak('promise_due', {
       now,
       hidden: this.data.hidden || this.asleep,
@@ -177,7 +184,10 @@ export class SpeakService {
       hasSomethingToSay: true,
     });
     if (!decision.speak) {
-      await this.logQuiet(decision.reason);
+      if (this.quietLoggedFor !== p.id) {
+        this.quietLoggedFor = p.id;
+        await this.logQuiet(decision.reason);
+      }
       return null;
     }
     await this.deps.store.update((d) => ({

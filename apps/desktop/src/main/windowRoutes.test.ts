@@ -7,6 +7,7 @@ function fakePort() {
     toggleMini: () => void calls.push(['toggleMini', null]),
     closeMini: () => void calls.push(['closeMini', null]),
     resizeMini: (h) => void calls.push(['resizeMini', h]),
+    moveSidy: (y, done) => void calls.push(['moveSidy', [y, done]]),
     toast: (t, ms) => void calls.push(['toast', [t, ms]]),
     checkConnection: async () => 'connected',
     revealData: () => void calls.push(['revealData', null]),
@@ -25,11 +26,13 @@ describe('routeWindow', () => {
     const { port, calls } = fakePort();
     await routeWindow(port, 'side:mini.open', { view: 'wrap' });
     await routeWindow(port, 'side:mini.resize', { height: 640 });
+    await routeWindow(port, 'side:sidy.move', { y: 412, done: true });
     await routeWindow(port, 'side:toast', { text: 'Saved your question. See you tomorrow.', ms: 3500 });
     expect(await routeWindow(port, 'side:check.connection', undefined)).toEqual({ status: 'connected' });
     expect(await routeWindow(port, 'side:setup.info', undefined)).toEqual({ extPath: '/x/apps/extension/dist' });
     await routeWindow(port, 'side:setup.done', undefined);
-    expect(calls.map((c) => c[0])).toEqual(['openMini', 'resizeMini', 'toast', 'finishSetup']);
+    expect(calls.map((c) => c[0])).toEqual(['openMini', 'resizeMini', 'moveSidy', 'toast', 'finishSetup']);
+    expect(calls[2][1]).toEqual([412, true]);
   });
 
   it('refuses bad sizes, long toasts and unknown views without calling anything', async () => {
@@ -37,6 +40,8 @@ describe('routeWindow', () => {
     expect(await routeWindow(port, 'side:mini.resize', { height: 99999 })).toEqual({ error: 'invalid request' });
     expect(await routeWindow(port, 'side:toast', { text: 'x'.repeat(500), ms: 1000 })).toEqual({ error: 'invalid request' });
     expect(await routeWindow(port, 'side:mini.open', { view: 'file:///etc/passwd' })).toEqual({ error: 'invalid request' });
+    expect(await routeWindow(port, 'side:sidy.move', { y: 1.5, done: false })).toEqual({ error: 'invalid request' });
+    expect(await routeWindow(port, 'side:sidy.move', { y: 400 })).toEqual({ error: 'invalid request' });
     expect(calls).toEqual([]);
   });
 });

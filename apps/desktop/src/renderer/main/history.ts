@@ -27,7 +27,8 @@ function detail(d: Day): SafeHtml {
 <span>Kept going 10 min</span>${kept}</div>`;
 }
 
-export function historyView(s: ViewState): SafeHtml {
+/** open: the days the user has opened or closed; null = only the newest day open (first look). */
+export function historyView(s: ViewState, open: ReadonlySet<string> | null = null): SafeHtml {
   if (!s.history.length) {
     return html`<h1>History</h1><p class="lead">One line per day you used Side.</p>
 <div class="hero"><div><div class="t" style="font-size:20px">No days yet. Your first wrap-up shows up here.</div></div>
@@ -35,6 +36,6 @@ export function historyView(s: ViewState): SafeHtml {
   }
   return html`<h1>History</h1><p class="lead">One line per day you used Side. Days off are simply not here.</p>
 <div class="hist">${s.history.map(
-    (d, i) => html`<details${i === 0 ? html` open` : ''}><summary>${d.when}<b>${summary(d)}</b></summary>${detail(d)}</details>`,
+    (d, i) => html`<details data-day="${d.id}"${(open ? open.has(d.id) : i === 0) ? html` open` : ''}><summary>${d.when}<b>${summary(d)}</b></summary>${detail(d)}</details>`,
   )}</div>`;
 }

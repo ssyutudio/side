@@ -31,4 +31,10 @@ describe('sanitizeSettings', () => {
   it('falls back to small for an unknown sidy size', () => {
     expect(sanitizeSettings({ ...defaultSettings(), sidySize: 'huge' as never }).sidySize).toBe('small');
   });
+
+  it('keeps a dragged sidy spot between 0 and 1 and drops anything else', () => {
+    expect(sanitizeSettings({ ...defaultSettings(), sidyAnchor: 0.25 }).sidyAnchor).toBe(0.25);
+    expect(sanitizeSettings({ ...defaultSettings(), sidyAnchor: 4 }).sidyAnchor).toBeUndefined();
+    expect(sanitizeSettings({ ...defaultSettings(), sidyAnchor: 'x' as never }).sidyAnchor).toBeUndefined();
+  });
 });

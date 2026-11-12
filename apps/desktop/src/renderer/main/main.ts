@@ -19,12 +19,19 @@ let section: Section = startSection && SECTIONS.includes(startSection) ? startSe
 let state: ViewState | null = null;
 let failed = api.params.get('mode') === 'error';
 const forceLoading = api.params.get('mode') === 'loading';
-const local = { showAll: false, exInput: '', exError: null as string | null, appsOpen: api.params.get('apps') === 'open' };
+const local = {
+  showAll: false,
+  exInput: '',
+  exError: null as string | null,
+  appsOpen: api.params.get('apps') === 'open',
+  /** History days left open, so a redraw doesn't fold what the user opened. Null until they touch one. */
+  daysOpen: null as Set<string> | null,
+};
 
 function body(s: ViewState): SafeHtml {
   switch (section) {
     case 'history':
-      return historyView(s);
+      return historyView(s, local.daysOpen);
     case 'excluded':
       return excludedView(s, { input: local.exInput, error: local.exError });
     case 'saw':
@@ -181,9 +188,26 @@ root.addEventListener('submit', (e) => {
   render();
 });
 
+// <details> toggles don't bubble; listen while they travel down.
+root.addEventListener(
+  'toggle',
+  (e) => {
+    const d = e.target as HTMLDetailsElement;
+    if (d.tagName !== 'DETAILS' || !d.dataset.day) return;
+    local.daysOpen ??= new Set([...root.querySelectorAll<HTMLDetailsElement>('details[data-day][open]')].map((x) => x.dataset.day!));
+    if (d.open) local.daysOpen.add(d.dataset.day);
+    else local.daysOpen.delete(d.dataset.day);
+  },
+  true,
+);
+
 root.addEventListener('focusout', (e) => {
   const el = e.target as HTMLInputElement;
   if (el.id !== 'exclude-domain' || !local.exInput.trim()) return;
+  // Focus is moving to the Add button: its submit checks the address, and a redraw now would
+  // pull the button out from under the click.
+  const next = (e as FocusEvent).relatedTarget as HTMLElement | null;
+  if (next && el.form?.contains(next)) return;
   const msg = normalizeDomain(local.exInput) ? null : "That doesn't look like a site address. Try something like mybank.com.";
   if (msg !== local.exError) {
     local.exError = msg;
@@ -191,10 +215,20 @@ root.addEventListener('focusout', (e) => {
   }
 });
 
+// A pushed update waits while a dropdown has focus: redrawing would shut its open menu.
+let redrawOnBlur = false;
+root.addEventListener('focusout', (e) => {
+  if ((e.target as HTMLElement).tagName === 'SELECT' && redrawOnBlur) {
+    redrawOnBlur = false;
+    setTimeout(render, 0);
+  }
+});
+
 api.onState((s) => {
   state = s;
   if (api.params.get('mode') !== 'error') failed = false;
-  render();
+  if (document.activeElement?.tagName === 'SELECT') redrawOnBlur = true;
+  else render();
 });
 
 render();

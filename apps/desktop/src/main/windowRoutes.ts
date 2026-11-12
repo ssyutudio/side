@@ -1,5 +1,5 @@
-// Screen requests that move windows rather than data: open/close/resize Mini, show a toast at the
-// edge, check the connection, show the data file. Validated the same way as the data routes.
+// Screen requests that move windows rather than data: open/close/resize Mini, move sidy along the
+// edge, show a toast at the edge, check the connection, show the data file. Validated the same way as the data routes.
 import { z } from 'zod';
 
 export interface WindowPort {
@@ -7,6 +7,8 @@ export interface WindowPort {
   toggleMini(): void;
   closeMini(): void;
   resizeMini(height: number): void;
+  /** sidy dragged so its center is at screen point y; done = the drag ended, so remember it. */
+  moveSidy(y: number, done: boolean): void;
   toast(text: string, ms: number): void;
   checkConnection(): Promise<string>;
   revealData(): void;
@@ -20,6 +22,7 @@ const ROUTES = {
   'side:mini.toggle': { schema: empty, run: (p: WindowPort) => p.toggleMini() },
   'side:mini.close': { schema: empty, run: (p: WindowPort) => p.closeMini() },
   'side:mini.resize': { schema: z.object({ height: z.number().int().min(120).max(2000) }), run: (p: WindowPort, i: { height: number }) => p.resizeMini(i.height) },
+  'side:sidy.move': { schema: z.object({ y: z.number().int().min(-100_000).max(100_000), done: z.boolean() }), run: (p: WindowPort, i: { y: number; done: boolean }) => p.moveSidy(i.y, i.done) },
   'side:toast': { schema: z.object({ text: z.string().min(1).max(200), ms: z.number().int().min(500).max(20_000) }), run: (p: WindowPort, i: { text: string; ms: number }) => p.toast(i.text, i.ms) },
   'side:check.connection': { schema: empty, run: async (p: WindowPort) => ({ status: await p.checkConnection() }) },
   'side:data.reveal': { schema: empty, run: (p: WindowPort) => p.revealData() },

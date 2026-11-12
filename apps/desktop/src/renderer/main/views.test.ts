@@ -95,6 +95,12 @@ describe('History', () => {
     expect(h).toContain('(skipped)');
     expect(h).not.toMatch(BANNED);
   });
+  it('keeps the days the user opened open on a redraw, and only those', () => {
+    const days = FIXTURES.day.history.map((d) => d.id);
+    const h = s(historyView(FIXTURES.day, new Set([days[1]])));
+    expect(h).toContain(`<details data-day="${days[1]}" open>`);
+    expect(h).toContain(`<details data-day="${days[0]}">`);
+  });
   it('has an empty state with one action', () => {
     const h = s(historyView(FIXTURES['first-day']));
     expect(h).toContain('No days yet. Your first wrap-up shows up here.');

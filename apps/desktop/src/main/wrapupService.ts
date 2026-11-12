@@ -19,11 +19,11 @@ import type { Clock } from '../core/clock';
 import { groupTabs } from '../core/grouping';
 import { groupWithLlm, type LlmTransport } from '../core/llmGrouping';
 import { buildPreview, candidateTabs, toApplyPayload, toSetAside, type WrapupPreview } from '../core/wrapupPreview';
-import { todayDone, workDayOf, WORK_DAY_START_HOURS } from '../core/todayDone';
+import { todayDone, workDayStart } from '../core/todayDone';
 import { buildStep, enabledApps, latestSetAside } from '../core/step';
 
 export interface CommandPort {
-  command<T extends MessageType>(type: T, payload: PayloadOf<T>): Promise<CommandOutcome>;
+  command<T extends MessageType>(type: T, payload: PayloadOf<T>, timeoutMs?: number): Promise<CommandOutcome>;
 }
 
 export type WrapupOutcome =
@@ -52,6 +52,9 @@ export interface WrapupDeps {
   apps?: AppsPort | null;
 }
 
+/** A wrap-up can touch many tabs, so Chrome gets longer than the default to confirm. */
+const WRAPUP_TIMEOUT_MS = 60_000;
+
 const isLive = (sa: SetAside) => sa.status === 'applied' || sa.status === 'partial';
 
 export class WrapupService {
@@ -70,7 +73,7 @@ export class WrapupService {
   async filesToday(): Promise<NonNullable<SetAside['files']>> {
     const on = enabledApps(this.data.settings);
     if (!on.length || !this.deps.apps) return [];
-    const dayStart = workDayOf(this.deps.clock.now()) + WORK_DAY_START_HOURS * 3_600_000;
+    const dayStart = workDayStart(this.deps.clock.now()); // 4 a.m. local, right on DST days too
     return this.deps.apps.filesSince(on, dayStart).catch(() => []);
   }
 
@@ -142,7 +145,7 @@ export class WrapupService {
   private async send(id: string): Promise<WrapupOutcome> {
     const payload = this.data.applyPayloads[id];
     if (!payload || !this.data.setAsides.some((s) => s.id === id)) return { kind: 'not_found' };
-    const outcome = await this.deps.port.command('cmd.wrapup.apply', payload);
+    const outcome = await this.deps.port.command('cmd.wrapup.apply', payload, WRAPUP_TIMEOUT_MS);
 
     let next: SetAside['status'];
     let result: WrapupResult | null = null;
@@ -155,7 +158,17 @@ export class WrapupService {
       next = 'unconfirmed';
     }
 
-    const saved = await this.patch(id, (sa) => ({ ...sa, status: next, result: result ?? sa.result }));
+    let saved: SetAside;
+    try {
+      saved = await this.patch(id, (sa) => ({ ...sa, status: next, result: result ?? sa.result }));
+    } catch (err) {
+      // Chrome already answered but the note of it could not be saved. Answer "unconfirmed" with the
+      // saved record: Mini then offers Retry for this same id (the extension makes it idempotent), where
+      // "storage_failed" would make Mini run a whole new wrap-up over tabs that are already set aside.
+      console.warn('[side] could not save the wrap-up result:', (err as Error).message);
+      const setAside = this.data.setAsides.find((s) => s.id === id)!;
+      return { kind: 'unconfirmed', setAside, reason: 'timeout' };
+    }
     if (outcome.status === 'ok') await this.afterApplied(id);
     const setAside = this.data.setAsides.find((s) => s.id === id) ?? saved;
     if (outcome.status === 'ok') return { kind: next === 'partial' ? 'partial' : 'applied', setAside };
@@ -186,7 +199,7 @@ export class WrapupService {
     if (!sa) return { kind: 'not_found' };
     const latest = latestSetAside(this.data.setAsides);
     if (!latest || latest.id !== setAsideId) return { kind: 'not_latest' };
-    const outcome = await this.deps.port.command('cmd.wrapup.undo', { setAsideId });
+    const outcome = await this.deps.port.command('cmd.wrapup.undo', { setAsideId }, WRAPUP_TIMEOUT_MS);
     if (outcome.status === 'ok') {
       const reopened = Number((outcome.result as { reopened?: unknown } | undefined)?.reopened ?? 0) || 0;
       await this.patch(setAsideId, (x) => ({ ...x, status: 'undone' }));
