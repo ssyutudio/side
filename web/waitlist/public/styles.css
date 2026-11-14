@@ -1,7 +1,7 @@
 /* Side waitlist page. Tokens follow docs/mockups/direction-1109.md (contrast measured there). */
 :root {
   --ink: #1E2025; --ink2: #5B6168; --canvas: #F2F3F5; --line: #E1E3E8;
-  --blue: #3B54E7; --blue-press: #2F45C8; --blue-soft: #EEF1FD;
+  --blue: #3B54E7; --blue-press: #2F45C8; --blue-soft: #EEF1FD; --blue-ink: #3A47C9;
   --warn: #8A5300; --warn-soft: #FFF4E0; --ok: #1F7A5C; --ok-soft: #E6F2EC; --danger: #B42318;
   --font: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
@@ -13,7 +13,9 @@ body { font-family: var(--font); color: var(--ink); font-size: 16px; line-height
 
 .wl { min-height: 100vh; display: grid; grid-template-columns: 1fr 360px; max-width: 1120px; margin: 0 auto; padding: 56px 48px 32px; gap: 64px; align-items: center; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; margin: 0; }
-h1 { font-size: 44px; line-height: 1.12; letter-spacing: -0.02em; margin: 22px 0 14px; max-width: 560px; }
+h1 { font-size: 44px; line-height: 1.12; letter-spacing: -0.02em; margin: 12px 0 14px; max-width: 580px; }
+.kicker { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--blue-ink); margin: 0 0 10px; }
+.intro .kicker { margin: 26px 0 0; }
 .lead { font-size: 18px; color: var(--ink2); max-width: 520px; margin: 0 0 26px; }
 .four { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 30px; padding: 0; list-style: none; }
 .four li { font-size: 14px; font-weight: 600; border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 12px; }
@@ -26,6 +28,7 @@ form { max-width: 440px; display: flex; flex-direction: column; gap: 14px; }
 .err { color: var(--danger); font-size: 14px; margin: 6px 0 0; }
 .ck { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; cursor: pointer; }
 .ck input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--blue); flex: none; }
+.hint { font-size: 14px; color: var(--ink2); margin: -2px 0 0; }
 
 .btn { border-radius: 12px; border: 1.5px solid var(--line); background: #fff; padding: 0 16px; font: inherit; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; }
 .btn.fill { background: var(--blue); border-color: var(--blue); color: #fff; }
@@ -45,6 +48,35 @@ form { max-width: 440px; display: flex; flex-direction: column; gap: 14px; }
 .qr img { display: block; width: 232px; height: 232px; }
 .qr p { margin: 14px 0 0; font-size: 15px; color: var(--ink2); }
 .demo { grid-column: 1 / 3; margin: 0; min-width: 0; }
+
+/* Below the fold: what a step opens, the two quiet rules, and the plans. */
+.sec { grid-column: 1 / 3; border-top: 1px solid var(--line); padding-top: 34px; }
+.sec h2 { font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; margin: 0 0 12px; max-width: 760px; }
+.sec .sub { font-size: 17px; color: var(--ink2); max-width: 720px; margin: 0 0 22px; }
+.note { font-size: 14px; color: var(--ink2); margin: 16px 0 0; max-width: 760px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.tiles li { background: var(--canvas); border-radius: 18px; padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 6px; }
+.tiles b { font-size: 16px; }
+.tiles span { font-size: 14px; color: var(--ink2); }
+.tiles em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--ink2); margin-top: auto; padding-top: 4px; }
+.tiles em.on { color: var(--blue-ink); }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.card { background: var(--canvas); border-radius: 22px; padding: 24px 26px; display: flex; flex-direction: column; }
+.card h3 { font-size: 20px; letter-spacing: -0.01em; margin: 0 0 10px; }
+.card p { margin: 0; font-size: 16px; }
+.card .said { margin: auto 0 0; padding-top: 14px; font-size: 15px; font-weight: 600; color: var(--blue-ink); }
+
+.plan { background: #fff; border: 1.5px solid var(--line); border-radius: 22px; padding: 24px 26px 20px; display: flex; flex-direction: column; }
+.plan.pro { background: var(--blue-soft); border-color: #C9D2FA; }
+.plan .tag { margin: 0; font-size: 14px; font-weight: 700; }
+.plan .soon { display: inline-block; margin-left: 8px; padding: 2px 9px; border: 1.5px solid #C9D2FA; border-radius: 999px; background: #fff; color: var(--blue-ink); font-size: 13px; font-weight: 600; }
+.plan ul { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.plan li { position: relative; padding-left: 20px; font-size: 15px; }
+.plan li::before { content: ""; position: absolute; left: 4px; top: 8px; width: 7px; height: 7px; border-radius: 50%; background: #8C9199; }
+.plan.pro li::before { background: var(--blue); }
+.plan .fine { margin: auto 0 0; padding-top: 16px; font-size: 14px; color: var(--ink2); }
 .demo h2 { font-size: 22px; margin: 0 0 14px; letter-spacing: -0.01em; }
 .demo video { display: block; width: 100%; height: auto; border-radius: 20px; background: #0E1330; box-shadow: 0 10px 30px rgba(20,24,40,.14); }
 .foot { grid-column: 1 / 3; font-size: 14px; color: var(--ink2); border-top: 1px solid var(--line); padding-top: 18px; margin: 0; }
@@ -56,6 +88,8 @@ form { max-width: 440px; display: flex; flex-direction: column; gap: 14px; }
   .lead { font-size: 16px; }
   .qr, .edgepeek { display: none; }
   .foot { grid-column: 1; }
-  .demo { grid-column: 1; }
+  .demo, .sec { grid-column: 1; }
+  .sec h2 { font-size: 24px; }
+  .two, .tiles { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
