@@ -2,8 +2,7 @@
 // It sends what the core modules built (tab titles with temporary ids, the user's own line) and
 // refuses anything that looks like a web address, as a second guard behind the core checks.
 import Anthropic from '@anthropic-ai/sdk';
-
-export const LLM_MODEL = 'claude-opus-5-5';
+import { DEFAULT_LLM_MODEL, DEFAULT_LLM_TIMEOUT_MS, type LlmConfig } from './config';
 
 /** The slice of the SDK client this module uses, so tests can pass a fake. */
 export interface MessagesClient {
@@ -18,6 +17,12 @@ export interface LlmTransport {
   complete(req: { system: string; prompt: string; maxTokens?: number }): Promise<string>;
 }
 
+/** What the transport is built with: the timeout always, the model when it differs from the default. */
+export interface LlmOptions {
+  timeoutMs: number;
+  model?: string;
+}
+
 const URL_LIKE = /(https?:\/\/|www\.)/i;
 
 export function containsUrl(text: string): boolean {
@@ -29,7 +34,8 @@ interface ReplyShape {
   content?: { type: string; text?: string }[];
 }
 
-export function createLlmTransport(client: MessagesClient, opts: { timeoutMs: number }): LlmTransport {
+export function createLlmTransport(client: MessagesClient, opts: LlmOptions): LlmTransport {
+  const model = opts.model ?? DEFAULT_LLM_MODEL;
   return {
     async complete({ system, prompt, maxTokens = 2000 }) {
       if (containsUrl(system) || containsUrl(prompt)) {
@@ -40,7 +46,7 @@ export function createLlmTransport(client: MessagesClient, opts: { timeoutMs: nu
       try {
         const reply = (await client.beta.messages.create(
           {
-            model: LLM_MODEL,
+            model,
             max_tokens: maxTokens,
             // Short classification-style work: low effort keeps it quick.
             output_config: { effort: 'low' },
@@ -66,9 +72,18 @@ export function createLlmTransport(client: MessagesClient, opts: { timeoutMs: nu
   };
 }
 
-/** Builds the real transport from the main-process key. Null when there is no key. */
-export function llmFromKey(apiKey: string | null, timeoutMs = 8000): LlmTransport | null {
+/**
+ * The SDK client for one key. A base URL points it at an Anthropic-compatible endpoint instead of
+ * Anthropic itself, which is how one line switches the app to our own server when there is one.
+ */
+export function anthropicClient(apiKey: string, baseUrl: string | null = null): MessagesClient {
+  const client = new Anthropic({ apiKey, maxRetries: 0, ...(baseUrl ? { baseURL: baseUrl } : {}) });
+  return client as unknown as MessagesClient;
+}
+
+/** Builds the real transport from the main-process key and the resolved settings. Null without a key. */
+export function llmFromKey(apiKey: string | null, options: Partial<LlmConfig> = {}): LlmTransport | null {
   if (!apiKey) return null;
-  const client = new Anthropic({ apiKey, maxRetries: 0 }) as unknown as MessagesClient;
-  return createLlmTransport(client, { timeoutMs });
+  const client = anthropicClient(apiKey, options.baseUrl ?? null);
+  return createLlmTransport(client, { timeoutMs: options.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS, model: options.model });
 }
