@@ -12,13 +12,12 @@ export type EdgeMode = 'quiet' | 'out' | 'hidden';
 
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
-/** Quiet: only ~48% of sidy shows (eyes, no blue). Out: ~92% shows, blue side included.
- *  Smile: sidy's eyes turn into arcs, while it speaks in a bubble (hover smiles by CSS). */
-export function edgeView(o: { mode: EdgeMode; size: number; hitY: number; hitSize: number; smile?: boolean }): SafeHtml {
+/** Quiet: only ~48% of sidy shows (eyes, no blue). Out: ~92% shows, blue side included. */
+export function edgeView(o: { mode: EdgeMode; size: number; hitY: number; hitSize: number }): SafeHtml {
   if (o.mode === 'hidden') return raw('');
   const q = Math.round(o.size * 0.52);
   const out = Math.round(o.size * 0.08);
-  const cls = (o.mode === 'quiet' ? 'tucked' : 'out') + (o.smile ? ' smile' : '');
+  const cls = o.mode === 'quiet' ? 'tucked' : 'out';
   return html`<div class="edge ${cls}" style="top:${o.hitY}px;height:${o.hitSize}px;--q:${q}px;--o:${out}px">
 <button class="hit" data-act="sidy" style="height:${o.hitSize}px;min-width:${o.hitSize}px" aria-label="${t('sidy — open Side')}"><span class="body">${raw(sidySvg(o.size))}</span></button></div>`;
 }

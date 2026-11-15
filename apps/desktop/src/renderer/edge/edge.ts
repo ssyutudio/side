@@ -54,7 +54,7 @@ function render() {
   let overlay = '';
   if (inner && bubble) overlay = `<div class="${bubbleClass(bubble)}" role="status">${inner}</div>`;
   else if (toast) overlay = String(toastView(toast));
-  app.innerHTML = String(edgeView({ mode, size, hitY: hit.y, hitSize: hit.h, smile: !!inner })) + overlay;
+  app.innerHTML = String(edgeView({ mode, size, hitY: hit.y, hitSize: hit.h })) + overlay;
   // A redraw makes new eyes; start their blink where the old ones were, so frequent state
   // updates never keep restarting it before the first blink.
   app.querySelector<HTMLElement>('.edge')?.style.setProperty('--blink', `-${Date.now() % BLINK_MS}ms`);

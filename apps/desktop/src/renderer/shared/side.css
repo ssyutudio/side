@@ -25,14 +25,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 .edge.out .body,.edge .hit:hover .body,.edge .hit:focus-visible .body{transform:translateX(var(--o))}
 .edge.hidden{display:none}
 @media (prefers-reduced-motion:reduce){.edge .body{transition:none}}
-/* At the edge sidy blinks now and then (once, later twice) and smiles with its eyes when hovered
-   or when it speaks. Elsewhere sidy stays still with open eyes. --blink keeps the blink's phase
-   across redraws (edge.ts). Reduce Motion stops the blink; the smile is a still pose and stays. */
-.sidy-svg .smile{opacity:0}
+/* At the edge sidy blinks now and then (once, later twice). Elsewhere sidy stays still with open
+   eyes. --blink keeps the blink's phase across redraws (edge.ts). Reduce Motion stops the blink. */
 .edge .sidy-svg .eye{transform-box:fill-box;transform-origin:50% 50%;animation:sidy-blink 6.4s linear infinite;animation-delay:var(--blink,0s)}
 @keyframes sidy-blink{0%,44%,47%,86%,88.5%,90%,92.5%,100%{transform:none}45.5%,87.2%,91.2%{transform:scaleY(.25)}}
-.edge.smile .sidy-svg .eyes,.edge .hit:hover .sidy-svg .eyes,.edge .hit:focus-visible .sidy-svg .eyes{opacity:0}
-.edge.smile .sidy-svg .smile,.edge .hit:hover .sidy-svg .smile,.edge .hit:focus-visible .sidy-svg .smile{opacity:1}
 
 /* ---------- bubble ---------- */
 .bubble{position:absolute;z-index:21;width:340px;background:#fff;border-radius:16px;padding:16px 16px 14px 18px;box-shadow:0 10px 30px rgba(20,24,40,.22),0 0 0 1px rgba(20,24,40,.06)}
