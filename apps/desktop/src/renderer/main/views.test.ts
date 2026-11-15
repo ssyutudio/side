@@ -61,7 +61,7 @@ describe('Today', () => {
   });
   it('says it is still learning until three steps were opened, from counts only', () => {
     const h = s(todayView(FIXTURES.day));
-    expect(h).toContain('sidy is still learning what gets you started. 2 steps opened so far');
+    expect(h).toContain('sidy is still learning how you start. 2 steps opened so far — it gets more precise the more you use it.');
     expect(h).toContain('From your own counts only — no titles or sites.');
   });
   it('labels a sentence Claude wrote from the counts', () => {

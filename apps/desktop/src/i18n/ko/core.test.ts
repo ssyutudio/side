@@ -104,9 +104,9 @@ describe('Korean By your side sentences', () => {
     ({ shown: clicked, clicked, stillWorkingRate: { n: judged, value: judged ? kept / judged : null } }) as SideNumbers;
 
   it('keeps the English and writes Korean rule sentences', () => {
-    expect(ruleBySide(nums(1, 0, 0))).toBe('sidy is still learning what gets you started. 1 step opened so far — after 3, it can tell you which kind works for you.');
+    expect(ruleBySide(nums(1, 0, 0))).toBe('sidy is still learning how you start. 1 step opened so far — it gets more precise the more you use it.');
     setLanguage('ko');
-    expect(ruleBySide(nums(1, 0, 0))).toBe('sidy는 어떻게 시작하면 좋은지 아직 배우는 중이에요. 지금까지 걸음 1개를 열었어요 — 3개가 되면 어떤 방식이 맞는지 알려 줄 수 있어요.');
+    expect(ruleBySide(nums(1, 0, 0))).toBe('sidy가 당신이 시작하는 방식에 맞춰 가는 중이에요. 지금까지 걸음 1개를 열었어요. 쓸수록 더 정교해져요.');
     expect(ruleBySide(nums(5, 4, 3))).toBe('열고 확인할 만큼 머문 걸음 4개 중 3개는 10분 넘게 이어졌어요.');
   });
 

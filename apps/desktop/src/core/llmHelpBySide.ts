@@ -34,7 +34,7 @@ export function ruleBySide(n: SideNumbers): string {
   const c = bySideCounts(n);
   const steps = (n: number) => tn(n, '{n} step', '{n} steps');
   if (c.opened < LEARN_AFTER) {
-    return t('sidy is still learning what gets you started. {steps} opened so far — after {learn}, it can tell you which kind works for you.', { steps: steps(c.opened), learn: LEARN_AFTER });
+    return t('sidy is still learning how you start. {steps} opened so far — it gets more precise the more you use it.', { steps: steps(c.opened) });
   }
   if (c.judged === 0) return t('{steps} opened so far. sidy checks 10 minutes after each one whether you kept going.', { steps: steps(c.opened) });
   return t('Of {steps} you opened and stayed with long enough to tell, {kept} kept you going past 10 minutes.', { steps: steps(c.judged), kept: c.kept });
