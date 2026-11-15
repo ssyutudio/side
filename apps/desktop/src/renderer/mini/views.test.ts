@@ -1,7 +1,7 @@
 import { FIXTURES, FIXTURE_PREVIEW, FIXTURE_PREVIEW_FILES } from '../shared/fixtures';
 import { homeView } from './homeView';
 import { askBlock, actFor } from './askView';
-import { previewView, checkingView, doneView, failedView, primaryLabel } from './wrapView';
+import { previewView, checkingView, doneView, failedView, lineView, primaryLabel } from './wrapView';
 import { oneMoreView, untilWake } from './oneMoreView';
 import { clock } from './parts';
 import { stepOpenedText } from '../shared/stepText';
@@ -56,6 +56,36 @@ describe('homeView', () => {
     const h = s(homeView(FIXTURES.wrapped, {}));
     expect(h).toContain('31 tabs set aside in 3 groups.');
     expect(h).toContain("Bring back today's tabs");
+  });
+
+  it('offers to add a line after the wrap-up, or to edit the one that is there, without another wrap-up', () => {
+    const none = s(homeView(FIXTURES.wrapped, {}));
+    expect(none).toContain('data-act="edit-line"');
+    expect(none).toContain('Add a line for next time');
+    const w = FIXTURES.wrapped.lastWrapup!;
+    const some = s(homeView({ ...FIXTURES.wrapped, lastWrapup: { ...w, userLine: 'Prepare the James call' } }, {}));
+    expect(some).toContain('Edit your line');
+    expect(s(homeView(FIXTURES.day, {}))).toContain('data-act="edit-line"');
+    expect(s(homeView(FIXTURES['first-day'], {}))).not.toContain('data-act="edit-line"');
+  });
+});
+
+describe('Line for next time', () => {
+  const w = FIXTURES.wrapped.lastWrapup!;
+
+  it('shows the line that is there, with Save, Remove and Cancel, and says tabs are not touched', () => {
+    const h = s(lineView({ ...FIXTURES.wrapped, lastWrapup: { ...w, userLine: 'Prepare the James call' } }, 'sa1', { line: 'Prepare the James call' }));
+    expect(h).toContain('value="Prepare the James call"');
+    expect(h).toContain('data-act="save-line-edit" data-id="sa1"');
+    expect(h).toContain('data-act="clear-line" data-id="sa1"');
+    expect(h).toContain('data-act="home"');
+    expect(h).toContain('Your tabs stay as they are.');
+  });
+
+  it('offers no Remove when there is no line yet', () => {
+    const h = s(lineView(FIXTURES.wrapped, 'sa1', { line: '' }));
+    expect(h).toContain('data-act="save-line-edit"');
+    expect(h).not.toContain('data-act="clear-line"');
   });
 });
 

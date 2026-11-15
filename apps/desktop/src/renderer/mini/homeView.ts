@@ -48,6 +48,10 @@ function unsure(s: ViewState): SafeHtml | '' {
 
 const live = (s: ViewState) => !!s.lastWrapup && (s.lastWrapup.status === 'applied' || s.lastWrapup.status === 'partial');
 
+/** Change, add or remove the one line kept with the last wrap-up, without setting anything aside again. */
+const lineAction = (s: ViewState): QuickAction[] =>
+  live(s) ? [{ icon: '✏️', title: s.lastWrapup!.userLine ? k('Edit your line') : k('Add a line for next time'), act: 'edit-line' }] : [];
+
 export function homeView(s: ViewState, local: HomeLocal): SafeHtml {
   const notice = local.notice ? html`<div class="done-line">${local.notice}</div>` : '';
   if (s.connection !== 'connected') {
@@ -81,6 +85,7 @@ ${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
       html`<div class="pb">${notice}${unsure(s)}
 <div class="done-line"><b>${tn(set, '{tabs} tab set aside in {groups}.', '{tabs} tabs set aside in {groups}.', { tabs: set, groups: tn(w.groups.length, '{n} group', '{n} groups') })}</b>${s.numbers.tabsOpen ? html` ${t('{n} still open.', { n: s.numbers.tabsOpen })}` : ''}</div>
 ${quick([
+  ...lineAction(s),
   { icon: '↩️', title: k("Bring back today's tabs"), sub: tn(w.groups.length, 'Unfolds the {n} group', 'Unfolds the {n} groups'), act: 'undo' },
   ONE_MORE,
   HIDE,
@@ -111,6 +116,7 @@ ${factsLine([
 <button class="btn fill" style="width:100%" data-act="step-open" data-step="${s.step.id}"${raw(local.stepBusy ? ' aria-disabled="true"' : '')}>${t('Step inside')}</button>${local.stepBusy ? html`<div class="row asking" role="status" aria-live="polite"><span class="spin"></span>${t('Opening…')}</div>` : ''}</div>
 ${quick([
   { icon: '🌙', title: k('Set aside today'), sub: k('Fold open tabs into groups'), act: 'wrap' },
+  ...lineAction(s),
   ...(w && w.canUndo ? [{ icon: '↩️', title: w.whenKind === 'yesterday' ? k("Bring back yesterday's tabs") : k('Bring back the last tabs'), act: 'undo' }] : []),
   focusAction(s),
   HIDE,
