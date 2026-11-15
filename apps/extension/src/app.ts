@@ -2,6 +2,7 @@
 // capture when the user leaves a tab, and command handling. background.ts passes the real Chrome.
 import { makeMessage } from '@side/shared';
 import type { Message } from '@side/shared';
+import { ALLOW_PAGE, EVERY_SITE } from './api';
 import type { ChromeApi, TabLike } from './api';
 import { Bridge } from './bridge';
 import type { SocketFactory } from './bridge';
@@ -25,6 +26,11 @@ export interface ExtensionEnv {
     onAttached: EventLike<(tabId: number, info: unknown) => void>;
     onDetached: EventLike<(tabId: number, info: unknown) => void>;
     onReplaced: EventLike<(addedTabId: number, removedTabId: number) => void>;
+  };
+  /** Chrome's permission changes, so the app learns at once when every site is allowed or taken back. */
+  permissionEvents?: {
+    onAdded: EventLike<(p: unknown) => void>;
+    onRemoved: EventLike<(p: unknown) => void>;
   };
   groupEvents?: {
     onUpdated: EventLike<(group: unknown) => void>;
@@ -68,7 +74,8 @@ export function startExtension(env: ExtensionEnv) {
     if (!bridge.isOpen()) return;
     const tabs = await api.tabs.query({});
     const report = await snapshotTabs(api, await loadExclusions(api), tracker.matching(tabs), now());
-    bridge.send(makeMessage('tabs.report', report));
+    const everySite = await api.permissions.contains({ origins: EVERY_SITE }).catch(() => false);
+    bridge.send(makeMessage('tabs.report', { ...report, everySite }));
   };
   const scheduleReport = createDebouncer(() => void sendReport().catch(() => undefined), REPORT_DEBOUNCE_MS);
 
@@ -92,6 +99,9 @@ export function startExtension(env: ExtensionEnv) {
           .catch(() => undefined)
           .then(() => sendReport())
           .catch(() => undefined);
+        return;
+      case 'allow.open':
+        void api.tabs.create({ url: api.runtime.getURL(ALLOW_PAGE), active: true }).catch(() => undefined);
         return;
       case 'lang.set': {
         const lang = (msg as Message<'lang.set'>).payload.lang;
@@ -161,6 +171,8 @@ export function startExtension(env: ExtensionEnv) {
     void tracker.forget(removed).catch(() => undefined);
     scheduleReport();
   });
+  env.permissionEvents?.onAdded.addListener(() => scheduleReport());
+  env.permissionEvents?.onRemoved.addListener(() => scheduleReport());
   env.groupEvents?.onUpdated.addListener(() => scheduleReport());
   env.groupEvents?.onRemoved?.addListener(() => scheduleReport());
 

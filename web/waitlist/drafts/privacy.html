@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Side — privacy policy</title>
+<meta name="description" content="What Side reads, stores and sends.">
+<link rel="icon" href="sidy.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="doc">
+<a class="brand" href="/"><img src="sidy.svg" width="32" height="32" alt=""><span>Side</span></a>
+<h1>Privacy policy</h1>
+<p class="muted">Effective [EFFECTIVE_DATE]. Draft for legal review.</p>
+<h2>On your computer</h2>
+<p>Side reads the titles and addresses of tabs in normal Chrome windows, and on some sites where you stopped reading. It skips incognito windows, browser pages and sites you exclude. With Desktop apps on, it reads names and last-used times of files in the apps you turn on, never their contents. With Calendar on, it reads only when tomorrow's first event starts and how many events are left today. All of this is stored in one file on your computer: <code>~/Library/Application Support/Side/side-data.json</code>. Settings → What Side saw lists it.</p>
+<h2>Sent with Side Pro</h2>
+<p>With Side Pro and AI drafting on, Side sends tab titles with temporary ids, your one line for tomorrow, your step counts, file names (no folders) and the line you type in Ask sidy to the Side server, which passes them to Anthropic's Claude API and returns the answer. The Side server does not store this text. It stores a one-way hash of your license key, which computer it is activated on, when the license was last checked, and how many Claude requests the license made each day. Anthropic processes the text under its <a href="https://www.anthropic.com/legal/commercial-terms">commercial terms</a> and does not use it to train models.</p>
+<p>Addresses, page text, file contents and excluded sites are never sent. Without Side Pro, or with AI drafting off, nothing is sent.</p>
+<h2>Purchases</h2>
+<p>Lemon Squeezy, the merchant of record, collects your name, email, billing address and payment details to sell Side Pro and handles them under its <a href="https://www.lemonsqueezy.com/privacy">privacy policy</a>. We receive your email and order details from Lemon Squeezy to support you. Side on your computer receives only the license key, the plan name and when it renews.</p>
+<h2>Waitlist and anonymous counts</h2>
+<p>If you join the waitlist we store your email to tell you when Side is ready. If you turn on anonymous counts, Side sends a random install id and whole-number counts (tabs set aside, steps shown and opened). Both are off unless you choose them.</p>
+<h2>Keeping and deleting</h2>
+<p>We keep the license check records and daily request counts only as long as we need them to run Side Pro. To delete your data, delete the Side data file on your computer and email <a href="mailto:[CONTACT_EMAIL]">[CONTACT_EMAIL]</a> for anything we hold.</p>
+<h2>Processors</h2>
+<p>Vercel (hosting), Supabase (database), Anthropic (Claude), Lemon Squeezy (payments). Data may be processed in the United States.</p>
+<h2>Contact</h2>
+<p>Privacy officer: [PRIVACY_OFFICER], <a href="mailto:[CONTACT_EMAIL]">[CONTACT_EMAIL]</a></p>
+<footer class="legal-foot"><p><a href="/pricing">Pricing</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/refund">Refunds</a> · <a href="mailto:[CONTACT_EMAIL]">[CONTACT_EMAIL]</a></p><p>[COMPANY_NAME] · Representative: [REPRESENTATIVE] · Business registration no. [BUSINESS_NO] · Mail-order business no. [MAIL_ORDER_NO] · [ADDRESS]. Payments are processed by Lemon Squeezy, our merchant of record.</p></footer>
+</main></body></html>

@@ -28,6 +28,11 @@ export function facts(rows: [string, string][]): SafeHtml {
   return html`<div class="facts">${rows.map(([k, v]) => html`<div><span>${k}</span><b>${v}</b></div>`)}</div>`;
 }
 
+/** The same facts as one quiet line, under the actions: they inform, the actions come first. */
+export function factsLine(rows: [string, string][]): SafeHtml {
+  return html`<div class="facts line">${rows.map(([k, v]) => html`<div><span>${k}</span><b>${v}</b></div>`)}</div>`;
+}
+
 export interface QuickAction {
   icon: string;
   title: string;

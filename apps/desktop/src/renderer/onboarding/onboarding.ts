@@ -20,7 +20,7 @@ const started = Date.now();
 
 function render() {
   applyLanguage(api, state);
-  app.innerHTML = String(onboardingView({ phase, extPath, preview, llmAvailable: state?.saw.llm.available }));
+  app.innerHTML = String(onboardingView({ phase, extPath, preview, llmAvailable: state?.saw.llm.available, everySite: state?.everySite ?? null }));
 }
 
 async function onState(s: ViewState) {
@@ -51,6 +51,7 @@ app.addEventListener('click', async (e) => {
     await navigator.clipboard.writeText(el.dataset.text ?? '').catch(() => undefined);
     el.textContent = t('Copied');
   }
+  if (el.dataset.act === 'allow-sites') void api.invoke('side:allow.everySite');
   if (el.dataset.act === 'check') {
     if (checking) return; // one check at a time
     checking = true;

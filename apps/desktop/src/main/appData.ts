@@ -1,5 +1,6 @@
 // The shape of Side's local data file and its defaults.
 import type { AgentRun } from './connectors/claudeCode';
+import type { LicenseRecord } from './licenseService';
 import {
   DEFAULT_WAKE_MINUTES,
   SIDY_SIZES,
@@ -40,6 +41,8 @@ export interface AppData {
   llmLog: LlmSend[];
   /** Claude Code sessions that finished (folder kept on this computer only). Newest last, at most 20. */
   agentRuns?: AgentRun[];
+  /** Side Pro on this Mac (missing or null: free). The key is sealed; see licenseService. */
+  license?: LicenseRecord | null;
 }
 
 /**

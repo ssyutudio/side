@@ -9,6 +9,7 @@ const ext = startExtension({
   api: chrome as unknown as ChromeApi,
   tabEvents: chrome.tabs as unknown as ExtensionEnv['tabEvents'],
   groupEvents: chrome.tabGroups as unknown as ExtensionEnv['groupEvents'],
+  permissionEvents: chrome.permissions?.onAdded ? (chrome.permissions as unknown as ExtensionEnv['permissionEvents']) : undefined,
   alarms: chrome.alarms as unknown as ExtensionEnv['alarms'],
   createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
   probe: httpProbe(fetch.bind(globalThis)),

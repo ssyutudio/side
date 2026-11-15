@@ -34,6 +34,7 @@ const numbers = (o: Partial<SideNumbers> = {}): SideNumbers => ({
 const base = (o: Partial<ViewState> = {}): ViewState => withBySide(o, {
   now: DAY,
   connection: 'connected',
+  everySite: true,
   step: {
     id: 'st1',
     label: '“Will annual pricing beat monthly?” — Pricing page is ready where you stopped.',

@@ -44,7 +44,7 @@ const keepReason = z.enum(['active', 'pinned', 'audible', 'incognito', 'excluded
 export const payloadSchemas = {
   // extension -> app
   hello: z.object({ extVersion: str(50) }),
-  'tabs.report': z.object({ tabs: z.array(tabSnapshot).max(2000), skipped, capturedAt: z.number() }),
+  'tabs.report': z.object({ tabs: z.array(tabSnapshot).max(2000), skipped, capturedAt: z.number(), everySite: z.boolean().optional() }),
   'cmd.result': z.object({
     ok: z.boolean(),
     result: z.unknown().optional(),
@@ -57,6 +57,8 @@ export const payloadSchemas = {
   /** The screen language, so the extension's few words (the page marker, errors) match the app. */
   'lang.set': z.object({ lang: z.enum(LANGUAGES) }),
   'tabs.request': z.object({}),
+  /** Opens the extension's own page that asks Chrome to let Side remember reading spots on every site. */
+  'allow.open': z.object({}),
   'cmd.wrapup.apply': z.object({
     setAsideId: id,
     groups: z.array(z.object({ key: id, name: str(80), tabIds: z.array(tabId) })).max(50),

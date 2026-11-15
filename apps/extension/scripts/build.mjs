@@ -10,7 +10,7 @@ rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 cpSync(join(root, 'static'), out, { recursive: true });
 
-const entries = ['background'].map((n) => join(root, 'src', `${n}.ts`)).filter((p) => existsSync(p));
+const entries = ['background', 'allow'].map((n) => join(root, 'src', `${n}.ts`)).filter((p) => existsSync(p));
 if (entries.length > 0) {
   await build({
     entryPoints: entries,

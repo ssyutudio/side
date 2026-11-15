@@ -31,6 +31,8 @@ export interface SideApi {
   onToast(cb: (t: Toast) => void): void;
   onLayout(cb: (l: EdgeLayoutMsg) => void): void;
   onMiniView(cb: (v: string) => void): void;
+  /** Claude's groups for the preview on screen, when they came after the rules' draft. */
+  onPreview(cb: (p: PreviewView) => void): void;
   onReact(cb: (kind: 'stretch' | 'whistle' | 'nod') => void): void;
   setInteractive(v: boolean): void;
 }
@@ -86,6 +88,7 @@ export function getApi(): SideApi {
       onToast: (cb) => bridge.on('side:toast', (d) => cb(d as Toast)),
       onLayout: (cb) => bridge.on('edge:layout', (d) => cb(d as EdgeLayoutMsg)),
       onMiniView: (cb) => bridge.on('side:mini.view', (d) => cb(String(d))),
+      onPreview: (cb) => bridge.on('side:preview', (d) => cb(d as PreviewView)),
       onReact: (cb) => bridge.on('side:react', (d) => cb((d as { kind: 'stretch' | 'whistle' | 'nod' }).kind)),
       setInteractive: (v) => bridge.setInteractive(v),
     };
@@ -100,6 +103,7 @@ export function getApi(): SideApi {
       if (channel === 'side:wrapup.edit') return applyFixtureEdit(payload) as T;
       return { ok: true } as T;
     },
+    onPreview: () => undefined,
     onState: (cb) => setTimeout(() => cb(state), 0),
     onBubble: (cb) => {
       const b = params.get('bubble');

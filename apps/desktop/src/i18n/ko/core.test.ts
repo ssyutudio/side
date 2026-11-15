@@ -248,3 +248,27 @@ describe('buildViewState in Korean', () => {
     expect(v.lastWrapup?.groups.map((g) => g.name)).toEqual(['retry-lib', 'Breaks']);
   });
 });
+
+describe('Korean dead-end titles', () => {
+  it('leaves Korean bot checks and sign-in pages out of steps', async () => {
+    const { isDeadEnd } = await import('../../core/deadEnd');
+    expect(isDeadEnd({ url: 'https://stackoverflow.com/questions', title: '잠시만 기다리십시오…' })).toBe(true);
+    expect(isDeadEnd({ url: 'https://nid.naver.com/nidlogin.login', title: '네이버 : 로그인' })).toBe(true);
+    expect(isDeadEnd({ url: 'https://example.co.kr/member', title: '로그인' })).toBe(true);
+    expect(isDeadEnd({ url: 'https://ko.wikipedia.org/wiki/x', title: '아파치 카프카 - 위키백과' })).toBe(false);
+  });
+});
+
+describe('Korean titles in the rules', () => {
+  it('groups Korean pages that share a word, and skips words every page has', async () => {
+    const { groupTabs, keywords } = await import('../../core/grouping');
+    expect([...keywords('아파치 카프카 - 위키백과, 우리 모두의 백과사전')]).toEqual(['아파치', '카프카']);
+    const mk = (tabId: number, url: string, title: string) => ({ tabId, windowId: 1, index: tabId, url, title, lastAccessed: tabId, active: false, pinned: false, audible: false, incognito: false, groupId: -1, groupTitle: null, position: null });
+    const groups = groupTabs([
+      mk(1, 'https://ko.wikipedia.org/wiki/a', '아파치 카프카 - 위키백과, 우리 모두의 백과사전'),
+      mk(2, 'https://velog.io/@x/kafka', '카프카 컨슈머 리밸런싱 정리'),
+      mk(3, 'https://ko.wikipedia.org/wiki/b', '김치찌개 - 위키백과, 우리 모두의 백과사전'),
+    ]);
+    expect(groups.find((g) => g.tabIds.includes(2))?.tabIds).toEqual([1, 2]);
+  });
+});

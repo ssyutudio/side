@@ -6,6 +6,7 @@ import type { Toast } from '../shared/api';
 import { html, raw, type SafeHtml } from '../shared/html';
 import { sidySvg } from '../shared/sidy';
 import { t, tn } from '../../i18n';
+import { splitStepLabel } from '../main/format';
 
 export type EdgeMode = 'quiet' | 'out' | 'hidden';
 
@@ -33,9 +34,12 @@ export function bubbleView(b: Bubble, s: ViewState): SafeHtml | null {
     const step = s.step;
     if (!step || step.id !== b.stepId) return null;
     const away = step.whenKind === 'earlier';
+    // The person's own words lead; what is ready follows. "Welcome back" rides on the date line.
+    const { asked, title } = splitStepLabel(step.label);
+    const meta = `${away ? `${t('Welcome back.')} ` : ''}${t('Last wrap-up')} · ${cap(step.when)}`;
     return html`${close(t('Not now'))}
-<p>${away ? `${t('Welcome back.')} ` : ''}${step.label}</p>
-<span class="meta">${t('Last wrap-up')} · ${cap(step.when)}</span>
+${asked ? html`<p class="asked">“${asked}”</p><p class="ready">${title}</p>` : html`<p>${title}</p>`}
+<span class="meta">${meta}</span>
 <div class="row"><button class="btn fill grow" data-act="step-open" data-step="${step.id}">${t('Step inside')}</button><button class="btn grow" data-act="rest-today" data-step="${step.id}">${t('Rest today')}</button></div>`;
   }
   if (b.kind === 'first_run') {

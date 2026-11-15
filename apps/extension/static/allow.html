@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Side</title>
+<style>
+  :root { --ink: #1E2025; --ink2: #5B6168; --line: #E1E3E8; --blue: #3B54E7; --blue-press: #2F45C8; --ok: #1F7A5C; }
+  body { margin: 0; background: #F2F3F5; color: var(--ink); font: 16px/1.5 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  main { max-width: 560px; margin: 72px auto; background: #fff; border-radius: 20px; padding: 32px 32px 28px; box-shadow: 0 10px 30px rgba(20,24,40,.08); }
+  h1 { font-size: 24px; line-height: 1.25; margin: 0 0 14px; }
+  p { margin: 0 0 12px; }
+  .note { color: var(--ink2); font-size: 14px; }
+  button { margin-top: 8px; height: 48px; padding: 0 20px; border-radius: 12px; border: 0; background: var(--blue); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover { background: var(--blue-press); }
+  button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+  .done { color: var(--ok); font-weight: 600; }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<script type="module" src="allow.js"></script>
+</body>
+</html>

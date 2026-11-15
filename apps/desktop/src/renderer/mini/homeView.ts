@@ -3,7 +3,8 @@
 import type { ViewState } from '../../main/viewState';
 import { html, raw, type SafeHtml } from '../shared/html';
 import { k, t, tn } from '../../i18n';
-import { cap, chip, clock, facts, footer, head, panel, quick, setAsideText, type QuickAction } from './parts';
+import { chip, clock, facts, factsLine, footer, head, panel, quick, setAsideText, type QuickAction } from './parts';
+import { splitStepLabel } from '../main/format';
 import { askBlock, type AskContext, type AskLocal } from './askView';
 
 export interface HomeLocal {
@@ -79,44 +80,47 @@ ${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
       head(chip(s)),
       html`<div class="pb">${notice}${unsure(s)}
 <div class="done-line"><b>${tn(set, '{tabs} tab set aside in {groups}.', '{tabs} tabs set aside in {groups}.', { tabs: set, groups: tn(w.groups.length, '{n} group', '{n} groups') })}</b>${s.numbers.tabsOpen ? html` ${t('{n} still open.', { n: s.numbers.tabsOpen })}` : ''}</div>
-${facts([
-  [t('Tabs in Chrome'), tabs],
-  ...appsFact(s),
-  [t('Set aside'), setAsideText(s)],
-  [t("Tomorrow's step"), s.step ? t('Ready') : t('Made when you come back')],
-])}
 ${quick([
   { icon: '↩️', title: k("Bring back today's tabs"), sub: tn(w.groups.length, 'Unfolds the {n} group', 'Unfolds the {n} groups'), act: 'undo' },
   ONE_MORE,
   HIDE,
 ])}
-${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
+${askBlock(local.ask ?? IDLE, askCtx(s))}
+${factsLine([
+  [t('Tabs in Chrome'), tabs],
+  ...appsFact(s),
+  [t("Tomorrow's step"), s.step ? t('Ready') : t('Made when you come back')],
+])}</div>`,
       footer(),
     ]);
   }
 
   if (s.step && s.numbers.stepReady) {
     const when = s.step.when;
-    const repeat = !!w?.userLine && !s.step.label.includes(w.userLine);
-    const asked = repeat ? html`<div class="w">${t('You asked:')} ${w!.userLine}</div>` : html`<div class="w">${s.step.host ?? ''}</div>`;
+    // Like the bubble: the person's own line leads, what is ready (and where) follows.
+    const split = splitStepLabel(s.step.label);
+    const repeat = !split.asked && !!w?.userLine && !s.step.label.includes(w.userLine);
+    const title = split.asked ? `“${split.asked}”` : s.step.label;
+    const asked = split.asked
+      ? html`<div class="w">${split.title}${s.step.host ? html` · ${s.step.host}` : ''}</div>`
+      : repeat ? html`<div class="w">${t('You asked:')} ${w!.userLine}</div>` : html`<div class="w">${s.step.host ?? ''}</div>`;
     return panel([
       head(chip(s)),
       html`<div class="pb">${notice}${unsure(s)}
-<div class="step"><div class="lbl">${t('Next step · from {when}', { when })}</div><div class="t">${s.step.label}</div>${asked}
+<div class="step"><div class="lbl">${t('Next step · from {when}', { when })}</div><div class="t">${title}</div>${asked}
 <button class="btn fill" style="width:100%" data-act="step-open" data-step="${s.step.id}"${raw(local.stepBusy ? ' aria-disabled="true"' : '')}>${t('Step inside')}</button>${local.stepBusy ? html`<div class="row asking" role="status" aria-live="polite"><span class="spin"></span>${t('Opening…')}</div>` : ''}</div>
-${facts([
-  [t('Tabs in Chrome'), tabs],
-  ...appsFact(s),
-  [t('Set aside'), setAsideText(s)],
-  [t('Last wrap-up'), w ? cap(w.when) : '—'],
-])}
 ${quick([
   { icon: '🌙', title: k('Set aside today'), sub: k('Fold open tabs into groups'), act: 'wrap' },
   ...(w && w.canUndo ? [{ icon: '↩️', title: w.whenKind === 'yesterday' ? k("Bring back yesterday's tabs") : k('Bring back the last tabs'), act: 'undo' }] : []),
   focusAction(s),
   HIDE,
 ])}
-${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
+${askBlock(local.ask ?? IDLE, askCtx(s))}
+${factsLine([
+  [t('Tabs in Chrome'), tabs],
+  ...appsFact(s),
+  [t('Set aside'), setAsideText(s)],
+])}</div>`,
       footer(),
     ]);
   }
@@ -126,14 +130,13 @@ ${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
     html`<div class="pb">${notice}${unsure(s)}
 <div class="step"><div class="lbl">${t('Stopping for today?')}</div><div class="t">${t('Fold your open tabs into groups')}</div><div class="w">${t('Nothing closes. Undo brings your tabs back.')}</div>
 <button class="btn fill" style="width:100%" data-act="wrap">${t('Set aside today')}</button></div>
-${facts([
+${quick([ONE_MORE, focusAction(s), HIDE])}
+${askBlock(local.ask ?? IDLE, askCtx(s))}
+${factsLine([
   [t('Tabs in Chrome'), tabs],
   ...appsFact(s),
   [t('Set aside'), setAsideText(s)],
-  [t('Next step'), t('Ready after you set aside')],
-])}
-${quick([ONE_MORE, focusAction(s), HIDE])}
-${askBlock(local.ask ?? IDLE, askCtx(s))}</div>`,
+])}</div>`,
     footer(),
   ]);
 }

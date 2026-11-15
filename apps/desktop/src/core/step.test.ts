@@ -142,3 +142,24 @@ describe('step label with a long line from the user', () => {
     expect(step.label('Pricing page', 'Will annual beat monthly?', false)).toBe('“Will annual beat monthly?” — Pricing page is ready to open.');
   });
 });
+
+describe('a step never opens a dead end', () => {
+  it('skips a stopped local dev server and a bot check, even when touched last', () => {
+    const r = sa('r', 100, [
+      saved(1, 'https://kafka.apache.org/documentation/', 'Apache Kafka Documentation', 'g1', 50, pos),
+      saved(2, 'http://localhost:3000/', 'localhost', 'g1', 90),
+      saved(3, 'https://stackoverflow.com/questions/tagged/kafka', 'Just a moment...', 'g1', 80),
+    ]);
+    const s = buildStep(r, [], clock, ids);
+    expect(s?.action).toMatchObject({ type: 'open_url', url: 'https://kafka.apache.org/documentation/' });
+  });
+
+  it('refuses a stored step that points at a sign-in page', () => {
+    const bad: Step = {
+      id: 'x', fromSetAside: 'r', createdAt: 1, label: 'x', source: 'llm',
+      action: { type: 'open_url', url: 'https://accounts.google.com/signin', title: 'Sign in', position: null } as OpenUrlAction,
+      checks: { noJudgment: true, cannotFail: true, inRealTool: true, resultVisible: true },
+    };
+    expect(checkStep(bad, []).ok).toBe(false);
+  });
+});

@@ -6,12 +6,13 @@
 //   2. Anchors: a GitHub repo, a Google Doc/Sheet/Slide, a Figma file, a Notion
 //      page, or local dev servers each define one work.
 //   3. Reference tabs join the anchor they share the most title words with.
-//   4. Remaining tabs from the same site form a group named after the site.
-//   5. Remaining tabs that share a meaningful title word form a group.
+//   4. Remaining tabs that share a meaningful title word (any language) form a group, across sites.
+//   5. Remaining tabs from the same site form a group named after the site (not its address).
 //   6. Anything left goes to one "Not sorted yet" group.
 import type { TabSnapshot, WorkGroup } from '@side/shared';
 import { hostOf } from '@side/shared';
 import { KO } from '../i18n/ko';
+import { KO_STOP } from '../i18n/ko/core';
 import { t } from '../i18n';
 import { groupNames } from './copy';
 
@@ -36,8 +37,24 @@ const STOP = new Set(
     'google docs doc github stack overflow youtube notion figma home page pages untitled document sheet sheets ' +
     'slides guide documentation reference mdn web pull request issue commit main master edit view search ' +
     'result inbox mail gmail tab blog post com www http https html api app dashboard welcome login sign ' +
-    'file files design draft copy') .split(' '),
+    'file files design draft copy') .split(' ').concat(KO_STOP),
 );
+
+/** How people write a few site names; any other site is its main label, capitalized. */
+const SITE_NAMES: Record<string, string> = {
+  arxiv: 'arXiv', github: 'GitHub', stackoverflow: 'Stack Overflow', youtube: 'YouTube', pytorch: 'PyTorch', numpy: 'NumPy',
+  wikipedia: 'Wikipedia', mozilla: 'MDN', amazonaws: 'AWS', aws: 'AWS', google: 'Google', naver: 'Naver', notion: 'Notion',
+};
+const SECOND_LEVEL = new Set(['co', 'com', 'org', 'net', 'ac', 'go', 'or', 'ne', 'gov', 'edu']);
+
+/** "en.wikipedia.org" -> "Wikipedia", "docs.aws.amazon.com" -> "Amazon", "www.coupang.com" -> "Coupang". */
+export function siteName(host: string): string {
+  const labels = host.toLowerCase().replace(/^www\./, '').split('.');
+  let i = labels.length - 2;
+  if (i > 0 && SECOND_LEVEL.has(labels[i]) && labels[labels.length - 1].length === 2) i--;
+  const main = labels[Math.max(0, i)] ?? host;
+  return SITE_NAMES[main] ?? main.charAt(0).toUpperCase() + main.slice(1);
+}
 
 const SUFFIX = /\s+[-–—|·/]\s+(google docs|google sheets|google slides|google drive|notion|github|youtube|stack overflow|figma|mdn web docs|mdn|x|medium|reddit|linear|gmail)\s*$/i;
 
@@ -105,8 +122,11 @@ function stem(w: string): string {
 /** Meaningful lowercase words of a title (stop words, short words and numbers removed). */
 export function keywords(text: string): Set<string> {
   const out = new Set<string>();
-  for (const raw of text.toLowerCase().split(/[^a-z0-9]+/)) {
-    if (raw.length < 3 || /\d/.test(raw)) continue;
+  // Ticket keys ("SID-12", "KAFKA-21474") name a tracker, not a topic.
+  for (const raw of text.replace(/\b[A-Z][A-Z0-9]+-\d+\b/g, ' ').toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
+    // Hangul packs a word into fewer letters: two are enough there, three elsewhere.
+    const min = /\p{Script=Hangul}/u.test(raw) ? 2 : 3;
+    if (raw.length < min || /\d/.test(raw)) continue;
     const w = stem(raw);
     if (STOP.has(w) || STOP.has(raw)) continue;
     out.add(w);
@@ -215,21 +235,15 @@ export function groupTabs(input: readonly TabSnapshot[]): WorkGroup[] {
 
   const drafts: Draft[] = [...anchorList];
 
-  // Same site, two or more tabs.
-  const byHost = new Map<string, TabSnapshot[]>();
-  for (const t of loose) {
-    const h = hostOf(t.url) ?? '';
-    byHost.set(h, [...(byHost.get(h) ?? []), t]);
-  }
-  loose = [];
-  for (const [h, list] of byHost) {
-    if (h && list.length >= 2) drafts.push({ key: `host:${h}`, name: h, tabs: list, words: new Set() });
-    else loose.push(...list);
-  }
+  // Shared meaningful word among the rest (union of tabs that share any word), across sites. A
+  // site's own name in its titles ("… - Wikipedia") is not a topic, or every page there would merge.
   loose.sort(byPosition);
-
-  // Shared meaningful word among the rest (union of tabs that share any word).
-  const wordsOf = loose.map((t) => keywords(cleanTitle(t.title)));
+  const wordsOf = loose.map((t) => {
+    const ws = keywords(cleanTitle(t.title));
+    const h = hostOf(t.url);
+    if (h) for (const w of keywords(siteName(h))) ws.delete(w);
+    return ws;
+  });
   const freq = new Map<string, number>();
   for (const ws of wordsOf) for (const w of ws) freq.set(w, (freq.get(w) ?? 0) + 1);
   const parent = loose.map((_, i) => i);
@@ -245,10 +259,10 @@ export function groupTabs(input: readonly TabSnapshot[]): WorkGroup[] {
   });
   const clusters = new Map<number, number[]>();
   loose.forEach((_, i) => clusters.set(find(i), [...(clusters.get(find(i)) ?? []), i]));
-  const unsorted: TabSnapshot[] = [];
+  const single: TabSnapshot[] = [];
   for (const members of clusters.values()) {
     if (members.length < 2) {
-      unsorted.push(loose[members[0]]);
+      single.push(loose[members[0]]);
       continue;
     }
     const count = new Map<string, number>();
@@ -256,6 +270,21 @@ export function groupTabs(input: readonly TabSnapshot[]): WorkGroup[] {
     const word = [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
     drafts.push({ key: `kw:${word}`, name: capitalize(word), tabs: members.map((i) => loose[i]), words: new Set() });
   }
+
+  loose = single;
+
+  // Same site, two or more tabs.
+  const byHost = new Map<string, TabSnapshot[]>();
+  for (const t of loose) {
+    const h = hostOf(t.url) ?? '';
+    byHost.set(h, [...(byHost.get(h) ?? []), t]);
+  }
+  loose = [];
+  for (const [h, list] of byHost) {
+    if (h && list.length >= 2) drafts.push({ key: `host:${h}`, name: siteName(h), tabs: list, words: new Set() });
+    else loose.push(...list);
+  }
+  const unsorted = loose;
 
   const ordered = drafts
     .map((d) => ({ ...d, tabs: [...d.tabs].sort(byPosition) }))

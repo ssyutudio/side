@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { TabSnapshot, TabsReport, OpenUrlAction } from '@side/shared';
 import { JsonStore } from './store';
 import { defaultAppData, type AppData } from './appData';
-import { SideController, type BridgePort } from './controller';
+import { SideController, type PreviewView, type BridgePort } from './controller';
 import type { BridgeStatus, CommandOutcome } from './bridge';
 import { DemoClock, fixedClock } from '../core/clock';
 import { language, setLanguage } from '../i18n';
@@ -47,7 +47,7 @@ async function setup(extra: { demoTools?: boolean; llm?: any; report?: TabsRepor
   const bubbles: unknown[] = [];
   const clock = new DemoClock(fixedClock(REAL));
   const ctl = new SideController({
-    store, bridge, clock, llm: extra.llm ?? null,
+    store, bridge, clock, llm: () => extra.llm ?? null,
     edge: { resize: (s) => resized.push(s), show: () => undefined, hide: () => undefined },
     registerShortcut: (a) => { shortcuts.push(a); return a !== 'Taken+Key'; },
     push: () => undefined,
@@ -230,7 +230,7 @@ describe('SideController privacy defaults', () => {
     let llmCalls = 0;
     const ctl = new SideController({
       store, bridge, clock: new DemoClock(fixedClock(REAL)),
-      llm: async () => { llmCalls++; return '{}'; },
+      llm: () => async () => { llmCalls++; return '{}'; },
       edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
     });
     bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
@@ -270,7 +270,7 @@ describe('SideController night suggestions', () => {
     const sent: string[] = [];
     const ctl = new SideController({
       store, bridge, clock: new DemoClock(fixedClock(REAL)),
-      llm: async (req) => {
+      llm: () => async (req) => {
         sent.push(req.system + req.user);
         return req.system.includes('two short questions') ? '{"suggestions":["Why does retry need jitter?","What fails on issue 2?"]}' : '{"groups":[]}';
       },
@@ -284,7 +284,7 @@ describe('SideController night suggestions', () => {
     await ctl.updateSettings({ llmEnabled: false });
     const before = sent.length;
     const fresh = new SideController({
-      store, bridge, clock: new DemoClock(fixedClock(REAL)), llm: async () => { sent.push('x'); return '{}'; },
+      store, bridge, clock: new DemoClock(fixedClock(REAL)), llm: () => async () => { sent.push('x'); return '{}'; },
       edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
     });
     expect(await fresh.suggestTomorrow(id)).toEqual([]);
@@ -299,7 +299,7 @@ describe('SideController morning recall', () => {
     const bridge = new FakeBridge();
     const ctl = new SideController({
       store, bridge, clock: new DemoClock(fixedClock(REAL)),
-      llm: async (req) => (req.system.includes('Pick the ONE tab') ? '{"id":"T2"}' : '{"groups":[]}'),
+      llm: () => async (req) => (req.system.includes('Pick the ONE tab') ? '{"id":"T2"}' : '{"groups":[]}'),
       edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
     });
     bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
@@ -423,5 +423,92 @@ describe('SideController journey fixes', () => {
     await store.update((d) => ({ ...d, stepEvents: d.stepEvents.map((e) => ({ ...e, stillWorkingAt10m: true })) }));
     await vi.advanceTimersByTimeAsync(4 * 60_000);
     expect(bridge.sent.filter((s) => s.type === 'tabs.request').length).toBe(before + 1);
+  });
+});
+
+describe('SideController and Side Pro', () => {
+  it('reads Claude at each request, so turning Pro on or off takes effect without a restart', async () => {
+    let pro = false;
+    let calls = 0;
+    const transport = async () => (calls++, '{"groups":[]}');
+    const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-ctl-')), 'd.json'), defaultAppData);
+    await store.load();
+    const bridge = new FakeBridge();
+    const ctl = new SideController({
+      store, bridge, clock: new DemoClock(fixedClock(REAL)),
+      llm: () => (pro ? transport : null),
+      edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
+    });
+    bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
+    expect(ctl.state().saw.llm.available).toBe(false);
+    await ctl.previewWrapup();
+    expect(calls).toBe(0);
+    pro = true;
+    expect(ctl.state().saw.llm.available).toBe(true);
+    await ctl.previewWrapup();
+    expect(calls).toBe(1);
+  });
+});
+
+describe('SideController and every site', () => {
+  it('asks the extension to open its allow page, and says when it could not', async () => {
+    const { ctl, bridge } = await setup();
+    expect(ctl.askEverySite()).toEqual({ ok: true });
+    expect(bridge.sent.some((m) => m.type === 'allow.open')).toBe(true);
+    bridge.status = 'disconnected';
+    expect(ctl.askEverySite()).toEqual({ ok: false });
+  });
+});
+
+describe('SideController when Claude is late', () => {
+  async function lateSetup() {
+    const pushed: PreviewView[] = [];
+    let release: (v: string) => void = () => undefined;
+    const store = new JsonStore<AppData>(join(mkdtempSync(join(tmpdir(), 'side-ctl-')), 'd.json'), defaultAppData);
+    await store.load();
+    const bridge = new FakeBridge();
+    const ctl = new SideController({
+      store, bridge, clock: new DemoClock(fixedClock(REAL)),
+      llm: () => () => new Promise<string>((r) => (release = r)),
+      edge: null, registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
+      pushPreview: (p) => pushed.push(p),
+    });
+    bridge.onRequest = () => setTimeout(() => void ctl.onReport(report), 5);
+    return { ctl, pushed, release: (v: string) => release(v) };
+  }
+  const answer = (n: number) => `{"groups":[{"name":"Claude names it","ids":[${Array.from({ length: n }, (_, i) => `"T${i + 1}"`).join(',')}]}]}`;
+
+  it('shows the rules first, then offers Claude groups for the untouched draft', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+    try {
+      const { ctl, pushed, release } = await lateSetup();
+      const first = ctl.previewWrapup();
+      await vi.advanceTimersByTimeAsync(9000);
+      const view = await first;
+      expect('groups' in view && view.groups.some((g) => g.name === 'Claude names it')).toBe(false);
+      release(answer(3));
+      await vi.advanceTimersByTimeAsync(10);
+      expect(pushed).toHaveLength(1);
+      expect(pushed[0].groups.some((g) => g.name === 'Claude names it')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('leaves a draft the person already changed alone', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'], shouldAdvanceTime: true });
+    try {
+      const { ctl, pushed, release } = await lateSetup();
+      const first = ctl.previewWrapup();
+      await vi.advanceTimersByTimeAsync(9000);
+      const view = await first;
+      if (!('groups' in view)) throw new Error('no preview');
+      await ctl.editWrapup({ op: 'rename', key: view.groups[0].key, name: 'Mine' });
+      release(answer(3));
+      await vi.advanceTimersByTimeAsync(10);
+      expect(pushed).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

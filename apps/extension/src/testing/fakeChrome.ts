@@ -123,7 +123,7 @@ export function createFakeChrome(initialTabs: FakeTab[] = []) {
   };
 
   const chrome = {
-    runtime: { getManifest: () => ({ version: '0.1.0' }), lastError: undefined },
+    runtime: { getManifest: () => ({ version: '0.1.0' }), getURL: (p: string) => `chrome-extension://fake/${p}`, lastError: undefined },
     tabs: {
       ...events,
       TAB_ID_NONE: -1,

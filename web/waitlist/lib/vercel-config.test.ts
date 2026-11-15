@@ -7,7 +7,7 @@ describe('vercel deploy layout', () => {
   it('keeps only function entry points in api/', () => {
     const files = readdirSync(join(ROOT, 'api'));
     expect(files.filter((f) => f.endsWith('.test.ts'))).toEqual([]);
-    expect(files.sort()).toEqual(['join.ts', 'usage.ts']);
+    expect(files.sort()).toEqual(['join.ts', 'license.ts', 'llm.ts', 'usage.ts']);
   });
 
   it('has a valid vercel.json that covers the api functions', () => {

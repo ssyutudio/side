@@ -32,11 +32,17 @@ function languagePick(): SafeHtml {
   ).map(([code, name]) => html`<button type="button" data-act="lang" data-lang="${code}" lang="${code}" aria-pressed="${code === cur ? 'true' : 'false'}">${name}</button>`)}</span>`;
 }
 
-export function onboardingView(o: { phase: SetupPhase; extPath: string; preview: PreviewView | null; llmAvailable?: boolean }): SafeHtml {
+/** One optional ask before meeting sidy: remember the reading spot on every site, not only a few. */
+function everySiteAsk(everySite: boolean | null | undefined): SafeHtml | string {
+  if (everySite !== false) return '';
+  return html`<div class="r" style="margin:0 0 14px;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px"><b>${t('Remember where you stopped on every site?')}</b><p class="note" style="margin:4px 0 10px">${t('Right now only a few sites (Google Docs, GitHub, Wikipedia…). Chrome asks you once. Side reads only how far down you were and one visible sentence.')}</p><button class="btn sm" data-act="allow-sites">${t('Allow every site')}</button></div>`;
+}
+
+export function onboardingView(o: { phase: SetupPhase; extPath: string; preview: PreviewView | null; llmAvailable?: boolean; everySite?: boolean | null }): SafeHtml {
   const connected = o.phase === 'connected';
-  // Without a Claude key nothing is sent; the first window must not say otherwise.
+  // Without Side Pro (or a developer key) nothing is sent; the first window must not say otherwise.
   const lead = o.llmAvailable === false
-    ? t('Everything stays on this computer: without a Claude key, sidy names groups and picks your next step with simple rules.')
+    ? t('Everything stays on this computer: without Side Pro, sidy names groups and picks your next step with simple rules.')
     : t('Tab titles, your one line and your step counts go to Claude to name groups and pick your next step. Addresses and page text stay on this computer.');
   const add = connected
     ? done(t('Side extension added'))
@@ -61,7 +67,7 @@ ${copyRow('chrome://extensions')}${copyRow(o.extPath)}</div></li>`;
       (g, i) => html`<div class="g" style="--c:${COLORS[i % COLORS.length]};grid-template-columns:12px 1fr auto"><i></i><span class="n">${g.name}</span><span class="c">${tn(g.tabs.length, '{n} tab', '{n} tabs')}</span></div>`,
     )}</div>
 <p class="note" style="margin:8px 0 16px">${stays ? `${t('{n} stay open: {reasons}.', { n: stays, reasons: reasons.join(', ') })} ` : ''}${t('Nothing changes until you choose.')}</p>
-<button class="btn fill" style="width:100%" data-act="meet">${t('Meet sidy')}</button></div>`;
+${everySiteAsk(o.everySite)}<button class="btn fill" style="width:100%" data-act="meet">${t('Meet sidy')}</button></div>`;
   } else if (connected) {
     draft = html`<div style="margin-top:22px"><div class="busy" role="status"><span class="spin"></span>${t('Reading your open tabs…')}</div></div>`;
   }

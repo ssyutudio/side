@@ -60,6 +60,29 @@ describe('startExtension', () => {
     expect(reports().at(-1).payload.tabs).toHaveLength(3);
   });
 
+  it('tells the app whether Side may read the reading spot on every site, and re-reports when that changes', async () => {
+    const { ext, sock, reports, f } = boot();
+    await ext.ready;
+    sock().open();
+    sock().receive(encodeMessage(makeMessage('welcome', { appVersion: '0.1.0' })));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(reports().at(-1).payload.everySite).toBe(false);
+    f.permit('https://*/*');
+    f.permit('http://*/*');
+    sock().receive(encodeMessage(makeMessage('tabs.request', {})));
+    await vi.advanceTimersByTimeAsync(10);
+    expect(reports().at(-1).payload.everySite).toBe(true);
+  });
+
+  it('opens its own allow page when the app asks', async () => {
+    const { ext, sock, f } = boot();
+    await ext.ready;
+    sock().open();
+    sock().receive(encodeMessage(makeMessage('allow.open', {})));
+    await vi.advanceTimersByTimeAsync(10);
+    expect([...f.tabs.values()].some((t: any) => t.url === 'chrome-extension://fake/allow.html' && t.active)).toBe(true);
+  });
+
   it('stores the exclusion list from the app and drops those tabs from the next report', async () => {
     const { ext, sock, reports, f } = boot();
     await ext.ready;

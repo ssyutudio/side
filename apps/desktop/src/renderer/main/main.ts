@@ -10,7 +10,7 @@ import { todayView } from './today';
 import { historyView } from './history';
 import { excludedView } from './excluded';
 import { sawView } from './saw';
-import { settingsView } from './settings';
+import { settingsView, type ProLocal } from './settings';
 import type { SafeHtml } from '../shared/html';
 
 const api = getApi();
@@ -30,7 +30,20 @@ const local = {
   daysOpen: null as Set<string> | null,
   /** The quiet hours last turned off here, offered again when switched back on. */
   lastQuiet: null as { start: number; end: number } | null,
+  pro: { input: '', busy: false, message: null } as ProLocal,
 };
+
+type LicenseAnswer = { ok: true } | { ok: false; reason: 'unreachable' | 'rejected'; detail?: string } | { error: string };
+
+/** The license check's answer in the screen's words (the server's own reason is English detail). */
+function licenseMessage(r: LicenseAnswer | null): ProLocal['message'] {
+  if (r && 'ok' in r && r.ok) return null;
+  if (r && 'reason' in r && r.reason === 'rejected') {
+    return { kind: 'error', text: r.detail ? t('That key did not work: {detail}', { detail: r.detail }) : t('That key did not work. Check it against your receipt email.') };
+  }
+  if (r && 'error' in r) return { kind: 'error', text: t('That does not look like a license key.') };
+  return { kind: 'error', text: t("Side couldn't reach its server. Check your connection and try again.") };
+}
 
 function body(s: ViewState): SafeHtml {
   switch (section) {
@@ -41,7 +54,7 @@ function body(s: ViewState): SafeHtml {
     case 'saw':
       return sawView(s, { showAll: local.showAll });
     case 'settings':
-      return settingsView(s, { appsOpen: local.appsOpen });
+      return settingsView(s, { appsOpen: local.appsOpen, pro: local.pro });
     default:
       return todayView(s);
   }
@@ -170,6 +183,26 @@ root.addEventListener('click', (e) => {
     case 'reveal':
       void api.invoke('side:data.reveal');
       break;
+    case 'allow-sites':
+      void api.invoke('side:allow.everySite');
+      break;
+    case 'pro-pricing':
+      void api.invoke('side:open.external', { which: 'pricing' });
+      break;
+    case 'pro-billing':
+      void api.invoke('side:open.external', { which: 'billing' });
+      break;
+    case 'pro-refresh':
+      void api.invoke('side:license.refresh');
+      break;
+    case 'pro-signout':
+      void api.invoke<LicenseAnswer>('side:license.deactivate').then((r) => {
+        local.pro.message = r && 'ok' in r && !r.ok
+          ? { kind: 'ok', text: t("Signed out on this computer. Side couldn't reach its server, so free this computer from your orders page if you need the slot.") }
+          : { kind: 'ok', text: t('Signed out on this computer.') };
+        render();
+      });
+      break;
   }
 });
 
@@ -187,10 +220,24 @@ root.addEventListener('change', (e) => {
 root.addEventListener('input', (e) => {
   const el = e.target as HTMLInputElement;
   if (el.id === 'exclude-domain') local.exInput = el.value;
+  if (el.id === 'license-key') local.pro.input = el.value;
 });
+
+async function activateLicense() {
+  if (local.pro.busy) return;
+  local.pro.busy = true;
+  local.pro.message = null;
+  render();
+  const r = await api.invoke<LicenseAnswer>('side:license.activate', { key: local.pro.input.trim() }).catch(() => null);
+  local.pro.busy = false;
+  local.pro.message = licenseMessage(r);
+  if (!local.pro.message) local.pro = { input: '', busy: false, message: { kind: 'ok', text: t('Side Pro is on. Welcome!') } };
+  render();
+}
 
 root.addEventListener('submit', (e) => {
   e.preventDefault();
+  if ((e.target as HTMLElement).id === 'license-form') return void activateLicense();
   if (!state) return;
   const d = normalizeDomain(local.exInput);
   if (!d) local.exError = t("That doesn't look like a site address. Try something like mybank.com.");

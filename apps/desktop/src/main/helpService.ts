@@ -7,6 +7,7 @@ import type { JsonStore } from './store';
 import type { AppData, LlmSend } from './appData';
 import type { Clock } from '../core/clock';
 import type { LlmTransport } from '../core/llmGrouping';
+import { isDeadEnd } from '../core/deadEnd';
 import { askOnce, buildRecallRequest, buildSuggestRequest, HELP_TIMEOUT_MS, parseRecall, parseSuggestions, stepForTab } from '../core/llmHelp';
 import { appStep, enabledApps } from '../core/step';
 import type { AppsPort } from './connectors/desktopApps';
@@ -65,7 +66,8 @@ export class HelpService {
     // Only files of apps still turned on, and only when the adapters are here to open them.
     const on = enabledApps(d.settings);
     const files = this.deps.apps ? (sa.files ?? []).filter((f) => on.includes(f.adapterId)) : [];
-    const req = buildRecallRequest(sa.userLine, sa.tabs, d.settings.excludedDomains, files);
+    // Claude picks only among tabs a step may open: no failed page, bot check, sign-in or local dev server.
+    const req = buildRecallRequest(sa.userLine, sa.tabs.filter((t) => !isDeadEnd(t)), d.settings.excludedDomains, files);
     if (!req.ids.size) return 'skipped';
     const fileCount = [...req.ids.values()].filter((v) => v.kind === 'file').length;
     await this.log('step', req.ids.size - fileCount, true, fileCount);

@@ -32,6 +32,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .bubble::after{content:"";position:absolute;right:-9px;top:var(--tail,50%);margin-top:-9px;border:9px solid transparent;border-left-color:#fff;border-right:0}
 .bubble p{margin:0 28px 12px 0;font-size:17px;line-height:1.4}
 .bubble .meta{display:block;font-size:13px;color:var(--ink2);margin:-6px 0 12px}
+.bubble p.asked{font-weight:700;margin-bottom:4px}
+.bubble p.ready{font-size:15px;color:var(--ink2);margin-bottom:12px}
+.facts.line{flex-direction:row;flex-wrap:wrap;gap:4px 14px;border-top:0;margin-top:4px}
+.facts.line div{padding:0;border:0;font-size:13px;justify-content:flex-start;gap:5px}
+.facts.line b{font-weight:600;color:var(--ink)}
 .bubble .x{position:absolute;top:8px;right:8px;width:32px;height:32px;border:0;border-radius:8px;background:none;color:var(--ink2);font-size:20px;line-height:1}
 .bubble .x:hover{background:var(--canvas)}
 .row{display:flex;gap:8px}

@@ -12,6 +12,7 @@ import { isExcluded, newId as defaultNewId } from '@side/shared';
 import type { Clock } from './clock';
 import { step as stepCopy } from './copy';
 import { BREAKS_KEY, UNSORTED_KEY, cleanTitle, displayGroupName, isBreakUrl, shortName } from './grouping';
+import { isDeadEnd } from './deadEnd';
 
 /** A record saved but never answered by Chrome for this long was abandoned (the app closed, say). */
 const STALE_SAVED_MS = 10 * 60_000;
@@ -57,7 +58,7 @@ export function checkStep(s: Step, excludedDomains: readonly string[], enabledAp
   } else if (s.action.type === 'open_url') {
     checks = {
       noJudgment: true,
-      cannotFail: isWebUrl(s.action.url) && !isExcluded(s.action.url, excludedDomains),
+      cannotFail: isWebUrl(s.action.url) && !isExcluded(s.action.url, excludedDomains) && !isDeadEnd(s.action),
       inRealTool: isWebUrl(s.action.url) && !isBreakUrl(s.action.url),
       resultVisible: true,
     };
@@ -71,7 +72,7 @@ export function checkStep(s: Step, excludedDomains: readonly string[], enabledAp
 const recency = (t: SavedTab) => t.lastAccessed ?? 0;
 
 function pickTab(sa: SetAside, excludedDomains: readonly string[]): SavedTab | null {
-  const usable = (t: SavedTab) => isWebUrl(t.url) && !isBreakUrl(t.url) && !isExcluded(t.url, excludedDomains);
+  const usable = (t: SavedTab) => isWebUrl(t.url) && !isBreakUrl(t.url) && !isExcluded(t.url, excludedDomains) && !isDeadEnd(t);
   let pool = sa.tabs.filter((t) => usable(t) && t.groupKey !== BREAKS_KEY && t.groupKey !== UNSORTED_KEY);
   if (!pool.length) pool = sa.tabs.filter((t) => usable(t) && t.groupKey !== BREAKS_KEY);
   if (!pool.length) return null;
@@ -175,7 +176,8 @@ export function currentStep(
 ): Step | null {
   const sa = latestSetAside(setAsides, clock.now());
   if (!sa) return null;
-  const stored = steps.find((s) => s.fromSetAside === sa.id);
+  // The newest stored step for it: a set-aside can be offered again after a long gap (see speakService).
+  const stored = [...steps].reverse().find((s) => s.fromSetAside === sa.id);
   if (stored && checkStep(stored, excludedDomains, apps?.enabled ?? []).ok) return stored;
   return buildStep(sa, excludedDomains, clock, newId, apps);
 }

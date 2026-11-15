@@ -3,8 +3,41 @@ export const MAIN: Record<string, string> = {
   // Settings
   Language: '언어',
   'One more hour uses it to say how long you would sleep if you stopped now.': '‘한 시간만 더’에서 지금 멈추면 몇 시간 잘 수 있는지 알려 줄 때 써요.',
-  'No Claude key on this computer, so nothing is sent and sidy uses simple rules here. To use Claude, put your key in .env.local (see the README) and start Side again.':
-    '이 컴퓨터에 Claude 키가 없어서 아무것도 보내지 않고, sidy는 간단한 규칙으로만 움직여요. Claude를 쓰려면 .env.local에 키를 넣고(README 참고) Side를 다시 실행해 주세요.',
+  'Part of Side Pro. Without it nothing is sent and sidy uses simple rules on this computer.': 'Side Pro 기능이에요. Pro가 아니면 아무것도 보내지 않고, sidy는 이 컴퓨터에서 간단한 규칙으로만 움직여요.',
+  // Reading spot on every site
+  'Remembers where you stopped on every site.': '모든 사이트에서 멈춘 곳을 기억해요.',
+  'Remembers where you stopped only on a few sites (Google Docs, GitHub, MDN, Wikipedia, Stack Overflow, Notion, Hacker News).':
+    '몇 사이트(Google Docs, GitHub, MDN, Wikipedia, Stack Overflow, Notion, Hacker News)에서만 멈춘 곳을 기억해요.',
+  'Allow every site': '모든 사이트 허용',
+  // Side Pro
+  'Side Pro': 'Side Pro',
+  'Developer key': '개발자 키',
+  'Side is using the Claude key in .env.local, so no license is needed on this computer.': 'Side가 .env.local의 Claude 키를 쓰고 있어서 이 컴퓨터에는 라이선스가 필요 없어요.',
+  'Renews or ends on {date}.': '{date}에 갱신되거나 끝나요.',
+  'Side Pro · {plan}': 'Side Pro · {plan}',
+  'Claude names your groups, suggests a question, picks your next step and answers Ask sidy.': 'Claude가 그룹 이름을 정하고, 질문을 제안하고, 다음 한 걸음을 고르고, sidy에게 묻기에 답해요.',
+  'Manage subscription': '구독 관리',
+  'Sign out this computer': '이 컴퓨터에서 로그아웃',
+  'Side Pro has ended': 'Side Pro가 끝났어요',
+  'Your subscription is no longer active, so sidy uses simple rules again and sends nothing. Everything you saved stays on this computer.':
+    '구독이 끝나서 sidy가 다시 간단한 규칙을 쓰고 아무것도 보내지 않아요. 저장한 건 모두 이 컴퓨터에 그대로 있어요.',
+  Renew: '다시 구독',
+  'Check again': '다시 확인',
+  'Claude names your groups, suggests a question for tomorrow, picks your next step and answers Ask sidy. Free Side keeps working with simple rules and sends nothing.':
+    'Claude가 그룹 이름을 정하고, 내일을 위한 질문을 제안하고, 다음 한 걸음을 고르고, sidy에게 묻기에 답해요. 무료 Side도 간단한 규칙으로 계속 쓸 수 있고 아무것도 보내지 않아요.',
+  'See plans': '요금제 보기',
+  'License key': '라이선스 키',
+  'Checking…': '확인하는 중…',
+  Activate: '활성화',
+  'It is in the email from Lemon Squeezy after you subscribe. One key works on up to 3 computers.': '구독하면 Lemon Squeezy에서 오는 이메일에 있어요. 키 하나로 컴퓨터 3대까지 쓸 수 있어요.',
+  'That key did not work: {detail}': '이 키는 쓸 수 없어요: {detail}',
+  'That key did not work. Check it against your receipt email.': '이 키는 쓸 수 없어요. 영수증 이메일의 키와 같은지 확인해 주세요.',
+  'That does not look like a license key.': '라이선스 키 형식이 아니에요.',
+  "Side couldn't reach its server. Check your connection and try again.": 'Side 서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 해 주세요.',
+  "Signed out on this computer. Side couldn't reach its server, so free this computer from your orders page if you need the slot.":
+    '이 컴퓨터에서 로그아웃했어요. Side 서버에 연결하지 못했으니, 자리가 필요하면 주문 페이지에서 이 컴퓨터을 해제해 주세요.',
+  'Signed out on this computer.': '이 컴퓨터에서 로그아웃했어요.',
+  'Side Pro is on. Welcome!': 'Side Pro가 켜졌어요. 반가워요!',
   "Reads tomorrow's first event time and how many are left today. Never reads titles, places or attendees.":
     '내일 첫 일정의 시간과 오늘 남은 일정 수만 읽어요. 제목, 장소, 참석자는 읽지 않아요.',
   'Turn it on so sidy knows when tomorrow starts. Never reads titles, places or attendees.':
@@ -13,8 +46,8 @@ export const MAIN: Record<string, string> = {
   Hide: '접기',
   'Saved {n} tab · Checking with Chrome…': '탭 {n}개 저장 · Chrome에 확인하는 중…',
   'Saved {n} tabs · Checking with Chrome…': '탭 {n}개 저장 · Chrome에 확인하는 중…',
-  'Nothing to Claude. There is no Claude key on this computer, so sidy names groups with simple rules here.':
-    'Claude에 보낸 건 없어요. 이 컴퓨터에 Claude 키가 없어서 sidy가 간단한 규칙으로 그룹 이름을 정해요.',
+  'Nothing to Claude. Side Pro is not on for this computer, so sidy names groups with simple rules here.':
+    'Claude에 보낸 건 없어요. 이 컴퓨터에서 Side Pro가 꺼져 있어서 sidy가 간단한 규칙으로 그룹 이름을 정해요.',
   'To Claude (Anthropic):': 'Claude(Anthropic)에 보낸 것:',
   '{titles}, to name groups.': '{titles} — 그룹 이름을 정하려고',
   'Your group names, to suggest a question for tomorrow.': '그룹 이름 — 내일 질문을 추천하려고',
@@ -45,8 +78,8 @@ export const MAIN: Record<string, string> = {
   'sidy stretches when you unlock, whistles when a video starts, nods to music — once, then still. Off with Reduce Motion too.':
     '잠금을 풀면 sidy가 기지개를 켜고, 영상이 시작되면 휘파람을 불고, 음악에 고개를 끄덕여요. 한 번만 하고 가만히 있어요. ‘동작 줄이기’를 켜 두면 꺼져요.',
   'AI drafting': 'AI 초안',
-  'On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic) to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.':
-    '켜면: 탭 제목, 내일을 위한 한 줄, 한 걸음 횟수, 켜 둔 데스크톱 앱의 파일 이름(폴더 제외), sidy에게 묻기에 입력한 내용을 Claude(Anthropic)에 보내요. 그룹 이름을 정하고, 질문을 제안하고, 다음 한 걸음과 실행할 동작 하나를 고르는 데 써요. 주소, 페이지 내용, 파일 내용, 제외한 사이트는 절대 보내지 않아요. 끄면: sidy가 간단한 규칙을 써요.',
+  'On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic), through the Side server, which keeps none of it, to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.':
+    '켜면: 탭 제목, 내일을 위한 한 줄, 한 걸음 횟수, 켜 둔 데스크톱 앱의 파일 이름(폴더 제외), sidy에게 묻기에 입력한 내용을 Side 서버를 거쳐 Claude(Anthropic)에 보내요. Side 서버는 아무것도 남기지 않아요. 그룹 이름을 정하고, 질문을 제안하고, 다음 한 걸음과 실행할 동작 하나를 고르는 데 써요. 주소, 페이지 내용, 파일 내용, 제외한 사이트는 절대 보내지 않아요. 끄면: sidy가 간단한 규칙을 써요.',
   'Share anonymous counts': '익명 숫자 공유',
   'Numbers only — tabs set aside, steps shown and opened. No titles, sites or words.': '숫자만 보내요 — 정리한 탭, 보여 준 한 걸음, 연 한 걸음. 제목, 사이트, 글은 없어요.',
   'Demo clock': '데모 시계',
@@ -68,7 +101,6 @@ export const MAIN: Record<string, string> = {
   'Side extension is on.': 'Side 확장 프로그램이 켜져 있어요.',
   'Waiting for the Side extension. Load it in chrome://extensions, then check again.': 'Side 확장 프로그램을 기다리고 있어요. chrome://extensions에서 불러온 뒤 다시 확인해 보세요.',
   'Make sure the Side extension is switched on in chrome://extensions.': 'chrome://extensions에서 Side 확장 프로그램이 켜져 있는지 확인해 보세요.',
-  'Check again': '다시 확인',
   'Pair a different extension': '다른 확장 프로그램 연결하기',
   'Found on this computer': '이 컴퓨터에서 찾은 앱',
   On: '켜짐',
