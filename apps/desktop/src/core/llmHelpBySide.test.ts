@@ -10,7 +10,7 @@ const nums = (o: Partial<SideNumbers>): SideNumbers => ({
 describe('ruleBySide', () => {
   it('says it is still learning below three opened steps', () => {
     expect(ruleBySide(nums({ clicked: 2 }))).toBe(
-      'sidy is still learning what gets you started. 2 steps opened so far — after 3, it can tell you which kind works for you.',
+      'sidy is still learning how you start. 2 steps opened so far — it gets more precise the more you use it.',
     );
   });
   it('states the kept-going share from the counts after that', () => {

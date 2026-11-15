@@ -31,10 +31,10 @@ describe('sidySvg', () => {
     expect(svg).not.toMatch(/gradient|circle/i);
   });
 
-  it('carries a smile of two eye arcs beside the open eyes, and no mouth', () => {
+  it('has two eyes that can blink, and no smile or mouth', () => {
     const svg = sidySvg(40);
     expect(svg).toContain('class="eyes"');
     expect(svg.match(/class="eye"/g)).toHaveLength(2);
-    expect(svg).toMatch(/<g class="smile"[^>]*><path[^>]*\/><path[^>]*\/><\/g>/);
+    expect(svg).not.toMatch(/smile|<path/);
   });
 });

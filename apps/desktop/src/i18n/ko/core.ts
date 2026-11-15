@@ -74,8 +74,8 @@ export const CORE: Record<string, string> = {
   'Left open': '열어 둠',
 
   // By your side
-  'sidy is still learning what gets you started. {steps} opened so far — after {learn}, it can tell you which kind works for you.':
-    'sidy는 어떻게 시작하면 좋은지 아직 배우는 중이에요. 지금까지 {steps}를 열었어요 — {learn}개가 되면 어떤 방식이 맞는지 알려 줄 수 있어요.',
+  'sidy is still learning how you start. {steps} opened so far — it gets more precise the more you use it.':
+    'sidy가 당신이 시작하는 방식에 맞춰 가는 중이에요. 지금까지 {steps}를 열었어요. 쓸수록 더 정교해져요.',
   '{steps} opened so far. sidy checks 10 minutes after each one whether you kept going.':
     '지금까지 {steps}를 열었어요. sidy는 열고 10분 뒤에 계속했는지 확인해요.',
   'Of {steps} you opened and stayed with long enough to tell, {kept} kept you going past 10 minutes.':

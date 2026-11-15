@@ -65,11 +65,6 @@ describe('edgeView', () => {
     expect(s(edgeView({ mode: 'out', size: 64, hitY: 90, hitSize: 72 }))).toContain('class="edge out"');
   });
 
-  it('smiles only when asked to (while speaking)', () => {
-    expect(s(edgeView({ mode: 'out', size: 40, hitY: 90, hitSize: 48, smile: true }))).toContain('class="edge out smile"');
-    expect(s(edgeView({ mode: 'quiet', size: 40, hitY: 90, hitSize: 48 }))).toContain('class="edge tucked"');
-  });
-
   it('draws nothing at all when hidden', () => {
     expect(s(edgeView({ mode: 'hidden', size: 40, hitY: 90, hitSize: 48 }))).toBe('');
   });

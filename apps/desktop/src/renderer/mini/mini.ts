@@ -8,7 +8,7 @@ import { applyLanguage } from '../shared/lang';
 import { t } from '../../i18n';
 import { FIXTURE_PREVIEW, FIXTURE_PREVIEW_FILES, FIXTURE_PREVIEW_LONG, FIXTURES } from '../shared/fixtures';
 import { homeView, type HomeLocal } from './homeView';
-import { checkingView, doneView, failedView, loadingView, previewView, type Failure, type WrapLocal } from './wrapView';
+import { checkingView, doneView, lineView, failedView, loadingView, previewView, type Failure, type WrapLocal } from './wrapView';
 import { oneMoreView } from './oneMoreView';
 import { clock } from './parts';
 import { stepOpenedText, type StepOpenReply } from '../shared/stepText';
@@ -21,6 +21,7 @@ type View =
   | { name: 'preview'; p: PreviewView }
   | { name: 'checking'; p: PreviewView }
   | { name: 'done'; sa: SetAside }
+  | { name: 'line'; id: string }
   | { name: 'failed'; f: Failure; retryId: string | null; p: PreviewView | null }
   | { name: 'onemore'; minutes: 30 | 60 };
 
@@ -67,6 +68,7 @@ function render() {
     case 'preview': h = previewView(view.p, wrap); break;
     case 'checking': h = checkingView(view.p, wrap); break;
     case 'done': h = doneView(state, view.sa, { line, suggestions }); break;
+    case 'line': h = lineView(state, view.id, { line }); break;
     case 'failed': h = failedView(view.f); break;
     case 'onemore': h = oneMoreView(state.now, state.settings.wakeMinutes, view.minutes, state); break;
   }
@@ -90,7 +92,7 @@ function render() {
   drawnScreen = screen;
   drawnNotice = notice;
   drawnLanguage = state.settings.language;
-  const keep = view.name === 'preview' || view.name === 'checking' || view.name === 'done' || view.name === 'failed';
+  const keep = view.name === 'preview' || view.name === 'checking' || view.name === 'done' || view.name === 'line' || view.name === 'failed';
   if (keep !== keepSent) {
     keepSent = keep;
     void Promise.resolve(api.invoke('side:mini.keep', { keep })).catch(() => undefined);
@@ -231,6 +233,21 @@ async function saveLine(id: string | undefined) {
   return toastAndClose(text ? t('Saved your question. See you tomorrow.') : t('Set aside. See you tomorrow.'));
 }
 
+/** Changes or removes the line of the last wrap-up. Mini stays open and goes home; a failed save keeps the words on screen. */
+async function changeLine(id: string | undefined, text: string | null) {
+  let ok = true;
+  try {
+    const r = await api.invoke<{ error?: string } | null>('side:wrapup.tomorrow', { id, line: text });
+    ok = !(r && typeof r === 'object' && 'error' in r);
+  } catch {
+    ok = false;
+  }
+  if (!ok) return void api.invoke('side:toast', { text: t("Couldn't save your line. Try again."), ms: 3500 }).catch(() => undefined);
+  line = '';
+  home = { notice: text ? t('Saved your line.') : t('Removed your line.') };
+  go({ name: 'home' });
+}
+
 // ---- Ask sidy: one line → at most one fixed action, run as its own button would run it ----
 
 async function askNow() {
@@ -346,6 +363,14 @@ async function act(el: HTMLElement) {
       return render();
     }
     case 'save-line': return saveLine(el.dataset.id);
+    case 'edit-line': {
+      const w = state?.lastWrapup;
+      if (!w) return;
+      line = w.userLine ?? '';
+      return go({ name: 'line', id: w.id });
+    }
+    case 'save-line-edit': return changeLine(el.dataset.id, line.trim() || null);
+    case 'clear-line': return changeLine(el.dataset.id, null);
     case 'chip':
       // Picking again replaces the line: only the last value is kept.
       line = el.dataset.text ?? '';

@@ -44,9 +44,8 @@ export function bySideSentence(s: ViewState): string {
   if (n.clicked < LEARN_AFTER) {
     return tn(
       n.clicked,
-      'sidy is still learning what gets you started. {n} step opened so far — after {after}, it can tell you which kind works for you.',
-      'sidy is still learning what gets you started. {n} steps opened so far — after {after}, it can tell you which kind works for you.',
-      { after: LEARN_AFTER },
+      'sidy is still learning how you start. {n} step opened so far — it gets more precise the more you use it.',
+      'sidy is still learning how you start. {n} steps opened so far — it gets more precise the more you use it.',
     );
   }
   const judged = n.stillWorkingRate.n;

@@ -114,6 +114,19 @@ function todayText(s: ViewState, sa: SetAside): { line: string; note: string } |
   };
 }
 
+/** The line kept with the last wrap-up, changed or removed later without touching a tab. */
+export function lineView(s: ViewState, id: string, local: { line: string }): SafeHtml {
+  const had = !!s.lastWrapup?.userLine;
+  return panel([
+    head(okChip()),
+    html`<div class="pb">
+<div class="field"><label for="tm">${t('Your line for next time')}</label>
+<input id="tm" maxlength="200" placeholder="${t('One line, if you like')}" autocomplete="off" value="${local.line}">
+<p class="note" style="margin:6px 0 0">${t('Your tabs stay as they are.')} ${t('sidy brings it back tomorrow.')}</p></div></div>
+<div class="pf"><div class="row"><button class="btn fill grow" data-act="save-line-edit" data-id="${id}">${t('Save')}</button>${had ? html`<button class="btn grow" data-act="clear-line" data-id="${id}">${t('Remove line')}</button>` : ''}<button class="btn grow" data-act="home">${t('Cancel')}</button></div></div>`,
+  ]);
+}
+
 export function doneView(s: ViewState, sa: SetAside, local: { line: string; suggestions?: string[] }): SafeHtml {
   const sugg = local.suggestions ?? [];
   const r = sa.result ?? { grouped: [], closed: [], kept: [] };

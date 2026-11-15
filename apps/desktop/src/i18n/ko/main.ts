@@ -149,10 +149,10 @@ export const MAIN: Record<string, string> = {
   'step opened': '열어 본 한 걸음',
   'steps opened': '열어 본 한 걸음',
   'kept going 10 min': '10분 넘게 이어감',
-  'sidy is still learning what gets you started. {n} step opened so far — after {after}, it can tell you which kind works for you.':
-    'sidy는 무엇이 시작에 도움이 되는지 아직 배우는 중이에요. 지금까지 한 걸음 {n}개를 열었고, {after}개를 넘으면 어떤 종류가 잘 맞는지 알려 줄 수 있어요.',
-  'sidy is still learning what gets you started. {n} steps opened so far — after {after}, it can tell you which kind works for you.':
-    'sidy는 무엇이 시작에 도움이 되는지 아직 배우는 중이에요. 지금까지 한 걸음 {n}개를 열었고, {after}개를 넘으면 어떤 종류가 잘 맞는지 알려 줄 수 있어요.',
+  'sidy is still learning how you start. {n} step opened so far — it gets more precise the more you use it.':
+    'sidy가 당신이 시작하는 방식에 맞춰 가는 중이에요. 지금까지 한 걸음 {n}개를 열었어요. 쓸수록 더 정교해져요.',
+  'sidy is still learning how you start. {n} steps opened so far — it gets more precise the more you use it.':
+    'sidy가 당신이 시작하는 방식에 맞춰 가는 중이에요. 지금까지 한 걸음 {n}개를 열었어요. 쓸수록 더 정교해져요.',
   'Of {n} step you opened and stayed with long enough to tell, {kept} kept you going past 10 minutes.':
     '열어서 충분히 머문 한 걸음 {n}개 중 {kept}개가 10분 넘게 이어지게 했어요.',
   'Of {n} steps you opened and stayed with long enough to tell, {kept} kept you going past 10 minutes.':

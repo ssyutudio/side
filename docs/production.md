@@ -26,7 +26,7 @@ Not built on purpose (add when there is a reason): accounts and login (the licen
 
 ## Launch checklist (things only you can do)
 
-1. **Lemon Squeezy**: create the store and one product "Side Pro" with two subscription variants, Monthly ($6) and Yearly ($48), each with a 14-day trial. Turn on license keys for the product, activation limit **3**, and set the license key to follow the subscription.
+1. **Lemon Squeezy**: create the store and one product "Side Pro" with two subscription variants, Monthly and Yearly, each with a 14-day trial. The prices are not decided yet. Turn on license keys for the product, activation limit **3**, and set the license key to follow the subscription.
 2. **Pricing page**: when Pro opens, set the prices in `web/waitlist/public/pricing.html` and point its two Pro buttons at the variants' checkout links (they go to the waitlist today).
 3. **Legal**: move `web/waitlist/drafts/*.html` back into `public/`, link them from the footers, fill `[COMPANY_NAME]`, `[REPRESENTATIVE]`, `[BUSINESS_NO]`, `[MAIL_ORDER_NO]` (mail-order business report number), `[ADDRESS]`, `[CONTACT_EMAIL]`, `[PRIVACY_OFFICER]`, `[EFFECTIVE_DATE]` in the four pages, then have them reviewed. Korean versions are still to write.
 4. **Vercel env** (project `side-waitlist`): `ANTHROPIC_API_KEY`, `LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_PRODUCT_ID`, and the existing `DATABASE_URL`.
