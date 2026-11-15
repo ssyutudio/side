@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Side — join the waitlist</title>
-<meta name="description" content="Side folds your tabs into named groups when you stop, and hands you one small step when you come back.">
+<title>Side — stop for the night, start again with one small step</title>
+<meta name="description" content="Planners tell you what to do. Side gets you started. Stop for the night, and one tiny step opens the tab, the file or the folder where you left off — no badges, no overdue guilt, even after three days away.">
 <link rel="icon" href="sidy.svg" type="image/svg+xml">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <link rel="stylesheet" href="styles.css">
@@ -13,8 +13,9 @@
 <main class="wl">
   <section class="intro">
     <p class="brand"><img src="sidy.svg" width="36" height="36" alt=""><span>Side</span></p>
-    <h1>Stop for the night. Start again with one small step.</h1>
-    <p class="lead">Side is a desktop app with a Chrome extension. When you stop, it folds your tabs into named groups and remembers the files you saved in Word, Excel, PowerPoint or Photoshop. When you come back, sidy hands you one step — the page or the file where you left off.</p>
+    <p class="kicker">No red badges · No overdue counters · Nothing piling up</p>
+    <h1>Planners tell you what to do.<br>Side gets you started.</h1>
+    <p class="lead">Side is a desktop app with a Chrome extension. Stop for the night; start again with one small step. Even after three days away, the tab, the file or the folder where you left off opens in one click — and Side never counts what you missed.</p>
     <ul class="four" aria-label="Four moments">
       <li>Set aside</li><li>Be beside</li><li>Step inside</li><li>By your side</li>
     </ul>
@@ -28,6 +29,7 @@
       <label class="ck"><input id="consent" type="checkbox" required> <span>Email me when Side is ready to download. Nothing else.</span></label>
       <p class="err" id="consent-err" hidden>Tick the box so we can email you once Side is ready.</p>
       <button class="btn fill big" id="submit" type="submit">Join the waitlist</button>
+      <p class="hint">Side runs on a Mac today. Windows and iPhone come later.</p>
       <div class="alert" id="fail" role="alert" hidden><b>Couldn't save that.</b><span id="fail-why">Check your connection and press Join the waitlist again. Your email is still here.</span></div>
     </form>
     <div class="done-line" id="done" role="status" hidden><b>You're on the list.</b><br>We'll write when Side is ready.</div>
@@ -43,7 +45,69 @@
     <video src="side-demo.mp4" poster="side-demo-poster.jpg" controls muted playsinline preload="metadata" width="1280" height="720" aria-label="Side demo: setting tabs aside at night and stepping back in the next day"></video>
   </section>
 
-  <p class="foot">Tab titles, your one line and your step counts go to Claude to name groups and pick your next step, plus file names (no folders) from the desktop apps you turn on and the line you type in Ask sidy. Addresses, folders, page text and file contents stay on your computer. This page stores only your email, once.</p>
+  <section class="sec" aria-labelledby="picks-h">
+    <p class="kicker">What a step can open</p>
+    <h2 id="picks-h">Not a fresh start. The exact place you stopped.</h2>
+    <p class="sub">Side keeps the thread of the work, not a list of tasks. A step opens the thing itself: the tab at the line you were reading, the file at the cell you were filling.</p>
+    <ul class="tiles">
+      <li><b>Chrome tabs</b><span>Folded into named groups when you stop, and opened where you were reading when you come back.</span><em class="on">In this build</em></li>
+      <li><b>Word, Excel, PowerPoint, Photoshop</b><span>The file you saved last opens in its own app: Word at the end, Excel at the last filled cell, PowerPoint on the last slide.</span><em class="on">In this build</em></li>
+      <li><b>Calendar</b><span>Only tomorrow's first start time and how many events are left today, so One more hour can count to the meeting instead of your bedtime.</span><em class="on">In this build</em></li>
+      <li><b>Your one line</b><span>What you were curious about tomorrow comes back with the step, in your own words.</span><em class="on">In this build</em></li>
+      <li><b>Claude Code</b><span>The folder your last session ran in, offered again the next time you sit down.</span><em>With Pro</em></li>
+      <li><b>Cursor, VS Code</b><span>The file at the line you stopped at, instead of the whole project again.</span><em>With Pro</em></li>
+    </ul>
+    <p class="note">Today a step opens one of these. Pro prepares several at once: the Claude Code folder, the editor at the file and the tab you were reading, in one click.</p>
+  </section>
+
+  <section class="sec" aria-labelledby="quiet-h">
+    <p class="kicker">Two things other apps won't do</p>
+    <h2 id="quiet-h">It won't tell you to go to bed. It won't keep score either.</h2>
+    <div class="two">
+      <article class="card">
+        <h3>One more hour</h3>
+        <p>Say you're not done and Side respects it: nothing closes, and it says one true thing — how long you would sleep if you stopped now. With the calendar on, that counts to tomorrow's first event. Then it asks exactly once, at the time you pick.</p>
+        <p class="said">“Sure, keep going. What you did so far is saved.”</p>
+      </article>
+      <article class="card">
+        <h3>By your side</h3>
+        <p>Ten minutes after a step, sidy checks whether you kept working: counts only, never what you did. After three steps it can tell you which kind of step actually gets you going, from your own numbers.</p>
+        <p class="said">No streak to keep. No score to lose. Skipping a day costs nothing.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="plans-h">
+    <p class="kicker">Free and Pro</p>
+    <h2 id="plans-h">Free builds the habit. Pro pays for what Side prepares.</h2>
+    <p class="sub">What we plan to ship when Side opens. Today's build still asks for your own Anthropic key, which is the part these plans remove.</p>
+    <div class="two plans">
+      <article class="plan">
+        <p class="tag">Free · on this computer</p>
+        <ul>
+          <li>Set aside your tabs into named groups, with Undo on everything.</li>
+          <li>Rules name the groups: no account, no key, no server.</li>
+          <li>One basic step back: the page you stopped on, where you stopped.</li>
+          <li>Excluded sites, quiet hours and What Side saw.</li>
+          <li>Every count stays in one file on your Mac.</li>
+        </ul>
+        <p class="fine">Works offline. Costs us nothing, so it costs you nothing.</p>
+      </article>
+      <article class="plan pro">
+        <p class="tag">Pro · cloud <span class="soon">in the works</span></p>
+        <ul>
+          <li>Claude names your groups and picks your step, with no API key to paste.</li>
+          <li>One step across apps: the Claude Code folder, the editor at the file and the tab, at once.</li>
+          <li>By your side builds the next step from the ones that worked.</li>
+          <li>Results prepared before you come back, not after you ask.</li>
+          <li>Waitlist first, with early-bird pricing when Pro opens.</li>
+        </ul>
+        <p class="fine">The price is not set yet. Waitlist members hear it first, and nothing is charged before we write to you.</p>
+      </article>
+    </div>
+  </section>
+
+  <p class="foot">Tab titles, your one line and your step counts go to Claude to name groups and pick your next step, plus file names (no folders) from the desktop apps you turn on and the line you type in Ask sidy. Addresses, folders, page text and file contents stay on your computer. This page stores only your email, once. Pro is planned to send the same titles through Side's server instead of your own key; nothing else changes.</p>
 </main>
 <div class="edgepeek" aria-hidden="true"><img src="sidy.svg" width="40" height="40" alt=""></div>
 <script src="app.js"></script>

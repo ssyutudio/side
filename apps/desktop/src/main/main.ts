@@ -141,8 +141,9 @@ async function start() {
   setLanguage(store.get().settings.language);
 
   const llmEnabled = store.get().settings.llmEnabled;
-  console.log(`[side] llm key ${config.anthropicKey ? 'present' : 'absent'}, llm ${llmEnabled ? 'on' : 'off'}`);
-  const transport = llmFromKey(config.anthropicKey);
+  const endpoint = config.llm.baseUrl ? 'own endpoint' : 'anthropic';
+  console.log(`[side] llm key ${config.anthropicKey ? 'present' : 'absent'}, llm ${llmEnabled ? 'on' : 'off'}, model ${config.llm.model} via ${endpoint}`);
+  const transport = llmFromKey(config.anthropicKey, config.llm);
 
   bridge = new Bridge({
     host: BRIDGE_HOST,

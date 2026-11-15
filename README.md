@@ -40,6 +40,11 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 Without a key, Side groups tabs with its built-in rules.
 
+The same file can point those calls somewhere else, which is how a managed endpoint plugs in:
+`SIDE_LLM_MODEL` (default `claude-opus-5-5`), `SIDE_LLM_BASE_URL` (an Anthropic-compatible address,
+unset means Anthropic itself) and `SIDE_LLM_TIMEOUT_MS` (default `8000`; after that the built-in
+rules answer instead).
+
 Drag sidy up or down the right edge to move it; Side remembers the spot after a relaunch. A click that doesn't move still opens Mini.
 
 Keyboard: **Control+Option+S** hides sidy completely and brings it back. Clicking Side in the Dock also brings it back.
