@@ -139,7 +139,7 @@ describe('What Side saw', () => {
     expect(h).toContain('<li>Tab titles and your one line, to pick your next step.</li>');
     expect(h).toContain('Never addresses, page text, file contents or excluded sites.');
     const noKey = s(sawView({ ...FIXTURES.day, saw: { ...FIXTURES.day.saw, llm: { ...FIXTURES.day.saw.llm, available: false } } }, { showAll: false }));
-    expect(noKey).toContain('There is no Claude key on this computer');
+    expect(noKey).toContain('Side Pro is not on for this computer');
     expect(noKey).toContain('<b>0</b>titles sent to Claude');
     expect(h).toContain('Anonymous counts: off.');
     expect(h).toContain('Show all 37');
@@ -163,7 +163,7 @@ describe('Settings', () => {
     const h = s(settingsView(FIXTURES.day));
     expect(h).toMatch(/aria-pressed="true"[^>]*data-size="small"|data-size="small"[^>]*aria-pressed="true"/);
     expect(h).toContain('⌃⌥S');
-    expect(h).toContain('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic) to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.');
+    expect(h).toContain('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic), through the Side server, which keeps none of it, to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.');
     expect(h).toMatch(/data-key="llmEnabled"[^>]*aria-checked="true"|aria-checked="true"[^>]*data-key="llmEnabled"/);
     expect(h).toMatch(/data-key="uploadEnabled"[^>]*aria-checked="false"|aria-checked="false"[^>]*data-key="uploadEnabled"/);
     expect(h).toContain('Connections');
@@ -253,9 +253,69 @@ describe('Korean', () => {
     for (const w of ['Settings', 'sidy size', 'Small', 'Quiet hours', 'AI drafting', 'Connections', 'Desktop apps']) expect(h).toContain(ko(w));
     const demo = s(settingsView({ ...FIXTURES.day, demoTools: true }));
     for (const w of ['Demo clock', 'Real time']) expect(demo).toContain(ko(w));
-    expect(h).toContain(ko('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic) to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.'));
+    expect(h).toContain(ko('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic), through the Side server, which keeps none of it, to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.'));
     expect(h).toContain(`${ko('PM')} 10:30`);
     expect(h).toContain(`${ko('AM')} 7:30`);
     expect(s(settingsView(FIXTURES.offline))).toContain(ko('Not connected'));
+  });
+});
+
+describe('Side Pro in Settings', () => {
+  const at = (pro: NonNullable<typeof FIXTURES.day.pro>) => ({ ...FIXTURES.day, pro });
+  const local = { input: '', busy: false, message: null };
+
+  it('free: offers plans and a license key form, and says free Side sends nothing', () => {
+    setLanguage('en');
+    const h = s(settingsView(at({ state: 'free', plan: null, renewsAt: null }), { appsOpen: false, pro: local }));
+    expect(h).toContain('data-act="pro-pricing"');
+    expect(h).toContain('id="license-form"');
+    expect(h).toContain('Free Side keeps working with simple rules and sends nothing.');
+    expect(h).not.toMatch(BANNED);
+  });
+
+  it('pro: names the plan and offers managing the subscription, no key form', () => {
+    setLanguage('en');
+    const h = s(settingsView(at({ state: 'pro', plan: 'Yearly', renewsAt: Date.UTC(2027, 0, 15, 12) }), { appsOpen: false, pro: local }));
+    expect(h).toContain('Side Pro · Yearly');
+    expect(h).toContain('data-act="pro-billing"');
+    expect(h).toContain('data-act="pro-signout"');
+    expect(h).not.toContain('id="license-form"');
+  });
+
+  it('ended: says sidy is back on rules and offers renewing', () => {
+    setLanguage('en');
+    const h = s(settingsView(at({ state: 'ended', plan: 'Monthly', renewsAt: null }), { appsOpen: false, pro: local }));
+    expect(h).toContain('Side Pro has ended');
+    expect(h).toContain('data-act="pro-refresh"');
+  });
+
+  it('shows a rejected key as an alert and a running check as a disabled button', () => {
+    setLanguage('en');
+    const h = s(settingsView(at({ state: 'free', plan: null, renewsAt: null }), { appsOpen: false, pro: { input: 'ABCD-1234', busy: true, message: { kind: 'error', text: 'That key did not work.' } } }));
+    expect(h).toContain('role="alert"');
+    expect(h).toContain('aria-invalid="true"');
+    expect(h).toContain('value="ABCD-1234"');
+    expect(h).toMatch(/<button type="submit" class="btn fill" disabled>/);
+  });
+
+  it('is fully Korean when Korean is picked', () => {
+    setLanguage('ko');
+    for (const state of ['free', 'pro', 'ended', 'developer'] as const) {
+      const h = s(settingsView(at({ state, plan: null, renewsAt: null }), { appsOpen: false, pro: local }));
+      expect(h, state).not.toMatch(/Claude names|License key|See plans|Manage subscription|has ended|Developer key/);
+    }
+    setLanguage('en');
+  });
+});
+
+describe('Reading spot on every site', () => {
+  it('Connections offers Allow every site only while Chrome allows a few sites', () => {
+    setLanguage('en');
+    const few = s(settingsView({ ...FIXTURES.day, everySite: false }, { appsOpen: false }));
+    expect(few).toContain('Remembers where you stopped only on a few sites');
+    expect(few).toContain('data-act="allow-sites"');
+    const all = s(settingsView({ ...FIXTURES.day, everySite: true }, { appsOpen: false }));
+    expect(all).toContain('Remembers where you stopped on every site.');
+    expect(all).not.toContain('data-act="allow-sites"');
   });
 });

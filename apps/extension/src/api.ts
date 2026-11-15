@@ -55,12 +55,20 @@ export interface ChromeApi {
   permissions: {
     contains(p: { origins: string[] }): Promise<boolean>;
   };
+  runtime: {
+    getURL(path: string): string;
+  };
   scripting: {
     executeScript(inj: { target: { tabId: number }; func: (...args: any[]) => unknown; args?: unknown[] }): Promise<{ result?: unknown }[]>;
   };
 }
 
 export const NO_GROUP = -1;
+
+/** The optional host permission that lets Side read the reading spot on any web page. */
+export const EVERY_SITE = ['https://*/*', 'http://*/*'];
+/** The extension page that asks for EVERY_SITE (a permission request needs a click on an extension page). */
+export const ALLOW_PAGE = 'allow.html';
 
 /** Current URL of a tab, falling back to the URL it is loading. */
 export function urlOf(tab: TabLike): string {

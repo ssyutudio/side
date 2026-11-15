@@ -95,14 +95,15 @@ export class WrapupService {
   }
 
   /** `llm: false` groups by the rules alone: nothing about the tabs is sent to Claude. */
-  async preview(rawReport: TabsReport, opts: { llm?: boolean } = {}): Promise<WrapupPreview> {
+  async preview(rawReport: TabsReport, opts: { llm?: boolean; onLate?: (preview: WrapupPreview) => void } = {}): Promise<WrapupPreview> {
     const report = this.clean(rawReport);
     const names = this.sideGroupNames();
     const candidates = candidateTabs(report, names);
     const { settings } = this.data;
     let groups = groupTabs(candidates);
     if (opts.llm !== false && settings.llmEnabled && this.deps.llm && candidates.length > 0) {
-      const outcome = await groupWithLlm(candidates, null, settings.excludedDomains, this.deps.llm, this.deps.clock);
+      const late = opts.onLate ? (o: { groups: ReturnType<typeof groupTabs> }) => opts.onLate!(buildPreview(report, o.groups, names)) : undefined;
+      const outcome = await groupWithLlm(candidates, null, settings.excludedDomains, this.deps.llm, this.deps.clock, undefined, late);
       groups = outcome.groups;
       const at = this.deps.clock.now();
       await this.deps.store

@@ -1,7 +1,7 @@
 // Main · Settings. Every change applies at once (the app pushes the new state back).
 import type { ViewState } from '../../main/viewState';
 import { html, type SafeHtml } from '../shared/html';
-import { minutesToClock, shortcutKeys } from './format';
+import { longDate, minutesToClock, shortcutKeys } from './format';
 import { connectionsView } from './connections';
 import { k, t } from '../../i18n';
 import { KOREAN_NAME } from '../../i18n/ko';
@@ -34,7 +34,45 @@ function sw(key: 'llmEnabled' | 'uploadEnabled' | 'reactions', on: boolean, labe
   return html`<button type="button" class="sw" role="switch" aria-checked="${on ? 'true' : 'false'}" aria-label="${label}" data-act="toggle" data-key="${key}"></button>`;
 }
 
-export function settingsView(s: ViewState, opts: { appsOpen: boolean } = { appsOpen: false }): SafeHtml {
+/** What the license form shows between draws: the key being typed, a check in progress, and its answer. */
+export interface ProLocal {
+  input: string;
+  busy: boolean;
+  message: { kind: 'error' | 'ok'; text: string } | null;
+}
+
+export const NO_PRO_LOCAL: ProLocal = { input: '', busy: false, message: null };
+
+/**
+ * Side Pro. Free Side works with simple rules and sends nothing; Pro adds Claude through Side's
+ * server. Buying happens on the web (Lemon Squeezy); the key from the receipt is pasted here.
+ */
+export function proView(s: ViewState, local: ProLocal): SafeHtml {
+  const pro = s.pro ?? { state: 'free', plan: null, renewsAt: null };
+  const msg = local.message ? html`<p class="${local.message.kind === 'error' ? 'field-error' : 'note'}" role="${local.message.kind === 'error' ? 'alert' : 'status'}" style="margin:6px 0 0">${local.message.text}</p>` : '';
+  const head = html`<h2 class="set-h">${t('Side Pro')}</h2>`;
+  if (pro.state === 'developer') {
+    return html`${head}<div class="set"><div class="r"><b>${t('Developer key')}</b><p>${t('Side is using the Claude key in .env.local, so no license is needed on this computer.')}</p></div></div>`;
+  }
+  if (pro.state === 'pro') {
+    const when = pro.renewsAt ? t('Renews or ends on {date}.', { date: longDate(pro.renewsAt) }) : '';
+    return html`${head}<div class="set"><div class="r"><b>${pro.plan ? t('Side Pro · {plan}', { plan: pro.plan }) : t('Side Pro')}</b><p>${t('Claude names your groups, suggests a question, picks your next step and answers Ask sidy.')} ${when}</p><span class="ctl row"><button type="button" class="btn sm" data-act="pro-billing">${t('Manage subscription')}</button><button type="button" class="btn sm ghost" data-act="pro-signout">${t('Sign out this computer')}</button></span></div></div>${msg}`;
+  }
+  const lead = pro.state === 'ended'
+    ? html`<div class="r"><b>${t('Side Pro has ended')}</b><p>${t('Your subscription is no longer active, so sidy uses simple rules again and sends nothing. Everything you saved stays on this computer.')}</p><span class="ctl row"><button type="button" class="btn sm fill" data-act="pro-billing">${t('Renew')}</button><button type="button" class="btn sm" data-act="pro-refresh">${t('Check again')}</button><button type="button" class="btn sm ghost" data-act="pro-signout">${t('Sign out this computer')}</button></span></div>`
+    : html`<div class="r"><b>${t('Side Pro')}</b><p>${t('Claude names your groups, suggests a question for tomorrow, picks your next step and answers Ask sidy. Free Side keeps working with simple rules and sends nothing.')}</p><span class="ctl"><button type="button" class="btn sm fill" data-act="pro-pricing">${t('See plans')}</button></span></div>`;
+  const form = pro.state === 'ended'
+    ? ''
+    : html`<form class="field" id="license-form" style="max-width:640px;margin-top:12px" novalidate>
+<label for="license-key">${t('License key')}</label>
+<div class="row"><input id="license-key" name="key" value="${local.input}" autocomplete="off" spellcheck="false" aria-describedby="license-help"${local.message?.kind === 'error' ? html` aria-invalid="true"` : ''}><button type="submit" class="btn fill"${local.busy ? html` disabled` : ''}>${local.busy ? t('Checking…') : t('Activate')}</button></div>
+${msg}
+<p class="note" id="license-help" style="margin:6px 0 0">${t('It is in the email from Lemon Squeezy after you subscribe. One key works on up to 3 computers.')}</p>
+</form>`;
+  return html`${head}<div class="set">${lead}</div>${form}`;
+}
+
+export function settingsView(s: ViewState, opts: { appsOpen: boolean; pro?: ProLocal } = { appsOpen: false }): SafeHtml {
   const st = s.settings;
   // On/off is a switch like every other row; the times show only while it is on.
   const quietSwitch = html`<button type="button" class="sw" role="switch" aria-checked="${st.quietHours ? 'true' : 'false'}" aria-label="${t('Quiet hours')}" data-act="quiet-toggle"></button>`;
@@ -50,16 +88,17 @@ ${languageRow(st.language === 'ko' ? 'ko' : 'en')}
 <div class="r"><b>${t('Quiet hours')}</b><p>${t("sidy won't start talking in this window. A check-in you asked for still comes, once.")}</p>${quiet}</div>
 <div class="r"><b>${t('Wake-up time')}</b><p>${t('One more hour uses it to say how long you would sleep if you stopped now.')}</p><span class="ctl">${timeSelect('wake', t('Wake-up time'), st.wakeMinutes)}</span></div>
 <div class="r"><b>${t('Little reactions')}</b><p>${t('sidy stretches when you unlock, whistles when a video starts, nods to music — once, then still. Off with Reduce Motion too.')}</p><span class="ctl">${sw('reactions', st.reactions !== false, t('Little reactions'))}</span></div>
-${s.saw.llm.available ? html`<div class="r"><b>${t('AI drafting')}</b><p>${t('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic) to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.')}</p><span class="ctl">${sw('llmEnabled', st.llmEnabled, t('AI drafting'))}</span></div>` : noKeyRow()}
+${s.saw.llm.available ? html`<div class="r"><b>${t('AI drafting')}</b><p>${t('On: sends tab titles, your one line for tomorrow, your step counts, file names (no folders) from the desktop apps you turn on, and what you type in Ask sidy to Claude (Anthropic), through the Side server, which keeps none of it, to name groups, suggest a question, pick your next step and pick one action. Never addresses, page text, file contents or excluded sites. Off: sidy uses simple rules.')}</p><span class="ctl">${sw('llmEnabled', st.llmEnabled, t('AI drafting'))}</span></div>` : noKeyRow()}
 <div class="r"><b>${t('Share anonymous counts')}</b><p>${t('Numbers only — tabs set aside, steps shown and opened. No titles, sites or words.')}</p><span class="ctl">${sw('uploadEnabled', st.uploadEnabled, t('Share anonymous counts'))}</span></div>
 </div>
+${proView(s, opts.pro ?? NO_PRO_LOCAL)}
 ${connectionsView(s, opts.appsOpen)}
 ${s.demoTools ? demoClock(s) : ''}`;
 }
 
-/** Without a Claude key nothing can be sent: the switch can't be turned on, and it says why. */
+/** Without Side Pro nothing can be sent: the switch can't be turned on, and it says why. */
 function noKeyRow(): SafeHtml {
-  return html`<div class="r"><b>${t('AI drafting')}</b><p>${t('No Claude key on this computer, so nothing is sent and sidy uses simple rules here. To use Claude, put your key in .env.local (see the README) and start Side again.')}</p><span class="ctl"><button type="button" class="sw" role="switch" aria-checked="false" aria-disabled="true" disabled aria-label="${t('AI drafting')}"></button></span></div>`;
+  return html`<div class="r"><b>${t('AI drafting')}</b><p>${t('Part of Side Pro. Without it nothing is sent and sidy uses simple rules on this computer.')}</p><span class="ctl"><button type="button" class="sw" role="switch" aria-checked="false" aria-disabled="true" disabled aria-label="${t('AI drafting')}"></button></span></div>`;
 }
 
 /** Only for recording a demo (SIDE_DEMO), or while demo time is on so it can be turned off. */

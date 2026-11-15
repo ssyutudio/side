@@ -12,7 +12,7 @@ import { checkingView, doneView, failedView, loadingView, previewView, type Fail
 import { oneMoreView } from './oneMoreView';
 import { clock } from './parts';
 import { stepOpenedText, type StepOpenReply } from '../shared/stepText';
-import { actFor } from './askView';
+import { actFor, actionLabel } from './askView';
 import type { AskActionId, AskDecision } from '../../core/askSidy';
 
 type View =
@@ -252,6 +252,8 @@ async function askNow() {
   }
   if (r.decision.kind === 'action') {
     home = { ...home, ask: { line: '', state: 'idle' } };
+    const did = t('“{line}” → {action}', { line: line.length > 60 ? `${line.slice(0, 59)}…` : line, action: actionLabel(r.decision.action) });
+    void api.invoke('side:toast', { text: did.slice(0, 200), ms: 4000 }).catch(() => undefined);
     return askDo(r.decision.action, r.decision.minutes);
   }
   home = { ...home, ask: { line, state: 'reply', reply: r.decision } };
@@ -552,6 +554,12 @@ api.onState((s) => {
   state = s;
   // Live updates refresh home; a Wrap up in progress keeps its own screen, in the language shown.
   if (view.name === 'home' || view.name === 'done' || view.name === 'onemore' || languageChanged) pushedRender();
+});
+// Claude named the groups after the rules' draft was shown: take its groups, unless the person already
+// picked a group to close or is renaming one (the app only sends this while the draft is untouched).
+api.onPreview((p) => {
+  if (view.name !== 'preview' || wrap.close.length || wrap.renaming) return;
+  go({ name: 'preview', p });
 });
 api.onMiniView((v) => {
   home = {};

@@ -47,6 +47,8 @@ export interface TabsReport {
   tabs: TabSnapshot[];
   skipped: SkippedSummary;
   capturedAt: number;
+  /** Chrome lets Side read where you stopped on every site (missing: only the few sites in the manifest). */
+  everySite?: boolean;
 }
 
 export type KeepReason =

@@ -16,13 +16,18 @@ import { STILL_WORKING_AFTER_MS, type PagePosition } from '@side/shared';
 import { secondsToWork } from '../core/stepEvents';
 import { activePromise } from '../core/promise';
 import { ruleBySide } from '../core/llmHelpBySide';
+import type { ProView } from './licenseService';
 
 export interface ViewState {
+  /** Side Pro on this Mac. Null in tests and fixtures that don't need it (shown as free). */
+  pro?: ProView | null;
   /** Settings → Connections: desktop apps found on this computer and which are on. */
   connections?: { apps: { id: string; tool: string; on: boolean }[]; calendar?: { on: boolean; status: string; firstTomorrow: number | null } };
   /** Side's clock (demo clock included), so screens can show times. */
   now: number;
   connection: BridgeStatus;
+  /** Chrome lets Side remember the reading spot on every site; null until the extension has said (or when not connected). */
+  everySite: boolean | null;
   step: { id: string; label: string; when: string; whenKind: 'today' | 'yesterday' | 'earlier'; host: string | null; hasPosition: boolean } | null;
   bubble: Bubble | null;
   numbers: SideNumbers;
@@ -62,7 +67,7 @@ export interface ViewState {
     skipped: SkippedSummary;
     llm: {
       enabled: boolean;
-      /** False without a Claude key on this computer: nothing can be sent, rules do everything. */
+      /** False without Side Pro (or a developer key) on this computer: nothing can be sent, rules do everything. */
       available: boolean;
       sends: number;
       lastAt: number | null;
@@ -93,8 +98,9 @@ export interface ViewInput {
   now: number;
   /** Claude's sentence when the controller has one for these counts; otherwise the rule is used. */
   bySide?: { text: string; byClaude: boolean };
-  /** Whether a Claude key is set on this computer. Missing: assumed yes. */
+  /** Whether Claude can be used on this computer now (Side Pro, or a developer key). Missing: assumed yes. */
   llmAvailable?: boolean;
+  pro?: ProView | null;
 }
 
 /** Where the user was on a page, in words. */
@@ -234,6 +240,8 @@ export function buildViewState(input: ViewInput): ViewState {
     demoOffsetMs: data.demoOffsetMs,
     demoTools: data.demoOffsetMs !== 0,
     bySide: input.bySide ?? { text: ruleBySide(numbers), byClaude: false },
+    pro: input.pro ?? null,
+    everySite: input.report && typeof input.report.everySite === 'boolean' ? input.report.everySite : null,
   };
 }
 

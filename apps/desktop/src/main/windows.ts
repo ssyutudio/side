@@ -52,7 +52,10 @@ export class Windows {
       webPreferences: this.webPrefs(),
     });
     w.setAlwaysOnTop(true, 'screen-saver');
-    w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    // skipTransformProcessType: without it Electron flips the whole app to an accessory (UIElement)
+    // process and can leave it there, so Main stops going behind other apps. A panel shows over
+    // full-screen apps without that flip.
+    w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
     void w.loadFile(join(this.o.rendererDir, 'mini.html'));
     w.webContents.on('did-finish-load', () => {
       if (this.pendingView) w.webContents.send('side:mini.view', this.pendingView);

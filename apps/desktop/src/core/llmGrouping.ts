@@ -144,7 +144,14 @@ export function parseGroupingAnswer(
   return { groups, applied: true, sent };
 }
 
-/** Asks the transport once; any failure, slowness or bad answer falls back to the rules. */
+/** How much longer a late answer may still arrive and be offered (see `late` below). */
+export const LATE_ANSWER_MS = 20_000;
+
+/**
+ * Asks the transport once; any failure, slowness or bad answer falls back to the rules. With `late`,
+ * an answer that misses the deadline is not thrown away: if it comes within LATE_ANSWER_MS more and
+ * is valid, it is handed to `late` so the caller can offer Claude's groups instead of the rules'.
+ */
 export async function groupWithLlm(
   tabs: readonly TabSnapshot[],
   userLine: string | null,
@@ -152,6 +159,7 @@ export async function groupWithLlm(
   transport: LlmTransport,
   clock: Clock,
   timeoutMs = DEFAULT_LLM_TIMEOUT_MS,
+  late?: (outcome: GroupingOutcome) => void,
 ): Promise<GroupingOutcome> {
   const allowed = tabs.filter((t) => !isExcluded(t.url, excludedDomains));
   const req = buildGroupingRequest(allowed, userLine, excludedDomains, clock, timeoutMs);
@@ -161,8 +169,21 @@ export async function groupWithLlm(
     timer = setTimeout(() => res('timeout'), timeoutMs);
   });
   try {
-    const answer = await Promise.race([transport({ system: req.system, user: req.user }), timeout]);
-    if (answer === 'timeout') return rulesOnly(allowed, 'timeout', sent);
+    const asked = transport({ system: req.system, user: req.user });
+    const answer = await Promise.race([asked, timeout]);
+    if (answer === 'timeout') {
+      if (late) {
+        const lateReq = { ...req, deadline: req.deadline + LATE_ANSWER_MS };
+        asked.then(
+          (text) => {
+            const o = parseGroupingAnswer(text, lateReq, lateReq.token, allowed, clock);
+            if (o.applied) late(o);
+          },
+          () => undefined,
+        );
+      } else asked.catch(() => undefined);
+      return rulesOnly(allowed, 'timeout', sent);
+    }
     return parseGroupingAnswer(answer, req, req.token, allowed, clock);
   } catch {
     return rulesOnly(allowed, 'error', sent);

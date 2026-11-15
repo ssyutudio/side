@@ -1,5 +1,6 @@
 // Korean for the mini strings. Keys are the exact English passed to t(), tn() or k().
 export const MINI: Record<string, string> = {
+  '“{line}” → {action}': '“{line}” → {action}',
   // Header, footer, shared bits
   'Chrome connected': 'Chrome 연결됨',
   'Chrome not connected': 'Chrome 연결 안 됨',
@@ -57,7 +58,6 @@ export const MINI: Record<string, string> = {
   'Opening…': '여는 중…',
   'Chrome didn\'t confirm the last wrap-up.': 'Chrome이 마지막 정리를 확인하지 않았어요.',
   'Look at the tab bar, or try again — tabs already set aside are skipped.': '탭 바를 확인하거나 다시 시도해 보세요 — 이미 정리한 탭은 건너뛰어요.',
-  'Ready after you set aside': '정리하고 나면 준비돼요',
   'Keep going, with one check-in': '계속하되, 한 번만 다시 물어봐요',
   'Needs Chrome — connect first.': 'Chrome이 필요해요 — 먼저 연결해 주세요.',
   'Bring back the last tabs': '마지막 탭 되돌리기',

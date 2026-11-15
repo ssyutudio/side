@@ -138,6 +138,12 @@ export const CORE: Record<string, string> = {
   'Look at {look} in {tool}': '{tool}에서 {look} 보기',
 };
 
+/** Korean words too common in page titles to say what a work is about (like the English STOP list). */
+export const KO_STOP = ['위키백과', '우리', '모두의', '백과사전', '블로그', '로그인', '검색', '홈', '뉴스', '네이버', '카페', '지도', '서비스', '개발', '기술', '스타트업', '공식', '문서', '안내', '페이지'];
+
+/** Korean titles of pages that are not the work itself: bot checks, sign-in, errors (see core/deadEnd). */
+export const KO_DEAD_END_TITLE = /^(잠시만\s*기다리|로그인|접근이\s*거부|페이지를\s*찾을\s*수\s*없|사이트에\s*연결할\s*수\s*없)/;
+
 /** Words that make a suggestion or sentence advice (kept out of what Claude writes), like the English list. */
 export const KO_ADVICE = /(해야|하는 게 좋|수면|잠을|건강|진단|우울|불안|치료|ADHD)/i;
 

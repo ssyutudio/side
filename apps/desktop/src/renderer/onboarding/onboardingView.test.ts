@@ -60,4 +60,12 @@ describe('onboardingView in Korean', () => {
     expect(d).toContain(t('Your {total} open tabs, as sidy would fold them', { total: 35 }));
     expect(d).toContain(tn(12, '{n} tab', '{n} tabs'));
   });
+
+  it('asks once, optionally, to remember the reading spot on every site', () => {
+    setLanguage('en');
+    const ask = s(onboardingView({ phase: 'connected', extPath: path, preview: FIXTURE_PREVIEW, everySite: false }));
+    expect(ask).toContain('data-act="allow-sites"');
+    expect(ask.indexOf('allow-sites')).toBeLessThan(ask.indexOf('data-act="meet"'));
+    expect(s(onboardingView({ phase: 'connected', extPath: path, preview: FIXTURE_PREVIEW, everySite: true }))).not.toContain('allow-sites');
+  });
 });

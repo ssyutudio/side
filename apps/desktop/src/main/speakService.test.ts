@@ -147,6 +147,43 @@ describe('SpeakService', () => {
   });
 });
 
+describe('SpeakService after days away', () => {
+  beforeEach(() => {
+    now = new Date(2026, 10, 10, 19, 0).getTime();
+  });
+  const opened = (at: number) => ({ stepId: 'st1', shownAt: at, clickedAt: at, openedAt: at, stillWorkingAt10m: null, dismissed: null });
+
+  it('offers the same step again, as a new step, once two work days have passed since it was used', async () => {
+    const { svc, store } = await setup({ stepEvents: [opened(now)] });
+    now = new Date(2026, 10, 11, 19, 0).getTime();
+    expect(await svc.trigger('app_start')).toBeNull();
+    now = new Date(2026, 10, 13, 9, 0).getTime();
+    const b = await svc.trigger('app_start');
+    expect(b).toMatchObject({ kind: 'step' });
+    const again = store.get().steps.at(-1)!;
+    expect(again.id).not.toBe('st1');
+    expect(again.action).toEqual(step.action);
+    expect((b as { stepId: string }).stepId).toBe(again.id);
+    // The first step's record is left as it was.
+    expect(store.get().stepEvents).toEqual([opened(new Date(2026, 10, 10, 19, 0).getTime())]);
+  });
+
+  it('makes only one new step even when sidy has to stay quiet first', async () => {
+    const { svc, store } = await setup({ stepEvents: [opened(now)], hidden: true });
+    now = new Date(2026, 10, 14, 9, 0).getTime();
+    await svc.trigger('unlock');
+    await svc.trigger('wake');
+    expect(store.get().steps).toHaveLength(2);
+  });
+
+  it('does not bring it back during Rest today', async () => {
+    now = new Date(2026, 10, 14, 9, 0).getTime();
+    const { svc, store } = await setup({ stepEvents: [opened(new Date(2026, 10, 10, 19, 0).getTime())], restedUntil: new Date(2026, 10, 15, 4, 0).getTime() });
+    expect(await svc.trigger('app_start')).toBeNull();
+    expect(store.get().steps).toHaveLength(1);
+  });
+});
+
 describe('SpeakService check-in edge cases', () => {
   beforeEach(() => {
     now = new Date(2026, 10, 10, 1, 0).getTime();

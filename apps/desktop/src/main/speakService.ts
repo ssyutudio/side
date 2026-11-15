@@ -1,7 +1,7 @@
 // What sidy says, and when. It speaks only at return moments and at a check-in the user chose;
 // everything else is silence with a recorded reason. While hidden or asleep, only the latest
 // missed bubble is kept, and it is shown once sidy is back.
-import { newId, type QuietReason, type StopPromise } from '@side/shared';
+import { newId, type QuietReason, type Step, type StopPromise } from '@side/shared';
 import type { JsonStore } from './store';
 import type { AppData } from './appData';
 import type { Clock } from '../core/clock';
@@ -38,6 +38,10 @@ export interface SpeakDeps {
 
 const QUIET_LOG_MAX = 200;
 
+/** Days away (by work day) after which an already used step is offered once more. */
+export const RETURN_GAP_DAYS = 2;
+const DAY_MS = 24 * 60 * 60_000;
+
 export class SpeakService {
   private pending: PendingBubble | null = null;
   private onScreen: Bubble | null = null;
@@ -69,6 +73,25 @@ export class SpeakService {
     return step.id;
   }
 
+  /**
+   * Coming back after days away: the step was already opened or put off, and nothing was set aside
+   * since. Rather than say nothing, sidy offers the same one step again, as a new step so the record
+   * of the first one stays as it was. Still one step, and no count of the days away.
+   */
+  private async stepIdAfterGap(): Promise<string | null> {
+    const d = this.data;
+    const now = this.deps.clock.now();
+    const step = currentStep(d.setAsides, d.steps, d.settings.excludedDomains, this.deps.clock, undefined, { enabled: enabledApps(d.settings) });
+    if (!step) return null;
+    const ev = d.stepEvents.find((e) => e.stepId === step.id);
+    if (!ev) return null;
+    const touched = Math.max(ev.shownAt ?? 0, ev.clickedAt ?? 0, ev.openedAt ?? 0);
+    if (!touched || workDayOf(now) - workDayOf(touched) < RETURN_GAP_DAYS * DAY_MS) return null;
+    const again: Step = { ...step, id: newId(), createdAt: now };
+    await this.deps.store.update((x) => ({ ...x, steps: [...x.steps, again] }));
+    return again.id;
+  }
+
   private async logQuiet(reason: QuietReason) {
     const at = this.deps.clock.now();
     await this.deps.store
@@ -80,7 +103,9 @@ export class SpeakService {
   async trigger(trigger: SpeakTrigger): Promise<Bubble | null> {
     const d = this.data;
     const now = this.deps.clock.now();
-    const stepId = this.stepId();
+    let stepId = this.stepId();
+    // Only a real return (not the 30-second tick or a check-in) brings an old step back after days away.
+    if (!stepId && trigger !== 'promise_due' && !(d.restedUntil !== null && now < d.restedUntil)) stepId = await this.stepIdAfterGap();
     const decision = decideSpeak(trigger, {
       now,
       hidden: d.hidden || this.asleep,

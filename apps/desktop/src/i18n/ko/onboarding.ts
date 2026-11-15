@@ -1,5 +1,8 @@
 // Korean for the onboarding strings. Keys are the exact English passed to t(), tn() or k().
 export const ONBOARDING: Record<string, string> = {
+  'Remember where you stopped on every site?': '모든 사이트에서 멈춘 곳을 기억할까요?',
+  'Right now only a few sites (Google Docs, GitHub, Wikipedia…). Chrome asks you once. Side reads only how far down you were and one visible sentence.':
+    '지금은 몇 사이트(Google Docs, GitHub, Wikipedia…)에서만 기억해요. Chrome이 한 번 물어봐요. 얼마나 내려가 있었는지와 보이는 한 문장만 읽어요.',
   "the tab you're on": '지금 보고 있는 탭',
   pinned: '고정됨',
   'playing sound': '소리 재생 중',
@@ -34,6 +37,6 @@ export const ONBOARDING: Record<string, string> = {
   'Side is connected': 'Side가 연결됐어요',
   'Two minutes.': '2분이면 돼요.',
   'Side is running': 'Side가 실행 중이에요',
-  'Everything stays on this computer: without a Claude key, sidy names groups and picks your next step with simple rules.':
-    '모든 게 이 컴퓨터에만 있어요. Claude 키가 없어서 sidy가 간단한 규칙으로 그룹 이름을 정하고 다음 한 걸음을 골라요.',
+  'Everything stays on this computer: without Side Pro, sidy names groups and picks your next step with simple rules.':
+    '모든 게 이 컴퓨터에만 있어요. Side Pro가 꺼져 있어서 sidy가 간단한 규칙으로 그룹 이름을 정하고 다음 한 걸음을 골라요.',
 };

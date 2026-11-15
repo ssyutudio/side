@@ -69,7 +69,7 @@ async function boot() {
   });
   const port = await bridge.start();
   ctl = new SideController({
-    store, bridge, clock: new DemoClock(), llm: null, edge: null,
+    store, bridge, clock: new DemoClock(), llm: () => null, edge: null,
     registerShortcut: () => true, push: () => undefined, renderBubble: () => undefined, openMain: () => undefined,
   });
 

@@ -11,14 +11,23 @@ const offChip = () => html`<span class="chip wait">${t('Off')}</span>`;
 /** Re-checks the apps and the calendar (not Chrome). */
 const recheck = () => html`<button type="button" class="btn sm" data-act="conn-refresh">${t('Check again')}</button>`;
 
-function chromeRow(c: ViewState['connection']): SafeHtml {
+/** Where the reading spot is remembered: every site once Chrome allows it, otherwise a few. */
+function spotLine(everySite: boolean | null): SafeHtml | string {
+  if (everySite === null) return '';
+  return everySite
+    ? html`<p>${t('Remembers where you stopped on every site.')}</p>`
+    : html`<p>${t('Remembers where you stopped only on a few sites (Google Docs, GitHub, MDN, Wikipedia, Stack Overflow, Notion, Hacker News).')}</p>`;
+}
+
+function chromeRow(c: ViewState['connection'], everySite: boolean | null): SafeHtml {
   const ok = c === 'connected';
   const text = ok
     ? t('Side extension is on.')
     : c === 'waiting'
       ? t('Waiting for the Side extension. Load it in chrome://extensions, then check again.')
       : t('Make sure the Side extension is switched on in chrome://extensions.');
-  return html`<div class="r cn"><div class="hd"><b>Chrome</b>${chip(ok)}</div><p>${text}</p><span class="ctl row"><button type="button" class="btn sm" data-act="check">${t('Check again')}</button>${ok ? '' : html`<button type="button" class="btn sm" data-act="pair-reset">${t('Pair a different extension')}</button>`}</span></div>`;
+  const allow = ok && everySite === false ? html`<button type="button" class="btn sm fill" data-act="allow-sites">${t('Allow every site')}</button>` : '';
+  return html`<div class="r cn"><div class="hd"><b>Chrome</b>${chip(ok)}</div><p>${text}</p>${ok ? spotLine(everySite) : ''}<span class="ctl row">${allow}<button type="button" class="btn sm" data-act="check">${t('Check again')}</button>${ok ? '' : html`<button type="button" class="btn sm" data-act="pair-reset">${t('Pair a different extension')}</button>`}</span></div>`;
 }
 
 function appsBlock(apps: NonNullable<ViewState['connections']>['apps']): SafeHtml {
@@ -59,5 +68,5 @@ export function connectionsView(s: ViewState, open: boolean): SafeHtml {
     anyOn ? t('On: {apps}.', { apps: apps.filter((a) => a.on).map((a) => a.tool).join(', ') }) : t('Turn on the apps sidy may open a file in.')
   }</p><span class="ctl row"><button type="button" class="btn sm" data-act="apps-show" aria-expanded="${open ? 'true' : 'false'}">${open ? t('Hide apps') : t('Show apps')}</button></span>${open ? appsBlock(apps) : ''}</div>`;
   return html`<h2 class="set-h">${t('Connections')}</h2><p class="note" style="margin:2px 0 0">${t('Where sidy can open your next step. Nothing is read until you connect it.')}</p>
-<div class="set">${chromeRow(s.connection)}${desktop}${s.connections?.calendar ? calendarRow(s.connections.calendar) : ''}</div>`;
+<div class="set">${chromeRow(s.connection, s.everySite ?? null)}${desktop}${s.connections?.calendar ? calendarRow(s.connections.calendar) : ''}</div>`;
 }

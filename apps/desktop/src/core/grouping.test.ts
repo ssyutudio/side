@@ -1,5 +1,5 @@
 import type { TabSnapshot } from '@side/shared';
-import { groupTabs, isBreakUrl, cleanTitle, BREAKS_KEY, UNSORTED_KEY } from './grouping';
+import { groupTabs, isBreakUrl, cleanTitle, BREAKS_KEY, UNSORTED_KEY, siteName } from './grouping';
 
 let nextId = 1;
 function tab(url: string, title: string, extra: Partial<TabSnapshot> = {}): TabSnapshot {
@@ -81,7 +81,31 @@ describe('groupTabs (rules)', () => {
     const b = tab('https://linear.app/acme/issue/SID-7', 'SID-7 Crash on wake');
     const groups = groupTabs([a, b]);
     expect(groups).toHaveLength(1);
-    expect(groups[0].name).toBe('linear.app');
+    expect(groups[0].name).toBe('Linear');
+  });
+
+  it('groups by topic across sites before grouping by site', () => {
+    const paper = tab('https://arxiv.org/abs/1706.03762', '[1706.03762] Attention Is All You Need');
+    const wiki = tab('https://en.wikipedia.org/wiki/Attention_(machine_learning)', 'Attention (machine learning) - Wikipedia');
+    const wiki2 = tab('https://en.wikipedia.org/wiki/Procrastination', 'Procrastination - Wikipedia');
+    const wiki3 = tab('https://en.wikipedia.org/wiki/Flow_(psychology)', 'Flow (psychology) - Wikipedia');
+    const groups = groupTabs([paper, wiki, wiki2, wiki3]);
+    const topic = groups.find((g) => g.tabIds.includes(paper.tabId))!;
+    expect(topic.name).toBe('Attention');
+    expect(topic.tabIds).toEqual([paper.tabId, wiki.tabId]);
+    const site = groups.find((g) => g.tabIds.includes(wiki2.tabId))!;
+    expect(site.name).toBe('Wikipedia');
+    expect(site.tabIds).toEqual([wiki2.tabId, wiki3.tabId]);
+  });
+
+  it.each([
+    ['en.wikipedia.org', 'Wikipedia'],
+    ['arxiv.org', 'arXiv'],
+    ['docs.python.org', 'Python'],
+    ['www.coupang.com', 'Coupang'],
+    ['news.example.co.kr', 'Example'],
+  ])('names the site %s as %s', (host, name) => {
+    expect(siteName(host)).toBe(name);
   });
 
   it('puts tabs it is unsure about into one Not sorted yet group', () => {

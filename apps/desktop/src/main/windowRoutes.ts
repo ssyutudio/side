@@ -16,6 +16,8 @@ export interface WindowPort {
   revealData(): void;
   setupInfo(): { extPath: string };
   finishSetup(): void;
+  /** Opens Side's pricing page or the Lemon Squeezy customer portal in the browser. Fixed addresses only. */
+  openExternal(which: 'pricing' | 'billing'): void;
 }
 
 const empty = z.unknown();
@@ -31,6 +33,7 @@ const ROUTES = {
   'side:data.reveal': { schema: empty, run: (p: WindowPort) => p.revealData() },
   'side:setup.info': { schema: empty, run: (p: WindowPort) => p.setupInfo() },
   'side:setup.done': { schema: empty, run: (p: WindowPort) => p.finishSetup() },
+  'side:open.external': { schema: z.object({ which: z.enum(['pricing', 'billing']) }), run: (p: WindowPort, i: { which: 'pricing' | 'billing' }) => p.openExternal(i.which) },
 } as const;
 
 export type WindowChannel = keyof typeof ROUTES;

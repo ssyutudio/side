@@ -3,6 +3,14 @@
 export interface ReqLike {
   method?: string;
   body?: unknown;
+  headers?: Record<string, string | string[] | undefined>;
+}
+
+/** One request header as a string (Node lower-cases header names). */
+export function header(req: ReqLike, name: string): string | null {
+  const v = req.headers?.[name.toLowerCase()];
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === 'string' && s.length > 0 ? s : null;
 }
 
 export interface ResLike {

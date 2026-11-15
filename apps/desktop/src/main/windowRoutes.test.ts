@@ -14,6 +14,7 @@ function fakePort() {
     revealData: () => void calls.push(['revealData', null]),
     setupInfo: () => ({ extPath: '/x/apps/extension/dist' }),
     finishSetup: () => void calls.push(['finishSetup', null]),
+    openExternal: (w) => void calls.push(['openExternal', w]),
   };
   return { port, calls };
 }
@@ -36,6 +37,13 @@ describe('routeWindow', () => {
     expect(calls[2][1]).toEqual([412, true]);
   });
 
+  it('opens only the fixed pricing and billing pages', async () => {
+    const { port, calls } = fakePort();
+    await routeWindow(port, 'side:open.external', { which: 'pricing' });
+    await routeWindow(port, 'side:open.external', { which: 'billing' });
+    expect(calls).toEqual([['openExternal', 'pricing'], ['openExternal', 'billing']]);
+  });
+
   it('refuses bad sizes, long toasts and unknown views without calling anything', async () => {
     const { port, calls } = fakePort();
     expect(await routeWindow(port, 'side:mini.resize', { height: 99999 })).toEqual({ error: 'invalid request' });
@@ -43,6 +51,7 @@ describe('routeWindow', () => {
     expect(await routeWindow(port, 'side:mini.open', { view: 'file:///etc/passwd' })).toEqual({ error: 'invalid request' });
     expect(await routeWindow(port, 'side:sidy.move', { y: 1.5, done: false })).toEqual({ error: 'invalid request' });
     expect(await routeWindow(port, 'side:sidy.move', { y: 400 })).toEqual({ error: 'invalid request' });
+    expect(await routeWindow(port, 'side:open.external', { which: 'https://evil.example' })).toEqual({ error: 'invalid request' });
     expect(calls).toEqual([]);
   });
 });

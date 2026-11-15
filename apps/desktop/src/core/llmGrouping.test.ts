@@ -97,6 +97,30 @@ describe('groupWithLlm', () => {
     expect(r.reason).toBe('timeout');
   });
 
+  it('hands a late but valid answer to the caller instead of dropping it', async () => {
+    const late: string[][] = [];
+    const r = await groupWithLlm(
+      tabs.slice(0, 3), null, [],
+      () => new Promise((res) => setTimeout(() => res('{"groups":[{"name":"Retry work","ids":["T1","T2"]}]}'), 60)),
+      fixedClock(0), 20,
+      (o) => late.push(o.groups.map((g) => g.name)),
+    );
+    expect(r.reason).toBe('timeout');
+    expect(late).toEqual([]);
+    await new Promise((res) => setTimeout(res, 80));
+    expect(late[0]?.[0]).toBe('Retry work');
+  });
+
+  it('does not hand over a late answer that is broken or comes far too late', async () => {
+    const late: unknown[] = [];
+    let now = 0;
+    const clock = { now: () => now };
+    await groupWithLlm(tabs.slice(0, 3), null, [], () => new Promise((res) => setTimeout(() => res('not json'), 40)), clock, 10, (o) => late.push(o));
+    await groupWithLlm(tabs.slice(0, 3), null, [], () => new Promise((res) => setTimeout(() => { now = 10 + 20_001; res('{"groups":[{"name":"X","ids":["T1"]}]}'); }, 40)), clock, 10, (o) => late.push(o));
+    await new Promise((res) => setTimeout(res, 80));
+    expect(late).toEqual([]);
+  });
+
   it('applies a good answer and reports what was sent', async () => {
     const r = await groupWithLlm(tabs.slice(0, 3), null, [], async () => '{"groups":[{"name":"Retry work","ids":["T1","T2"]}]}', fixedClock(0), 1000);
     expect(r.applied).toBe(true);

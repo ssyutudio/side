@@ -32,13 +32,15 @@ On first launch a small **Set up Side** window walks you through connecting Chro
 2. Click **Load unpacked** and choose the `apps/extension/dist` folder in this repo.
 3. Side connects by itself. The first connected extension is paired; no code to type.
 
-Optional: to let Side name your work groups with Claude, put your key in `.env.local` at the repo root. This file is git-ignored and is read only by the app's main process.
+Side is free with simple rules. **Side Pro** (monthly or yearly, 14 days free, [pricing](https://side-waitlist.vercel.app/pricing)) adds Claude: paste the license key from your receipt email in **Settings → Side Pro**. Claude requests then go through the Side server, which checks the license and holds the Claude key.
+
+Developers can skip the license: put a key in `.env.local` at the repo root and Side talks to Anthropic directly. This file is git-ignored and is read only by the app's main process.
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Without a key, Side groups tabs with its built-in rules.
+Without Side Pro or a key, Side groups tabs with its built-in rules and sends nothing.
 
 The same file can point those calls somewhere else, which is how a managed endpoint plugs in:
 `SIDE_LLM_MODEL` (default `claude-opus-5-5`), `SIDE_LLM_BASE_URL` (an Anthropic-compatible address,
@@ -63,13 +65,13 @@ Keyboard: **Control+Option+S** hides sidy completely and brings it back. Clickin
 
 ## What Side reads, stores and sends
 
-**Reads.** For tabs in normal Chrome windows, Side reads the tab title and URL. On a short list of sites it also reads where you were reading: the scroll offset, and on some pages a short visible sentence. It skips incognito windows, browser pages and any site you add to Excluded sites. It never captures your screen.
+**Reads.** For tabs in normal Chrome windows, Side reads the tab title and URL. On a short list of sites (or every site, once you allow it from the setup window or Settings → Connections) it also reads where you were reading: the scroll offset, and on some pages a short visible sentence. It skips incognito windows, browser pages and any site you add to Excluded sites. It never captures your screen.
 
 With **Calendar** on, Side reads only the start time of tomorrow's first event and how many events are left today. Titles, places and attendees are never read. With **Desktop apps** on, it reads the names and last-used times of files in the apps you turned on, never their contents.
 
 **Stores.** Everything stays in one file on this computer: `~/Library/Application Support/Side/side-data.json`.
 
-**Sends.** By default, Side sends to Anthropic's API (Claude): **tab titles** with temporary ids to group and name your work; your set-aside **group names** to suggest a question for tomorrow; **your one line** with those titles to pick the next morning's step; once you have three or more steps, **your step counts** (numbers only) for the By your side sentence; with desktop apps turned on, **file names** (no folders) of files you saved today, to pick the next step; and **the line you type in Ask sidy**, to pick one action. It never sends URLs, folders, page text, file contents or excluded sites, and you can turn this off in Settings so everything is done locally with simple rules. Anonymous usage counts (numbers only, no text) are **off** unless you turn them on.
+**Sends.** With Side Pro (or a developer key), Side sends to Claude (Anthropic), through the Side server, which checks the license, counts requests and keeps none of the text: **tab titles** with temporary ids to group and name your work; your set-aside **group names** to suggest a question for tomorrow; **your one line** with those titles to pick the next morning's step; once you have three or more steps, **your step counts** (numbers only) for the By your side sentence; with desktop apps turned on, **file names** (no folders) of files you saved today, to pick the next step; and **the line you type in Ask sidy**, to pick one action. It never sends URLs, folders, page text, file contents or excluded sites, and you can turn this off in Settings so everything is done locally with simple rules. Anonymous usage counts (numbers only, no text) are **off** unless you turn them on.
 
 Main → **What Side saw** lists what Side read, what it skipped and what it sent.
 

@@ -440,3 +440,16 @@ describe('Mini QA fixes', () => {
     expect(s(homeView(FIXTURES.night, { ask: reply }))).not.toContain('data-action="open_step"');
   });
 });
+
+describe('Mini home order', () => {
+  it('puts the actions and Ask sidy before the counts, which shrink to one line', () => {
+    const h = String(homeView(FIXTURES.day, {}));
+    const qa = h.indexOf('class="qa"');
+    const ask = h.indexOf('class="ask field"');
+    const counts = h.indexOf('class="facts line"');
+    expect(qa).toBeGreaterThan(0);
+    expect(ask).toBeGreaterThan(qa);
+    expect(counts).toBeGreaterThan(ask);
+    expect(h).toContain('<div class="t">“Will annual pricing beat monthly?”</div>');
+  });
+});

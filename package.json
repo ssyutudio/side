@@ -14,7 +14,11 @@
     "start": "npm run build && electron .",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "postinstall": "npm run build -w @side/extension"
+    "postinstall": "node scripts/postinstall.mjs",
+    "dist": "npm run build && electron-builder --mac --publish never",
+    "dist:unsigned": "npm run build && electron-builder --mac --dir -c.mac.identity=null -c.mac.notarize=false --publish never",
+    "release": "npm run build && electron-builder --mac --publish always",
+    "package:extension": "npm run build -w @side/extension && mkdir -p out && rm -f out/side-extension.zip && cd apps/extension/dist && zip -qr ../../../out/side-extension.zip . && echo out/side-extension.zip"
   },
   "license": "MIT",
   "devDependencies": {
@@ -24,11 +28,75 @@
     "@types/qrcode": "^1.5.6",
     "@types/ws": "^8.18.2",
     "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "electron-updater": "^6.8.11",
     "esbuild": "^0.28.2",
     "qrcode": "^1.5.4",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0",
     "ws": "^8.22.2",
     "zod": "^4.6.7"
+  },
+  "build": {
+    "appId": "app.side.desktop",
+    "productName": "Side",
+    "copyright": "Copyright © 2026 Side",
+    "directories": {
+      "output": "out",
+      "buildResources": "apps/desktop/build"
+    },
+    "files": [
+      "package.json",
+      "apps/desktop/dist/**",
+      "apps/desktop/assets/**",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "apps/extension/dist",
+        "to": "extension"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "apps/desktop/assets/icon.png",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "apps/desktop/build/entitlements.mac.plist",
+      "entitlementsInherit": "apps/desktop/build/entitlements.mac.plist",
+      "notarize": true,
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Side opens a file you were working on in Word, Excel, PowerPoint or Photoshop, only for apps you turn on in Connections.",
+        "NSCalendarsUsageDescription": "Side reads when tomorrow's first event starts and how many events are left today. It never reads titles, places or attendees.",
+        "NSCalendarsFullAccessUsageDescription": "Side reads when tomorrow's first event starts and how many events are left today. It never reads titles, places or attendees."
+      }
+    },
+    "dmg": {
+      "title": "Side"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ssyutudio",
+        "repo": "side",
+        "releaseType": "release"
+      }
+    ]
   }
 }

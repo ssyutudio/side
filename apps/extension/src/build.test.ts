@@ -42,7 +42,8 @@ describe('extension build', () => {
     };
     try {
       await import(/* @vite-ignore */ join(dist, 'background.js') + '?t=' + Date.now());
-      await new Promise((r) => setTimeout(r, 50));
+      // The worker first probes the app's port over HTTP; how fast that answers depends on this machine.
+      for (let i = 0; i < 60 && sockets.length === 0; i++) await new Promise((r) => setTimeout(r, 50));
       expect(sockets).toHaveLength(1);
       sockets[0].open();
       expect(sockets[0].sentTypes()[0]).toBe('hello');

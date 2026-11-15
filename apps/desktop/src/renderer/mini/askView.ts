@@ -15,12 +15,12 @@ export interface AskLocal {
 export interface AskContext {
   /** False: "Open the next step" is not offered. Missing: offered. */
   hasStep?: boolean;
-  /** False: AI drafting is off or there is no Claude key, so the line never leaves this computer. Missing: Claude. */
+  /** False: AI drafting is off or Side Pro is not on, so the line never leaves this computer. Missing: Claude. */
   claude?: boolean;
 }
 
 /** Exclude this site only opens Main (Mini can't pick its section), so its button says where it goes. */
-function actionLabel(id: AskActionId): string {
+export function actionLabel(id: AskActionId): string {
   return id === 'exclude_site' ? t('Open Side, then Excluded sites') : t(askCopy.actions[id]);
 }
 

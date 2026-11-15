@@ -21,6 +21,7 @@ import type { WrapupPreview } from '../core/wrapupPreview';
 import { mergeGroups, moveTab, newGroup, renameGroup } from '../core/previewEdit';
 import type { AppsPort } from './connectors/desktopApps';
 import type { AgentRun } from './connectors/claudeCode';
+import type { LicenseService } from './licenseService';
 
 export interface BridgePort {
   readonly status: BridgeStatus;
@@ -38,7 +39,10 @@ export interface ControllerDeps {
   store: JsonStore<AppData>;
   bridge: BridgePort;
   clock: DemoClock;
-  llm: LlmTransport | null;
+  /** Claude as it is right now: null when this Mac may not use it (no Side Pro and no developer key). */
+  llm: () => LlmTransport | null;
+  /** Side Pro on this Mac. Absent in tests that don't need it. */
+  license?: LicenseService;
   /** Desktop apps (Connections). Absent in tests that don't need it. */
   apps?: AppsPort | null;
   /** Desktop apps found on this computer, for Settings → Connections. */
@@ -56,6 +60,8 @@ export interface ControllerDeps {
   greetOnConnect?: () => boolean;
   /** Side was started for recording a demo (SIDE_DEMO): Settings offers the Demo clock. */
   demoTools?: boolean;
+  /** Claude's groups arrived after the rules' preview was shown and nothing was changed there yet. */
+  pushPreview?: (preview: PreviewView) => void;
   /** True while Mini is open: a check-in waits (stays unfired) until it is closed. */
   miniOpen?: () => boolean;
 }
@@ -80,16 +86,21 @@ export class SideController {
   readonly help: HelpService;
   readonly ask: AskService;
   readonly conn: ConnectionsService;
+  readonly license: LicenseService | null;
   lastReport: TabsReport | null = null;
   private waiters: ((r: TabsReport | null) => void)[] = [];
   private draft: { preview: WrapupPreview; report: TabsReport; files?: NonNullable<SetAside['files']> } | null = null;
 
   constructor(private readonly deps: ControllerDeps) {
-    const { store, bridge, clock, llm } = deps;
-    this.wrapup = new WrapupService({ store, port: bridge, clock, llm, apps: deps.apps ?? null });
+    const { store, bridge, clock } = deps;
+    // Side Pro can start or end while Side runs, so each service reads Claude when it asks, not once.
+    const live = <T extends object>(o: T): T & { readonly llm: LlmTransport | null } =>
+      Object.defineProperty(o, 'llm', { get: () => deps.llm(), enumerable: true }) as T & { readonly llm: LlmTransport | null };
+    this.wrapup = new WrapupService(live({ store, port: bridge, clock, apps: deps.apps ?? null }));
     this.step = new StepService({ store, port: bridge, clock, apps: deps.apps ?? null });
-    this.help = new HelpService({ store, clock, llm, apps: deps.apps ?? null });
-    this.ask = new AskService({ store, clock, llm });
+    this.help = new HelpService(live({ store, clock, apps: deps.apps ?? null }));
+    this.ask = new AskService(live({ store, clock }));
+    this.license = deps.license ?? null;
     this.conn = new ConnectionsService({ store, installedApps: deps.installedApps ?? (async () => []), calendar: deps.calendar, now: () => clock.now(), onChange: () => this.publish() });
     this.speak = new SpeakService({
       store,
@@ -108,7 +119,8 @@ export class SideController {
 
   state(): ViewState {
     const view = buildViewState({
-      llmAvailable: !!this.deps.llm,
+      llmAvailable: this.deps.llm() !== null,
+      pro: this.license?.view() ?? null,
       data: this.data,
       report: this.deps.bridge.status === 'connected' ? this.lastReport : null,
       bridge: this.deps.bridge.status,
@@ -132,6 +144,11 @@ export class SideController {
     waiting.forEach((w) => w(report));
     await this.step.observe(report).catch(() => undefined);
     this.publish();
+  }
+
+  /** Asks the extension to open its page that asks Chrome for every site (a click there shows Chrome's prompt). */
+  askEverySite(): { ok: boolean } {
+    return { ok: this.deps.bridge.status === 'connected' && this.deps.bridge.send('allow.open', {}) };
   }
 
   /** Forgets the paired extension, so the next one that connects is pinned instead (a re-loaded one has a new origin). */
@@ -193,17 +210,26 @@ export class SideController {
 
   // ---- Wrap up ----
 
-  private async makePreview(): Promise<{ preview: WrapupPreview; report: TabsReport; files: NonNullable<SetAside['files']> } | { error: 'not_connected' }> {
+  private async makePreview(onLate?: (preview: WrapupPreview) => void): Promise<{ preview: WrapupPreview; report: TabsReport; files: NonNullable<SetAside['files']> } | { error: 'not_connected' }> {
     const report = await this.freshReport();
     if (!report || this.deps.bridge.status !== 'connected') return { error: 'not_connected' };
-    const [preview, files] = await Promise.all([this.wrapup.preview(report), this.wrapup.filesToday()]);
+    const [preview, files] = await Promise.all([this.wrapup.preview(report, { onLate }), this.wrapup.filesToday()]);
     return { preview, report, files };
   }
 
   async previewWrapup(): Promise<PreviewView | { error: 'not_connected' }> {
-    const made = await this.makePreview();
+    let shown: NonNullable<typeof this.draft> | null = null;
+    // Claude was late: its groups replace the rules' only while that exact draft is still untouched.
+    const onLate = (preview: WrapupPreview) => {
+      if (!shown || this.draft !== shown) return;
+      this.draft = { ...shown, preview };
+      shown = this.draft;
+      this.deps.pushPreview?.(this.viewOf(preview, shown.report, shown.files));
+    };
+    const made = await this.makePreview(onLate);
     if ('error' in made) return made;
     this.draft = made;
+    shown = made;
     return this.viewOf(made.preview, made.report, made.files);
   }
 

@@ -93,3 +93,24 @@ form { max-width: 440px; display: flex; flex-direction: column; gap: 14px; }
   .two, .tiles { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+
+/* Pricing and the legal pages: one readable column. */
+.doc { max-width: 760px; margin: 0 auto; padding: 48px 24px 40px; }
+.doc .brand { text-decoration: none; color: inherit; }
+.doc h1 { font-size: 36px; margin: 28px 0 10px; }
+.doc h2 { font-size: 20px; margin: 30px 0 8px; }
+.doc p, .doc li { color: var(--ink); }
+.doc .lead { margin-bottom: 30px; }
+.doc .muted { color: var(--ink2); font-size: 14px; }
+.tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 8px 0 18px; }
+.tier { border: 1.5px solid var(--line); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+.tier.pick { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+.tier h2 { margin: 0; font-size: 18px; }
+.tier .price { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.tier .price small { font-size: 15px; font-weight: 600; color: var(--ink2); }
+.tier ul { margin: 0; padding-left: 18px; font-size: 15px; flex: 1; }
+.tier .btn { height: 46px; text-decoration: none; color: inherit; }
+.tier .btn.fill { color: #fff; }
+.legal-foot { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 16px; font-size: 13px; color: var(--ink2); }
+.legal-foot a, .foot a { color: inherit; }
+@media (max-width: 760px) { .tiers { grid-template-columns: minmax(0, 1fr); } .doc h1 { font-size: 30px; } }

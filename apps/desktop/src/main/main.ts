@@ -1,5 +1,5 @@
 // Electron main process: owns the data file, the bridge to the extension and the sidy window.
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor, shell, systemPreferences } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor, safeStorage, shell, systemPreferences } from 'electron';
 import { join } from 'node:path';
 import { BRIDGE_HOST, BRIDGE_PORT, COMMAND_TIMEOUT_MS, type TabsReport } from '@side/shared';
 import { loadConfig } from './config';
@@ -7,7 +7,9 @@ import { JsonStore } from './store';
 import { defaultAppData, type AppData } from './appData';
 import { Bridge } from './bridge';
 import { createEdgeWindow, type EdgeWindow } from './edgeWindow';
-import { llmFromKey } from './llmTransport';
+import { createProxyTransport, llmFromKey } from './llmTransport';
+import { BILLING_URL, LicenseService, LLM_ENDPOINT, PRICING_URL, REFRESH_EVERY_MS } from './licenseService';
+import { startAutoUpdate } from './autoUpdate';
 import { SideController } from './controller';
 import { desktopApps } from './connectors/desktopApps';
 import { installedApps } from './connectors/apps/index.mjs';
@@ -91,6 +93,21 @@ function registerShortcut(accel: string): boolean {
   }
 }
 
+/** The license key is sealed with the macOS Keychain before it is written to the data file. */
+function sealSecret(plain: string): string {
+  return safeStorage.isEncryptionAvailable() ? `v1:${safeStorage.encryptString(plain).toString('base64')}` : `plain:${plain}`;
+}
+
+function unsealSecret(sealed: string): string | null {
+  try {
+    if (sealed.startsWith('v1:')) return safeStorage.decryptString(Buffer.from(sealed.slice(3), 'base64'));
+    if (sealed.startsWith('plain:')) return sealed.slice(6);
+  } catch {
+    // Sealed on another Mac or by another build: the user activates again.
+  }
+  return null;
+}
+
 const reactLast: Partial<Record<ReactionKind, number>> = {};
 let prevReport: TabsReport | null = null;
 /** sidy's little reactions: decided here with the real state, played once by the edge page. */
@@ -141,9 +158,25 @@ async function start() {
   setLanguage(store.get().settings.language);
 
   const llmEnabled = store.get().settings.llmEnabled;
+  // A developer key (.env.local) talks to Anthropic directly; otherwise Claude is Side Pro, through Side's server.
+  const devTransport = llmFromKey(config.anthropicKey, config.llm);
+  const license = new LicenseService({
+    store,
+    now: () => Date.now(),
+    fetch,
+    seal: sealSecret,
+    unseal: unsealSecret,
+    developer: devTransport !== null,
+  });
+  const proxy = createProxyTransport({
+    endpoint: LLM_ENDPOINT,
+    credentials: () => license.credentials(),
+    fetch,
+    timeoutMs: 10_000,
+    onRefused: (status) => void license.refused(status).then(() => ctl?.publish()),
+  });
   const endpoint = config.llm.baseUrl ? 'own endpoint' : 'anthropic';
-  console.log(`[side] llm key ${config.anthropicKey ? 'present' : 'absent'}, llm ${llmEnabled ? 'on' : 'off'}, model ${config.llm.model} via ${endpoint}`);
-  const transport = llmFromKey(config.anthropicKey, config.llm);
+  console.log(`[side] claude: ${devTransport ? `developer key, model ${config.llm.model} via ${endpoint}` : `Side Pro ${license.view().state}`}, llm ${llmEnabled ? 'on' : 'off'}`);
 
   bridge = new Bridge({
     host: BRIDGE_HOST,
@@ -187,7 +220,11 @@ async function start() {
     store,
     bridge,
     clock,
-    llm: transport ? (req) => transport.complete({ system: req.system, prompt: req.user }) : null,
+    llm: () => {
+      const t = devTransport ?? (license.pro() ? proxy : null);
+      return t ? (req) => t.complete({ system: req.system, prompt: req.user }) : null;
+    },
+    license,
     apps: desktopApps,
     installedApps: () => installedApps(),
     calendar: calendarPort(),
@@ -198,6 +235,7 @@ async function start() {
       maybeUpload();
     },
     miniOpen: () => !!windows?.miniOpen(),
+    pushPreview: (preview) => pushToWindows('side:preview', preview),
     renderBubble: (bubble) => {
       // While Mini is open the user is already talking to Side: no bubble on top of it.
       if (bubble && windows?.miniOpen()) return void setTimeout(() => ctl?.speak.clear(), 0);
@@ -238,11 +276,13 @@ async function start() {
       return bridge?.status ?? 'waiting';
     },
     revealData: () => shell.showItemInFolder(store.path),
-    setupInfo: () => ({ extPath: join(app.getAppPath(), 'apps', 'extension', 'dist') }),
+    // Packaged, the extension folder sits in Resources (Chrome can't load it from inside app.asar).
+    setupInfo: () => ({ extPath: app.isPackaged ? join(process.resourcesPath, 'extension') : join(app.getAppPath(), 'apps', 'extension', 'dist') }),
     finishSetup: () => {
       windows?.closeSetup();
       void ctl?.greetFirstRun();
     },
+    openExternal: (which: 'pricing' | 'billing') => void shell.openExternal(which === 'pricing' ? PRICING_URL : BILLING_URL),
   };
   for (const channel of WINDOW_CHANNELS) {
     ipcMain.handle(channel, (_e, payload) => routeWindow(windowPort, channel, payload));
@@ -292,6 +332,12 @@ async function start() {
   else if (open === 'mini' || open === 'wrap' || open === 'onemore') setTimeout(() => windows?.openMini(open === 'mini' ? 'home' : open), 1500);
 
   void ctl.conn.refresh();
+
+  // Side Pro: check the license now and twice a day (renewals, cancellations, refunds).
+  const refreshLicense = () => void license.refresh().then(() => ctl?.publish(), () => undefined);
+  refreshLicense();
+  setInterval(refreshLicense, REFRESH_EVERY_MS);
+  startAutoUpdate();
 
   // Claude Code hook notes (scripts/claude-code-hook.mjs): recorded only, nothing is run.
   watchInbox(join(app.getPath('userData'), 'inbox'), { now: () => clock.now() }, (runs) => {

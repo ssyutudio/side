@@ -47,7 +47,10 @@ export function createEdgeWindow(opts: { preload: string; page: string; size: Si
   });
 
   win.setAlwaysOnTop(true, 'screen-saver');
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // skipTransformProcessType: without it Electron flips the whole app to an accessory (UIElement)
+  // process and can leave it there, so Main stops going behind other apps. A panel shows over
+  // full-screen apps without that flip.
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   win.setIgnoreMouseEvents(true, { forward: true });
 
   // The renderer reports whether the pointer is over sidy or the bubble.

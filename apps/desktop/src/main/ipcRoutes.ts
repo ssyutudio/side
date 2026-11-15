@@ -27,13 +27,14 @@ const settingsPatch = z
 
 type Ctl = Pick<
   SideController,
-  'state' | 'resetPairing' | 'previewWrapup' | 'confirmWrapup' | 'editWrapup' | 'openStep' | 'suggestTomorrow' | 'saveTomorrowLine' | 'oneMoreHour' | 'bubbleDrawn' | 'updateSettings' | 'setHidden' | 'demo' | 'openMain' | 'publish'
+  'state' | 'askEverySite' | 'resetPairing' | 'previewWrapup' | 'confirmWrapup' | 'editWrapup' | 'openStep' | 'suggestTomorrow' | 'saveTomorrowLine' | 'oneMoreHour' | 'bubbleDrawn' | 'updateSettings' | 'setHidden' | 'demo' | 'openMain' | 'publish'
 > & {
   wrapup: Pick<SideController['wrapup'], 'retry' | 'undo' | 'setTomorrowLine'>;
   step: Pick<SideController['step'], 'open' | 'dismiss'>;
   ask: Pick<SideController['ask'], 'ask'>;
   conn: Pick<SideController['conn'], 'setApp' | 'refresh' | 'setCalendar'>;
   speak: Pick<SideController['speak'], 'choose' | 'answer' | 'setFocus' | 'clear'>;
+  license: Pick<NonNullable<SideController['license']>, 'activate' | 'deactivate' | 'refresh'> | null;
 };
 
 interface Route<S extends z.ZodTypeAny> {
@@ -87,9 +88,17 @@ const ROUTES = {
   // The extension was re-loaded from another folder (a new id): the next one that connects is paired.
   'side:pairing.reset': route(empty, publishing((c) => c.resetPairing())),
   'side:connections.refresh': route(empty, (c) => c.conn.refresh()),
+  'side:allow.everySite': route(empty, (c) => c.askEverySite()),
   'side:calendar.set': route(z.object({ on: z.boolean() }), (c, i) => c.conn.setCalendar(i.on)),
   // Ask sidy: one line in, one decision out. The screen runs the action with the same route its
   // button uses, so Ask sidy can do nothing a button can't.
+  // Side Pro: the key goes to the main process only; the screen gets back ok or why not.
+  'side:license.activate': route(
+    z.object({ key: z.string().trim().regex(/^[A-Za-z0-9-]{8,64}$/) }),
+    publishing((c, i) => c.license?.activate(i.key) ?? { ok: false, reason: 'unreachable' }),
+  ),
+  'side:license.deactivate': route(empty, publishing((c) => c.license?.deactivate() ?? { ok: true })),
+  'side:license.refresh': route(empty, publishing((c) => c.license?.refresh())),
   'side:ask': route(z.object({ line: z.string().max(2000) }), (c, i) => c.ask.ask(i.line)),
 } as const;
 

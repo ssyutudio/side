@@ -24,6 +24,7 @@ function fakeController() {
     step: { open: rec('open'), dismiss: rec('dismiss') },
     ask: { ask: rec('ask') },
     speak: { choose: rec('choose'), answer: rec('answer'), setFocus: rec('setFocus'), clear: rec('clear') },
+    license: { activate: rec('activate'), deactivate: rec('deactivate'), refresh: rec('refresh') },
     publish: () => undefined,
   };
   return { ctl, calls };
@@ -57,6 +58,9 @@ describe('routeIpc', () => {
       ['side:onemore.choose', { minutes: 30 }],
       ['side:step.open', { stepId: 'st1' }],
       ['side:step.dismiss', { stepId: 'st1', kind: 'not_now' }],
+      ['side:license.activate', { key: '38B1460A-5104-4067-A91D-77B872934D51' }],
+      ['side:license.deactivate', undefined],
+      ['side:license.refresh', undefined],
     ];
     for (const [channel, payload] of requests) {
       published = 0;
@@ -73,7 +77,15 @@ describe('routeIpc', () => {
     expect(await routeIpc(ctl, 'side:demo', { cmd: 'rm -rf' })).toEqual({ error: 'invalid request' });
     expect(await routeIpc(ctl, 'side:format', {})).toEqual({ error: 'unknown channel' });
     expect(await routeIpc(ctl, 'side:step.open', null)).toEqual({ error: 'invalid request' });
+    expect(await routeIpc(ctl, 'side:license.activate', { key: 'abc' })).toEqual({ error: 'invalid request' });
+    expect(await routeIpc(ctl, 'side:license.activate', { key: 'https://evil.example/x' })).toEqual({ error: 'invalid request' });
     expect(calls).toEqual([]);
+  });
+
+  it('hands a trimmed license key to the license service', async () => {
+    const { ctl, calls } = fakeController();
+    await routeIpc(ctl, 'side:license.activate', { key: '  38B1460A-5104-4067-A91D-77B872934D51 ' });
+    expect(calls).toEqual([['activate', ['38B1460A-5104-4067-A91D-77B872934D51']]]);
   });
 
   it('returns the view state', async () => {

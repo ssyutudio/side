@@ -25,7 +25,7 @@ function sentBlock(s: ViewState): SafeHtml {
   const { llm, uploadEnabled } = s.saw;
   const counts = t('Anonymous counts: {state}.', { state: uploadEnabled ? t('on (numbers only)') : t('off') });
   const settings = html`<button type="button" class="link" data-act="nav" data-section="settings">${t('Settings')}</button>`;
-  if (!llm.available) return html`<p class="quiet">${t('Nothing to Claude. There is no Claude key on this computer, so sidy names groups with simple rules here.')} ${counts} ${settings}</p>`;
+  if (!llm.available) return html`<p class="quiet">${t('Nothing to Claude. Side Pro is not on for this computer, so sidy names groups with simple rules here.')} ${counts} ${settings}</p>`;
   if (!llm.enabled) return html`<p class="quiet">${t('Nothing to Claude. AI drafting is off, so sidy names groups with simple rules on this computer.')} ${counts} ${settings}</p>`;
   if (!llm.sends) {
     return html`<p class="quiet">${t('Nothing yet. When you set today aside, tab titles go to Claude (Anthropic) to name groups; your one line and your step counts (numbers only) help pick the next step — no addresses, no page text, nothing from excluded sites.')} ${counts} ${settings}</p>`;

@@ -22,3 +22,21 @@ create table if not exists usage_counts (
   still_working_10m integer not null default 0,
   updated_at timestamptz not null default now()
 );
+
+-- Side Pro. Cached license checks per Mac (a hash of the key, never the key) and the number of
+-- Claude requests per license per UTC day. No request text is stored anywhere.
+create table if not exists license_checks (
+  key_hash text not null,
+  instance_id text not null,
+  ok boolean not null,
+  status text not null,
+  checked_at timestamptz not null default now(),
+  primary key (key_hash, instance_id)
+);
+
+create table if not exists llm_usage (
+  key_hash text not null,
+  day date not null,
+  calls integer not null default 0,
+  primary key (key_hash, day)
+);

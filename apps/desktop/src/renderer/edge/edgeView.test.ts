@@ -112,3 +112,13 @@ describe('Korean', () => {
     expect(s(edgeView({ mode: 'quiet', size: 40, hitY: 0, hitSize: 48 }))).toContain(`aria-label="${ko('sidy — open Side')}"`);
   });
 });
+
+describe('step bubble layout', () => {
+  it('leads with the person\'s own line, then what is ready, with Welcome back on the date line', () => {
+    setLanguage('en');
+    const h = String(bubbleView({ kind: 'step', stepId: 'st1', trigger: 'app_start' }, FIXTURES.day));
+    expect(h).toMatch(/<p class="asked">“Will annual pricing beat monthly\?”<\/p><p class="ready">Pricing page is ready where you stopped\.<\/p>/);
+    const away = String(bubbleView({ kind: 'step', stepId: 'st1', trigger: 'app_start' }, FIXTURES['three-days']));
+    expect(away).toMatch(/<span class="meta">Welcome back\. Last wrap-up/);
+  });
+});
