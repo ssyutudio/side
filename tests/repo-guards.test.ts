@@ -5,7 +5,7 @@ import { join, relative } from 'node:path';
 import { execSync } from 'node:child_process';
 
 const ROOT = join(__dirname, '..');
-const SKIP_DIRS = new Set(['node_modules', 'dist', 'out', '.git', '.war-room-state', '.claude', '.vercel']);
+const SKIP_DIRS = new Set(['node_modules', 'dist', 'out', '.git', '.war-room-state', '.claude', '.vercel', '.sz']);
 const EXTENSIONS = ['.ts', '.tsx', '.html', '.css', '.json', '.md', '.mjs', '.sql'];
 /** The only place Hangul may appear: the Korean dictionaries (a folder or file named i18n/ko). */
 const KOREAN_DICTIONARY = /(^|\/)i18n\/ko(\/|\.)/;

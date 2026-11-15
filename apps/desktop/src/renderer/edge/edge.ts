@@ -38,6 +38,8 @@ function rightOffset() {
 // the notes and restart the motion. Bubbles and toasts still draw at once.
 let reacting = false;
 let deferred = false;
+/** One blink cycle (side.css @keyframes sidy-blink). */
+const BLINK_MS = 6400;
 
 function render() {
   if (reacting && !bubble && !toast) {
@@ -52,7 +54,10 @@ function render() {
   let overlay = '';
   if (inner && bubble) overlay = `<div class="${bubbleClass(bubble)}" role="status">${inner}</div>`;
   else if (toast) overlay = String(toastView(toast));
-  app.innerHTML = String(edgeView({ mode, size, hitY: hit.y, hitSize: hit.h })) + overlay;
+  app.innerHTML = String(edgeView({ mode, size, hitY: hit.y, hitSize: hit.h, smile: !!inner })) + overlay;
+  // A redraw makes new eyes; start their blink where the old ones were, so frequent state
+  // updates never keep restarting it before the first blink.
+  app.querySelector<HTMLElement>('.edge')?.style.setProperty('--blink', `-${Date.now() % BLINK_MS}ms`);
   const box = app.querySelector<HTMLElement>('.bubble, .toast');
   if (box) {
     // Level with sidy, but whole inside the window when sidy sits near the top or bottom; the
